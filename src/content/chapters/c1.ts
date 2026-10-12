@@ -528,7 +528,7 @@ export const chapter1: Scene[] = [
     kind: 'story',
     optional: true,
     text: [
-      p('Vous ne savez plus comment vous êtes sorti du magasin. Vous vous retrouvez adossé à la carcasse d’un camion, les mains en sang, le souffle en lambeaux. Dans la bousculade, votre sac s’est déchiré.'),
+      p('Vous ne savez plus comment vous avez quitté le magasin. Vous reprenez vos esprits contre la carcasse d’un camion, les mains en sang, le souffle en lambeaux. Dans la bousculade, votre sac s’est déchiré.'),
       p('Kaz vous a tiré par le col sur les dix derniers mètres. Il ne dit rien. Il vous tend sa gourde.', withUs('kaz')),
     ],
     onEnter: [take('ration', 1), heal(6), set('super_fini'), journal('Vous avez fui le supermarché Prixdoux de justesse.', false)],
@@ -662,7 +662,7 @@ export const chapter1: Scene[] = [
       p('Vous dévalez la colline en titubant, une main plaquée sur vos côtes. Derrière vous, l’hôpital se remet à attendre, comme si de rien n’était.'),
       p('Vous n’y retournerez pas. Pas aujourd’hui. Pas dans cet état.'),
     ],
-    onEnter: [set('hopital_fait'), heal(5), journal('Vous avez été repoussé de l’hôpital Delorme.', false)],
+    onEnter: [set('hopital_fait'), heal(5), journal('L’hôpital Delorme vous a rejeté : impossible d’y retourner.', false)],
     choices: [{ id: 'relever', text: 'Reprendre votre souffle dans la rue des Tanneurs.', kind: 'move', next: 'c1_rue' }],
   },
 
@@ -795,7 +795,7 @@ export const chapter1: Scene[] = [
       p('Vous vous retrouvez dans le caniveau, à vous frotter le visage avec de l’eau de pluie pour enlever la bile qui brûle. Vos yeux pleurent. Vos mains tremblent.'),
       p('La clinique est derrière vous. Elle peut y rester.'),
     ],
-    onEnter: [set('veto_fait'), heal(5), journal('Le Gonflé de la clinique vétérinaire vous a repoussé.', false)],
+    onEnter: [set('veto_fait'), heal(5), journal('Le Gonflé de la clinique vétérinaire vous a fait battre en retraite.', false)],
     choices: [{ id: 'relever', text: 'Se relever.', kind: 'move', next: 'c1_rue' }],
   },
 
@@ -1139,7 +1139,7 @@ export const chapter1: Scene[] = [
       p('Maëlle soutient Théo, qui boite mais marche. Kaz ferme la marche, sa clé à molette à la main.', KAZ_PRESENT),
       p('Maëlle porte Théo à moitié. Il est brûlant de fièvre et ne tient pas debout seul.', flag('theo_malade')),
       p('Les rues sont perdues. Il faut passer sous la ville.'),
-      say('odilon', 'Vous vous souvenez des mots d’Odilon : la brasserie Mauduit, la cave, les carrières.', flag('connait_brasserie')),
+      p('Vous vous souvenez des mots d’Odilon : la brasserie Mauduit, la cave, les carrières.', flag('connait_brasserie')),
       p('Vous connaissez les Carrières : vous y avez passé des nuits entières, avant. L’accès le plus proche est sous la brasserie Mauduit.', background('cataphile')),
       say('kaz', '« La brasserie Mauduit », gronde Kaz. « Il y a une porte dans la cave. Les passeurs l’utilisent. »', KAZ_PRESENT),
       say('theo', '« La brasserie », souffle Théo. « Sur ma carte. Il y avait une étoile. Les gens disparaissent par là. »', all(notFlag('connait_brasserie'), not(background('cataphile')))),

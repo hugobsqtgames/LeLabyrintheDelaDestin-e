@@ -481,7 +481,7 @@ export const chapter3: Scene[] = [
     text: [
       p('Vous vous réveillez en sursaut, sans savoir pourquoi. Puis vous comprenez : le silence. Pas de ronflement. Le matelas de Kaz est vide. Celui de Théo aussi.'),
       p('Sur la table de cartes, griffonné au dos d’un formulaire de douane : « Pardon. J’ai pas le choix. K. »'),
-      say('maelle', 'Maëlle ne crie pas. Elle prend sa barre de fer et elle marche vers la porte, et il faut vous mettre devant elle pour l’empêcher d’aller seule dans la casse.', withUs('maelle')),
+      p('Maëlle ne crie pas. Elle prend sa barre de fer et elle marche vers la porte, et il faut vous mettre devant elle pour l’empêcher d’aller seule dans la casse.', withUs('maelle')),
     ],
     onEnter: [
       companion('theo', 'captured'),
@@ -1060,7 +1060,7 @@ export const chapter3: Scene[] = [
       companion('nour', 'companion'),
       heal(6),
       xp(30),
-      journal('Vous vous êtes évadé de la casse en libérant les prisonniers.'),
+      journal('Évasion de la casse : les prisonniers ont été libérés.'),
     ],
     choices: [{ id: 'pont', text: 'Courir vers le Pont de Fer.', kind: 'flee', next: 'c3_pont' }],
   },

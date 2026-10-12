@@ -135,7 +135,7 @@ export function StoryView({ game }: { game: GameState }) {
             <Text style={[type.h2, { color: colors.paperInk }]}>Fin du chapitre {chapter?.number}</Text>
             <Text style={[type.bodySmall, { color: colors.paperInk, marginBottom: space.sm }]}>{chapter?.title}</Text>
             {chapterEvents.length === 0 ? (
-              <Text style={[type.bodySmall, { color: colors.paperInk }]}>Un chapitre sans éclat. Vous êtes vivant.</Text>
+              <Text style={[type.bodySmall, { color: colors.paperInk }]}>Un chapitre sans éclat. Vous êtes en vie.</Text>
             ) : (
               chapterEvents.map((e) => (
                 <Text key={e.id} style={[type.bodySmall, { color: colors.paperInk }]}>

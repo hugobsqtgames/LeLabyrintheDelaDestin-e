@@ -598,7 +598,7 @@ const endings: EndingDef[] = [
   { id: 'fin_prix', title: 'Le Prix du passage', kind: 'ending', epitaph: 'Vous êtes à bord. Vous avez payé.' },
   { id: 'fin_gardien', title: 'Le Gardien de l’écluse', kind: 'ending', epitaph: 'Quelqu’un devait tenir la vanne.' },
   { id: 'fin_racines', title: 'Les Racines', kind: 'ending', epitaph: 'Certains bateaux ne valent pas le voyage.' },
-  { id: 'fin_errance', title: 'Le Fleuve', kind: 'ending', epitaph: 'Seul, mais vivant. C’est déjà quelque chose.' },
+  { id: 'fin_errance', title: 'Le Fleuve', kind: 'ending', epitaph: 'Sans personne, mais en vie. C’est déjà quelque chose.' },
 ];
 
 export const ENDINGS: Record<string, EndingDef> = Object.fromEntries(endings.map((e) => [e.id, e]));
