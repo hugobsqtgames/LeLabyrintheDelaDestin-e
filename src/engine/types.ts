@@ -1,0 +1,536 @@
+/**
+ * Modèles de données du jeu.
+ *
+ * Ce fichier ne dépend d'aucune bibliothèque d'interface : le moteur
+ * (src/engine) et le contenu (src/content) peuvent être testés en Node pur.
+ */
+
+// ---------------------------------------------------------------------------
+// Identifiants
+// ---------------------------------------------------------------------------
+
+export type StatId = 'force' | 'discretion' | 'survie' | 'astuce';
+export type ProfileId = 'guerrier' | 'eclaireur' | 'technicien';
+export type BackgroundId = 'ambulancier' | 'detenu' | 'cataphile' | 'pompier';
+export type EmblemId = 'masque' | 'boussole' | 'cle' | 'corbeau' | 'fougere' | 'lame';
+export type PerkId =
+  | 'premiers_secours'
+  | 'pas_de_loup'
+  | 'main_lourde'
+  | 'oeil_de_lynx'
+  | 'sang_froid'
+  | 'dos_solide'
+  | 'second_souffle';
+
+export type SceneId = string;
+export type ItemId = string;
+export type EnemyId = string;
+export type QuestId = string;
+export type CharacterId = string;
+export type LocationId = string;
+export type ChapterId = string;
+export type EndingId = string;
+
+export type Stats = Record<StatId, number>;
+
+// ---------------------------------------------------------------------------
+// Conditions & effets (le cœur du moteur narratif)
+// ---------------------------------------------------------------------------
+
+export type QuestStatus = 'inactive' | 'active' | 'completed' | 'failed';
+export type CompanionStatus = 'unknown' | 'met' | 'companion' | 'away' | 'captured' | 'dead';
+
+export type Condition =
+  | { type: 'stat'; stat: StatId; min: number }
+  | { type: 'profile'; profiles: ProfileId[] }
+  | { type: 'background'; backgrounds: BackgroundId[] }
+  | { type: 'item'; item: ItemId; qty?: number }
+  | { type: 'flag'; flag: string }
+  | { type: 'notFlag'; flag: string }
+  | { type: 'counter'; counter: string; min?: number; max?: number }
+  | { type: 'quest'; quest: QuestId; status: QuestStatus[] }
+  | { type: 'questStep'; quest: QuestId; step: string }
+  | { type: 'relation'; character: CharacterId; min?: number; max?: number }
+  | { type: 'companion'; character: CharacterId; status: CompanionStatus[] }
+  | { type: 'hp'; min: number }
+  | { type: 'level'; min: number }
+  | { type: 'perk'; perk: PerkId }
+  | { type: 'visited'; scene: SceneId }
+  | { type: 'infection'; min?: number; max?: number }
+  | { type: 'all'; conditions: Condition[] }
+  | { type: 'any'; conditions: Condition[] }
+  | { type: 'not'; condition: Condition };
+
+export type StatusKind =
+  | 'saignement'
+  | 'sonne'
+  | 'affaibli'
+  | 'agrippe'
+  | 'etourdi'
+  | 'brulure'
+  | 'distrait'
+  | 'garde';
+
+export type Effect =
+  | { type: 'setFlag'; flag: string; value?: boolean }
+  | { type: 'addCounter'; counter: string; amount: number }
+  | { type: 'giveItem'; item: ItemId; qty?: number }
+  | { type: 'takeItem'; item: ItemId; qty?: number }
+  | { type: 'heal'; amount: number }
+  /** Par défaut, les dégâts narratifs laissent au moins 1 PV ; `lethal` autorise la mort. */
+  | { type: 'damage'; amount: number; cause: string; lethal?: boolean }
+  | { type: 'stamina'; amount: number }
+  | { type: 'xp'; amount: number }
+  | { type: 'relation'; character: CharacterId; amount: number }
+  | { type: 'companion'; character: CharacterId; status: CompanionStatus }
+  | { type: 'quest'; quest: QuestId; status?: QuestStatus; step?: string }
+  | { type: 'discover'; location: LocationId }
+  | { type: 'world'; location: LocationId; change: string }
+  | { type: 'infection'; amount: number }
+  | { type: 'cureInfection' }
+  | { type: 'journal'; text: string; major?: boolean }
+  | { type: 'meal' }
+  | { type: 'rest'; amount?: number }
+  | { type: 'chapter'; chapter: ChapterId }
+  /** Effet conditionnel, évalué au moment de l'application. */
+  | { type: 'if'; cond: Condition; then: Effect[]; else?: Effect[] };
+
+// ---------------------------------------------------------------------------
+// Scènes
+// ---------------------------------------------------------------------------
+
+/** Un paragraphe de narration ou une réplique, éventuellement conditionnel. */
+export interface TextBlock {
+  text: string;
+  /** Si défini, le bloc est une réplique de ce personnage (ou « moi »). */
+  speaker?: CharacterId | 'moi';
+  if?: Condition;
+}
+
+export type ChoiceKind =
+  | 'move'
+  | 'talk'
+  | 'negotiate'
+  | 'stealth'
+  | 'explore'
+  | 'item'
+  | 'fight'
+  | 'flee'
+  | 'sacrifice'
+  | 'rest';
+
+export interface SkillCheck {
+  stat: StatId;
+  /** Seuil à atteindre avec 2d6 + caractéristique. */
+  difficulty: number;
+  success: SceneId;
+  failure: SceneId;
+  successEffects?: Effect[];
+  failureEffects?: Effect[];
+}
+
+export interface Choice {
+  id: string;
+  text: string;
+  kind: ChoiceKind;
+  /** Conditions obligatoires : le choix est affiché verrouillé si elles manquent. */
+  requires?: Condition[];
+  /** Conditions de visibilité : le choix est masqué tant qu'elles manquent (secret). */
+  visibleIf?: Condition[];
+  /** Avertissement facultatif affiché sous le choix. */
+  warning?: string;
+  effects?: Effect[];
+  next?: SceneId;
+  check?: SkillCheck;
+  /** Le choix ne peut être pris qu'une seule fois (fouille, récompense…). */
+  once?: boolean;
+}
+
+export interface EncounterDef {
+  enemies: EnemyId[];
+  canFlee: boolean;
+  victory: SceneId;
+  defeat: SceneId;
+  flee?: SceneId;
+  /** Texte d'ambiance affiché au début du combat. */
+  intro: string;
+  /** L'ennemi est surpris : bonus d'ouverture (attaque sournoise de l'éclaireur). */
+  ambush?: boolean;
+}
+
+export type SceneKind = 'story' | 'combat' | 'chapterEnd' | 'ending' | 'death';
+
+export interface Scene {
+  id: SceneId;
+  chapter: ChapterId;
+  location: LocationId;
+  title: string;
+  kind: SceneKind;
+  text: TextBlock[];
+  /**
+   * Routage conditionnel : en entrant, la première route dont la condition
+   * est remplie redirige immédiatement vers une autre scène.
+   */
+  routes?: { if: Condition; to: SceneId }[];
+  /** Effets appliqués une seule fois, à la première entrée dans la scène. */
+  onEnter?: Effect[];
+  choices: Choice[];
+  encounter?: EncounterDef;
+  ending?: EndingId;
+  /** Point de reprise si une sauvegarde référence une scène disparue. */
+  checkpoint?: boolean;
+  /** Scène optionnelle (utilisé par le validateur et les statistiques). */
+  optional?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Objets & équipement
+// ---------------------------------------------------------------------------
+
+export type ItemCategory =
+  | 'melee'
+  | 'ranged'
+  | 'ammo'
+  | 'consumable'
+  | 'armor'
+  | 'accessory'
+  | 'tool'
+  | 'material'
+  | 'quest';
+
+export type EquipSlot = 'melee' | 'ranged' | 'armor' | 'accessory';
+
+export interface ItemUse {
+  heal?: number;
+  stamina?: number;
+  cures?: StatusKind[];
+  cureInfection?: boolean;
+  /** Effet de combat sur la cible (objets lancés). */
+  combatDamage?: [number, number];
+  applyToEnemy?: { status: StatusKind; turns: number };
+  /** L'effet touche tous les ennemis. */
+  targetAll?: boolean;
+  /** Utilisable hors combat. */
+  outOfCombat?: boolean;
+  /** Utilisable en combat. */
+  inCombat?: boolean;
+}
+
+export interface ItemDef {
+  id: ItemId;
+  name: string;
+  category: ItemCategory;
+  description: string;
+  weight: number;
+  maxStack: number;
+  rarity: 'commun' | 'rare' | 'unique';
+  slot?: EquipSlot;
+  /** Armes : dégâts min/max, coût d'endurance, munition utilisée. */
+  damage?: [number, number];
+  staminaCost?: number;
+  ammo?: ItemId;
+  accuracy?: number;
+  /** Arme de finesse : utilise la meilleure valeur entre Force et Discrétion. */
+  finesse?: boolean;
+  /** Bruyant : les armes à feu peuvent attirer d'autres Muets. */
+  loud?: boolean;
+  /** Armures/accessoires. */
+  armor?: number;
+  statBonus?: Partial<Stats>;
+  capacityBonus?: number;
+  use?: ItemUse;
+  /** Objet de quête : ne peut être jeté. */
+  questItem?: boolean;
+  icon: string;
+}
+
+// ---------------------------------------------------------------------------
+// Ennemis & combat
+// ---------------------------------------------------------------------------
+
+export type EnemyMoveKind = 'attack' | 'heavy' | 'grab' | 'bite' | 'scream' | 'guard' | 'spit';
+
+export interface EnemyMove {
+  id: string;
+  name: string;
+  kind: EnemyMoveKind;
+  weight: number;
+  damage?: [number, number];
+  /** Message d'intention affiché au joueur avant l'action. */
+  telegraph: string;
+  applies?: { status: StatusKind; turns: number; chance: number };
+  /** Pour 'scream' : ennemi invoqué. */
+  summon?: EnemyId;
+  infectionChance?: number;
+}
+
+export interface EnemyPhase {
+  /** Seuil de PV (fraction) en dessous duquel la phase commence. */
+  belowHpRatio: number;
+  name: string;
+  announce: string;
+  moves: EnemyMove[];
+  defenseBonus?: number;
+}
+
+export interface EnemyDef {
+  id: EnemyId;
+  name: string;
+  description: string;
+  maxHp: number;
+  defense: number;
+  evasion: number;
+  moves: EnemyMove[];
+  phases?: EnemyPhase[];
+  weaknesses?: { status?: StatusKind; multiplier: number; hint: string }[];
+  /** Les tirs à distance infligent ce multiplicateur (ex. Gonflé : préférer la distance). */
+  meleePenalty?: { damage: number; text: string };
+  xp: number;
+  boss?: boolean;
+  art: string;
+  human?: boolean;
+}
+
+export interface StatusInstance {
+  kind: StatusKind;
+  turns: number;
+}
+
+export interface CombatEnemy {
+  uid: string;
+  def: EnemyId;
+  hp: number;
+  maxHp: number;
+  statuses: StatusInstance[];
+  intent: string | null;
+  phase: number;
+}
+
+export type CombatActionType = 'attack' | 'defend' | 'dodge' | 'skill' | 'item' | 'flee';
+
+export interface CombatAction {
+  type: CombatActionType;
+  target?: string;
+  item?: ItemId;
+  weapon?: 'melee' | 'ranged';
+}
+
+export interface CombatLogEntry {
+  id: number;
+  text: string;
+  tone: 'player' | 'enemy' | 'ally' | 'system' | 'crit' | 'danger';
+}
+
+export interface CombatState {
+  sceneId: SceneId;
+  enemies: CombatEnemy[];
+  turn: number;
+  playerStatuses: StatusInstance[];
+  defending: boolean;
+  dodging: boolean;
+  skillCooldown: number;
+  ambushUsed: boolean;
+  log: CombatLogEntry[];
+  logCounter: number;
+  outcome: 'ongoing' | 'victory' | 'defeat' | 'fled';
+  summons: number;
+  xpEarned: number;
+}
+
+// ---------------------------------------------------------------------------
+// Personnage
+// ---------------------------------------------------------------------------
+
+export interface CharacterDraft {
+  name: string;
+  profile: ProfileId | null;
+  background: BackgroundId | null;
+  emblem: EmblemId | null;
+  allocated: Stats;
+}
+
+export interface PlayerCharacter {
+  name: string;
+  profile: ProfileId;
+  background: BackgroundId;
+  emblem: EmblemId;
+  /** Caractéristiques de base (hors bonus d'équipement). */
+  stats: Stats;
+  hp: number;
+  stamina: number;
+  level: number;
+  xp: number;
+  unspentStatPoints: number;
+  unspentPerks: number;
+  perks: PerkId[];
+  /** 0 = sain, 1-3 = stades d'infection. */
+  infection: number;
+}
+
+// ---------------------------------------------------------------------------
+// État de partie
+// ---------------------------------------------------------------------------
+
+export interface QuestState {
+  status: QuestStatus;
+  step: string | null;
+  completedSteps: string[];
+}
+
+export interface ChronicleEntry {
+  id: number;
+  turn: number;
+  chapter: ChapterId;
+  sceneId: SceneId;
+  sceneTitle: string;
+  text: string;
+  major: boolean;
+}
+
+export interface Notice {
+  id: number;
+  text: string;
+  tone: 'good' | 'bad' | 'info' | 'level';
+}
+
+export interface GameState {
+  id: string;
+  createdAt: number;
+  turn: number;
+  rng: number;
+  player: PlayerCharacter;
+  chapter: ChapterId;
+  currentScene: SceneId;
+  previousScene: SceneId | null;
+  inventory: Record<ItemId, number>;
+  equipment: Record<EquipSlot, ItemId | null>;
+  /** Objets trouvés mais trop lourds : au sol, dans la scène courante. */
+  ground: Record<ItemId, number>;
+  flags: Record<string, boolean>;
+  counters: Record<string, number>;
+  quests: Record<QuestId, QuestState>;
+  relations: Record<CharacterId, number>;
+  companions: Record<CharacterId, CompanionStatus>;
+  discovered: LocationId[];
+  world: Record<LocationId, string[]>;
+  visitedScenes: SceneId[];
+  /** Effets uniques déjà consommés : `scene:<id>` et `choice:<scene>/<choice>`. */
+  consumed: string[];
+  chronicle: ChronicleEntry[];
+  chronicleCounter: number;
+  combat: CombatState | null;
+  notices: Notice[];
+  noticeCounter: number;
+  ending: { id: EndingId; kind: 'ending' | 'death'; cause?: string } | null;
+  playtimeMs: number;
+  /** Dernier jet de dés effectué (affiché dans l'histoire). */
+  lastCheck: { stat: StatId; roll: [number, number]; total: number; difficulty: number; success: boolean } | null;
+}
+
+// ---------------------------------------------------------------------------
+// Contenu
+// ---------------------------------------------------------------------------
+
+export interface ProfileDef {
+  id: ProfileId;
+  name: string;
+  tagline: string;
+  description: string;
+  bonuses: Partial<Stats>;
+  skill: { name: string; description: string; staminaCost: number; cooldown: number };
+  startingItems: Record<ItemId, number>;
+  startingEquipment: Partial<Record<EquipSlot, ItemId>>;
+  art: string;
+}
+
+export interface BackgroundDef {
+  id: BackgroundId;
+  name: string;
+  description: string;
+  advantage: string;
+  drawback: string;
+  bonusMaxHp?: number;
+  capacityModifier?: number;
+  healingMultiplier?: number;
+  /** Modificateurs appliqués aux jets de compétence. */
+  checkModifiers?: Partial<Stats>;
+  startingItems?: Record<ItemId, number>;
+  startingRelations?: Record<CharacterId, number>;
+}
+
+export interface CharacterDef {
+  id: CharacterId;
+  name: string;
+  role: string;
+  description: string;
+  color: string;
+  initials: string;
+  /** Aide en combat lorsqu'il ou elle accompagne le joueur. */
+  combatAssist?: { kind: 'damage' | 'heal'; amount: [number, number]; every: number; text: string };
+  /** Bouche à nourrir lors des repas de groupe. */
+  eats: boolean;
+}
+
+export interface LocationDef {
+  id: LocationId;
+  name: string;
+  region: string;
+  description: string;
+  x: number;
+  y: number;
+  danger: 1 | 2 | 3;
+  changes?: Record<string, string>;
+}
+
+export interface QuestDef {
+  id: QuestId;
+  title: string;
+  kind: 'main' | 'side';
+  chapter: ChapterId;
+  summary: string;
+  steps: { id: string; text: string }[];
+}
+
+export interface ChapterDef {
+  id: ChapterId;
+  number: number;
+  title: string;
+  subtitle: string;
+  region: string;
+  start: SceneId;
+}
+
+export interface EndingDef {
+  id: EndingId;
+  title: string;
+  kind: 'ending' | 'death';
+  epitaph: string;
+}
+
+export interface SummaryRule {
+  if: Condition;
+  text: string;
+  tone: 'good' | 'bad' | 'neutral';
+}
+
+export interface PerkDef {
+  id: PerkId;
+  name: string;
+  description: string;
+}
+
+export interface GameContent {
+  scenes: Record<SceneId, Scene>;
+  items: Record<ItemId, ItemDef>;
+  enemies: Record<EnemyId, EnemyDef>;
+  quests: Record<QuestId, QuestDef>;
+  characters: Record<CharacterId, CharacterDef>;
+  locations: Record<LocationId, LocationDef>;
+  chapters: ChapterDef[];
+  endings: Record<EndingId, EndingDef>;
+  profiles: Record<ProfileId, ProfileDef>;
+  backgrounds: Record<BackgroundId, BackgroundDef>;
+  perks: Record<PerkId, PerkDef>;
+  summaryRules: SummaryRule[];
+  startScene: SceneId;
+}
