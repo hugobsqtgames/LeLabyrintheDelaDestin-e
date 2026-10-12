@@ -204,3 +204,18 @@ describe('migrations et réparation', () => {
     expect(res.state!.combat).not.toBeNull();
   });
 });
+
+describe('écrasement d’un emplacement', () => {
+  it('effacer puis sauvegarder ne laisse que la nouvelle partie, sans copie de l’ancienne', async () => {
+    const { storage, saves } = manager();
+    await saves.save(1, start({ name: 'Ancienne' }));
+    await saves.save(1, pick(start({ name: 'Ancienne' }), 'noter'));
+    // Comme au démarrage d'une nouvelle partie : effacement puis autosauvegarde immédiate, sans attendre.
+    saves.remove(1);
+    saves.save(1, start({ name: 'Nouvelle' }));
+    await saves.flush();
+    expect(storage.data.has(backupKey(1))).toBe(false);
+    const res = await saves.load(1);
+    expect(res.state!.player.name).toBe('Nouvelle');
+  });
+});

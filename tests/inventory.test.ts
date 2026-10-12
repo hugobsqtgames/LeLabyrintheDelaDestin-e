@@ -12,7 +12,7 @@ import {
   pickUp,
   removeItem,
   unequip,
-  useItemOutOfCombat,
+  consumeItemOutOfCombat,
 } from '../src/engine/inventory';
 import { C, start } from './helpers';
 
@@ -119,7 +119,7 @@ describe('consommables', () => {
     let s = start();
     s = { ...s, player: { ...s.player, hp: 5 } };
     const bandages = s.inventory.bandage;
-    s = useItemOutOfCombat(C, s, 'bandage');
+    s = consumeItemOutOfCombat(C, s, 'bandage');
     expect(s.inventory.bandage).toBe(bandages - 1);
     expect(s.player.hp).toBeGreaterThan(5);
     expect(s.player.hp).toBeLessThanOrEqual(maxHp(C, s));
@@ -128,7 +128,7 @@ describe('consommables', () => {
   it('refuse un soin inutile pour ne pas gaspiller', () => {
     const s = start();
     expect(canUseOutOfCombat(C, s, 'bandage').ok).toBe(false);
-    expect(useItemOutOfCombat(C, s, 'bandage')).toBe(s);
+    expect(consumeItemOutOfCombat(C, s, 'bandage')).toBe(s);
   });
 
   it('les antibiotiques soignent l’infection', () => {

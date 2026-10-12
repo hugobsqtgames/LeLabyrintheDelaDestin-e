@@ -1,0 +1,172 @@
+/**
+ * Vignettes de lieux : un bandeau panoramique par lieu, construit à partir
+ * d'un décor de région et d'un motif propre au lieu.
+ */
+import React, { useId } from 'react';
+import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import { colors } from '../theme';
+
+const REGION_SKY: Record<string, [string, string]> = {
+  'Quartier des Tanneurs': ['#3B4A47', '#121816'],
+  'Les Carrières': ['#2A2620', '#0B0A08'],
+  'Port fluvial': ['#3E4B52', '#11171A'],
+  'Écluse de Morvan': ['#5A5547', '#15140F'],
+};
+
+const ink = colors.bgDeep;
+
+function Motif({ id }: { id: string }) {
+  switch (id) {
+    case 'pharmacie':
+      return (
+        <G>
+          <Rect x={150} y={40} width={100} height={60} fill={ink} />
+          <Path d="M195 22 h10 v10 h10 v10 h-10 v10 h-10 v-10 h-10 v-10 h10 z" fill={colors.moss} />
+          <Path d="M160 70 h80" stroke={colors.lineStrong} strokeWidth={2} />
+          <Path d="M160 78 h80 M160 86 h80" stroke={colors.line} strokeWidth={2} />
+        </G>
+      );
+    case 'hopital':
+      return (
+        <G>
+          <Rect x={110} y={20} width={180} height={80} fill={ink} />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Rect key={i} x={122 + i * 28} y={34} width={14} height={18} fill={i === 2 ? colors.ice : colors.panel} opacity={i === 2 ? 0.5 : 1} />
+          ))}
+          <Path d="M190 64 h20 v36 h-20 z" fill={colors.panelRaised} />
+        </G>
+      );
+    case 'clocher':
+      return (
+        <G>
+          <Path d="M188 100 V40 L200 14 L212 40 V100 Z" fill={ink} />
+          <Circle cx={200} cy={52} r={6} fill={colors.amber} opacity={0.7} />
+        </G>
+      );
+    case 'supermarche':
+      return (
+        <G>
+          <Rect x={110} y={52} width={180} height={48} fill={ink} />
+          <Rect x={110} y={44} width={180} height={10} fill={colors.rustDeep} />
+          <Path d="M150 62 l20 38 M230 60 l-14 40" stroke={colors.panelRaised} strokeWidth={3} />
+        </G>
+      );
+    case 'clinique_veto':
+      return (
+        <G>
+          <Rect x={150} y={48} width={100} height={52} fill={ink} />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Line key={i} x1={160} y1={58 + i * 5} x2={240} y2={58 + i * 5} stroke={colors.lineStrong} />
+          ))}
+        </G>
+      );
+    case 'ossuaire':
+      return (
+        <G>
+          {Array.from({ length: 30 }).map((_, i) => (
+            <Circle key={i} cx={30 + (i % 15) * 24} cy={62 + Math.floor(i / 15) * 18} r={7} fill={colors.paperDim} opacity={0.35} />
+          ))}
+          <Circle cx={200} cy={40} r={4} fill={colors.amber} />
+          <Path d="M200 44 v20" stroke={colors.amber} strokeWidth={1} />
+        </G>
+      );
+    case 'grande_salle':
+      return (
+        <G>
+          {[60, 130, 270, 340].map((x) => (
+            <Rect key={x} x={x} y={10} width={16} height={90} fill={ink} />
+          ))}
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Path key={i} d={`M${150 + i * 12} 100 v-16 a4 4 0 0 1 8 0 v16`} fill={ink} />
+          ))}
+        </G>
+      );
+    case 'puits_noye':
+      return (
+        <G>
+          <Rect x={0} y={74} width={400} height={26} fill="#0F1C1E" />
+          <Path d="M40 80 q20 -4 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" stroke={colors.ice} strokeWidth={1} fill="none" opacity={0.5} />
+        </G>
+      );
+    case 'casse':
+      return (
+        <G>
+          <Path d="M90 100 l20 -30 h50 l10 -16 h40 l14 20 h40 l20 26 Z" fill={ink} />
+          <Path d="M260 40 L300 100" stroke={colors.rust} strokeWidth={4} />
+        </G>
+      );
+    case 'capitainerie':
+    case 'quai':
+      return (
+        <G>
+          <Path d="M260 100 V20 h6 v80 M266 24 L320 40" stroke={ink} strokeWidth={6} fill="none" />
+          <Rect x={0} y={84} width={400} height={16} fill="#121B20" />
+        </G>
+      );
+    case 'pont_fer':
+      return (
+        <G>
+          <Path d="M0 70 Q200 10 400 70" stroke={ink} strokeWidth={6} fill="none" />
+          {Array.from({ length: 11 }).map((_, i) => (
+            <Line key={i} x1={i * 40} y1={70} x2={i * 40 + 20} y2={70 - Math.sin((i / 10) * Math.PI) * 52} stroke={ink} strokeWidth={3} />
+          ))}
+          <Rect x={0} y={70} width={400} height={6} fill={ink} />
+        </G>
+      );
+    case 'ecluse':
+    case 'destinee':
+      return (
+        <G>
+          <Rect x={0} y={82} width={400} height={18} fill="#1A2224" />
+          <Path d="M120 82 h170 l-12 -24 h-140 z" fill={colors.paperDim} opacity={0.85} />
+          <Rect x={230} y={40} width={12} height={18} fill={colors.paperDim} />
+          <Path d="M236 44 v10 M231 49 h10" stroke={colors.rust} strokeWidth={2.5} />
+          <Rect x={60} y={40} width={14} height={60} fill={ink} />
+          <Rect x={330} y={40} width={14} height={60} fill={ink} />
+        </G>
+      );
+    case 'halage':
+      return (
+        <G>
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Path key={i} d={`M${20 + i * 46} 100 v-40 q-8 -16 0 -40 q8 24 0 40`} fill={ink} />
+          ))}
+        </G>
+      );
+    default:
+      return (
+        <G>
+          <Path d="M0 100 h40 v-30 h30 v20 h40 v-40 h20 v40 h50 v-24 h40 v34 h50 v-50 h30 v50 h100 v20 H0 Z" fill={ink} />
+        </G>
+      );
+  }
+}
+
+export function SceneryBanner({ location, region, height = 120 }: { location: string; region: string; height?: number }) {
+  const [top, bottom] = REGION_SKY[region] ?? REGION_SKY['Quartier des Tanneurs'];
+  const underground = region === 'Les Carrières';
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  return (
+    <Svg width="100%" height={height} viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice">
+      <Defs>
+        <LinearGradient id={`bannerSky${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={top} />
+          <Stop offset="1" stopColor={bottom} />
+        </LinearGradient>
+        <LinearGradient id={`bannerFade${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0.55" stopColor={colors.bg} stopOpacity={0} />
+          <Stop offset="1" stopColor={colors.bg} stopOpacity={1} />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width={400} height={100} fill={`url(#bannerSky${uid})`} />
+      {underground ? (
+        <Path d="M0 0 h400 v18 q-40 14 -80 6 t-90 8 t-110 -4 t-120 10 Z" fill={ink} />
+      ) : (
+        <Path d="M0 100 h30 v-24 h20 v10 h24 v-30 h14 v30 h26 v-12 h30 v26 h330 Z" fill={ink} opacity={0.6} />
+      )}
+      <Motif id={location} />
+      {!underground && <Path d="M330 12 a10 10 0 1 0 0.1 0" fill={colors.paper} opacity={0.15} />}
+      <Rect x={0} y={0} width={400} height={100} fill={`url(#bannerFade${uid})`} />
+    </Svg>
+  );
+}

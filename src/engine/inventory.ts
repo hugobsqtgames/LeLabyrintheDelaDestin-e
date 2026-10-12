@@ -230,7 +230,7 @@ export function applyConsumable(content: GameContent, state: GameState, item: It
   return clampVitals(content, s);
 }
 
-export function useItemOutOfCombat(content: GameContent, state: GameState, item: ItemId): GameState {
+export function consumeItemOutOfCombat(content: GameContent, state: GameState, item: ItemId): GameState {
   if (!canUseOutOfCombat(content, state, item).ok) return state;
   return applyConsumable(content, state, item);
 }

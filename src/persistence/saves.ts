@@ -171,10 +171,19 @@ export class SaveManager {
     }
   }
 
-  async remove(slot: number): Promise<void> {
-    await this.flush();
-    await this.storage.removeItem(slotKey(slot));
-    await this.storage.removeItem(backupKey(slot));
+  /**
+   * Efface un emplacement (et sa copie de secours). Passe par la file :
+   * une sauvegarde demandée après l'effacement sera bien écrite après lui.
+   */
+  remove(slot: number): Promise<void> {
+    this.pending.delete(slot);
+    this.queue = this.queue
+      .catch(() => undefined)
+      .then(async () => {
+        await this.storage.removeItem(slotKey(slot));
+        await this.storage.removeItem(backupKey(slot));
+      });
+    return this.queue;
   }
 
   async loadSettings<T extends object>(defaults: T): Promise<T> {

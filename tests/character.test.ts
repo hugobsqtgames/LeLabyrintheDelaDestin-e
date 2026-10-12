@@ -14,6 +14,7 @@ import {
 } from '../src/engine/character';
 import { newGame } from '../src/engine/narrative';
 import { CREATION_CAP, CREATION_POINTS, STAT_MAX, xpToNext } from '../src/engine/rules';
+import type { CharacterDraft } from '../src/engine/types';
 import { C, DRAFT, start } from './helpers';
 
 describe('création du personnage', () => {
@@ -35,7 +36,7 @@ describe('création du personnage', () => {
   });
 
   it('respecte le budget de points et le plafond de création', () => {
-    let d = { ...emptyDraft(), name: 'Zoé', profile: 'guerrier' as const, background: 'pompier' as const, emblem: 'cle' as const };
+    let d: CharacterDraft = { ...emptyDraft(), name: 'Zoé', profile: 'guerrier' as const, background: 'pompier' as const, emblem: 'cle' as const };
     for (let i = 0; i < 10; i += 1) d = adjustDraftStat(C, d, 'force', 1);
     expect(draftStats(C, d).force).toBe(CREATION_CAP);
     expect(canIncrement(C, d, 'force')).toBe(false);
@@ -48,7 +49,7 @@ describe('création du personnage', () => {
   });
 
   it('changer de profil retire les points qui dépasseraient le plafond', () => {
-    let d = { ...emptyDraft(), profile: 'eclaireur' as const };
+    let d: CharacterDraft = { ...emptyDraft(), profile: 'eclaireur' };
     for (let i = 0; i < 4; i += 1) d = adjustDraftStat(C, d, 'force', 1);
     expect(draftStats(C, d).force).toBe(5);
     d = setDraftProfile(C, d, 'guerrier');

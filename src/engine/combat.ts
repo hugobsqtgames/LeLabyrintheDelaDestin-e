@@ -623,7 +623,7 @@ function checkOutcome(state: GameState): GameState {
   const c = state.combat!;
   if (c.outcome !== 'ongoing') return state;
   if (state.player.hp <= 0) return withCombat(state, log({ ...c, outcome: 'defeat' }, 'Vous vous effondrez.', 'danger'));
-  if (livingEnemies(c).length === 0) return withCombat(state, log({ ...c, outcome: 'victory' }, 'Le silence retombe. Vous avez survécu.', 'system'));
+  if (livingEnemies(c).length === 0) return withCombat(state, log({ ...c, outcome: 'victory', playerStatuses: [] }, 'Le silence retombe. Vous avez survécu.', 'system'));
   return state;
 }
 
@@ -666,7 +666,7 @@ export function performAction(content: GameContent, state: GameState, action: Co
       const f = chance(s.rng, fleeChance(content, s));
       s = { ...s, rng: f.seed };
       if (f.value) {
-        return withCombat(s, log({ ...s.combat!, outcome: 'fled' }, 'Vous prenez la fuite.', 'system'));
+        return withCombat(s, log({ ...s.combat!, outcome: 'fled', playerStatuses: [] }, 'Vous prenez la fuite.', 'system'));
       }
       s = withCombat(s, log(s.combat!, 'Votre fuite échoue : le passage est coupé.', 'danger'));
       break;

@@ -30,7 +30,6 @@ import {
   rest,
   say,
   set,
-  stat,
   step,
   take,
   when,

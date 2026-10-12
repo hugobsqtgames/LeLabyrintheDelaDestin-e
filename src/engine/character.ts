@@ -2,7 +2,6 @@
  * Création du personnage et statistiques dérivées.
  */
 import {
-  CAPACITY_BASE,
   CREATION_CAP,
   CREATION_POINTS,
   EFFECTIVE_STAT_MAX,

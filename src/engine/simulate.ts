@@ -3,12 +3,10 @@
  * Utilisés par les tests (parcours complets, couverture des fins) et par
  * le script d'équilibrage.
  */
-import { choosePerk, spendStatPoint } from './character';
-import { canPerform, describeIntent, dodgeChance, livingEnemies } from './combat';
-import { performAction } from './combat';
+import { choosePerk, maxHp, spendStatPoint } from './character';
+import { canPerform, describeIntent, dodgeChance, livingEnemies, performAction } from './combat';
 import { choiceViews, choose, newGame, resolveCombat } from './narrative';
 import { applyConsumable, canUseOutOfCombat, equip } from './inventory';
-import { maxHp } from './character';
 import { nextFloat } from './rng';
 import type { CharacterDraft, ChoiceKind, CombatAction, GameContent, GameState, PerkId, StatId } from './types';
 
