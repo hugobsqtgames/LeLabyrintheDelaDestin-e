@@ -25,9 +25,9 @@ Run lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+- This game does **not** use Expo Router: navigation is a state router (`src/AppRouter.tsx`) driven by the model in `src/store/GameStore.tsx`. The screen always derives from the game state, so back gestures and interruptions cannot desynchronise the story. See README « Choix de navigation ».
+- Game logic lives in `src/engine/` (pure TypeScript, no React). UI must change game state only through engine functions passed to `update()`.
+- Story content lives in `src/content/`; run `npm run validate` and `npm test` after editing it.
 
 ## Building with EAS
 
