@@ -322,8 +322,8 @@ export const chapter3: Scene[] = [
       say('moi', '« Docteure Sorel. Je ne suis pas un Ferrailleur. J’ai entendu ce que votre capitaine vient de dire. »'),
       p('Un long silence. Puis la voix de la radio, celle de la première nuit, mais plus proche, plus fragile.'),
       say('sorel', '« Qui êtes-vous ? »'),
-      say('moi', '« Quelqu’un qui sera à l’écluse dans deux jours. Avec un porteur qui n’est dans aucune cage. »', withUs('theo')),
-      say('moi', '« Quelqu’un qui sera à l’écluse dans deux jours. Et qui saura ce que vous avez accepté. »', not(withUs('theo'))),
+      say('moi', '« Quelqu’un qui sera à l’écluse à l’aube du septième jour. Avec un porteur qui n’est dans aucune cage. »', withUs('theo')),
+      say('moi', '« Quelqu’un qui sera à l’écluse à l’aube du septième jour. Et qui saura ce que vous avez accepté. »', not(withUs('theo'))),
       say('sorel', '« … Venez me voir. Moi, pas le capitaine. Je vous écouterai. » Une hésitation. « Je n’ai pas fait médecine pour acheter des enfants. »'),
     ],
     onEnter: [rel('sorel', 2), set('sorel_contactee'), journal('Vous avez parlé à la docteure Sorel par radio.')],
@@ -337,7 +337,7 @@ export const chapter3: Scene[] = [
     kind: 'story',
     text: [
       p('Trente mètres d’échelle rouillée, une cabine de verre qui oscille dans le vent. D’ici, la casse Lenoir s’étale sous vous comme un plan d’architecte.'),
-      p('Des allées de carcasses empilées sur six niveaux. Des chiens enchaînés à des essieux. Un trône fait de sièges de voiture au milieu d’une cour de bitume, où un homme massif en plastique de tôles rivetées mange un poulet avec les mains : Gaspard Lenoir.'),
+      p('Des allées de carcasses empilées sur six niveaux. Des chiens enchaînés à des essieux. Un trône fait de sièges de voiture au milieu d’une cour de bitume, où un homme massif en plastron de tôles rivetées mange un poulet avec les mains : Gaspard Lenoir.'),
       p('Et au fond, contre le grillage qui longe le fleuve, une rangée de cages à chiens. Dedans, il y a des gens. Six. Des enfants, pour la plupart. Une fillette aux cheveux tressés est assise contre les barreaux, les genoux sous le menton, et fixe le ciel.'),
       p('La relève de la garde se fait à trois heures du matin. Pendant dix minutes, le grillage du fleuve n’est surveillé que par un chien.'),
     ],
@@ -440,7 +440,7 @@ export const chapter3: Scene[] = [
     text: [
       p('Kaz attend que les autres dorment. Puis il s’assoit en face de vous, ses grosses mains croisées entre ses genoux, et il parle sans lever les yeux.'),
       say('kaz', '« J’ai perdu une barge de gasoil à Gaspard. Au poker, avant. Il voulait ma peau. Pour l’effacer, je lui ai promis de lui ramener un porteur. Un gosse qui ne tombe pas malade. Il paie cher, la barge paie encore plus cher. »'),
-      say('kaz', '« Le soir où vous m’avez ouvert, j’ai vu la cicatrice sur l’épaule du petit. J’ai su tout de suite. Et depuis cinq jours, je me répète que je pourrais… qu’il suffirait d’une nuit. » Il relève enfin la tête. Il a les yeux rouges. « Je ne le ferai pas. Je voulais que tu le saches de ma bouche. »'),
+      say('kaz', '« Le soir où vous m’avez ouvert, j’ai vu la cicatrice sur l’épaule du petit. J’ai su tout de suite. Et depuis des jours, je me répète que je pourrais… qu’il suffirait d’une nuit. » Il relève enfin la tête. Il a les yeux rouges. « Je ne le ferai pas. Je voulais que tu le saches de ma bouche. »'),
     ],
     onEnter: [set('kaz_aveu'), questFx('q_kaz', 'active', 'verite'), xp(20)],
     choices: [
@@ -1106,7 +1106,7 @@ export const chapter3: Scene[] = [
     text: [
       p('Le Pont de Fer est une structure de rivets et de poutrelles peinte en vert-de-gris, construite pour les foires-expositions d’un autre siècle. Le tablier vibre sous vos pas. En bas, le fleuve est d’un brun épais, rapide, plein de branches.'),
       p('Sur l’autre rive commence la route de halage. Douze kilomètres de berge jusqu’à l’écluse de Morvan.'),
-      p('Vous ne vous retournez pas vers la casse. Quelque part derrière ces carcasses, Théo est dans une cage, et il vous a regardé partir.', any(flag('theo_vendu'), flag('theo_abandonne'))),
+      p('Vous ne vous retournez pas vers la casse. Quelque part derrière ces carcasses, Théo est dans une cage, et il a regardé votre dos s’éloigner.', any(flag('theo_vendu'), flag('theo_abandonne'))),
     ],
     onEnter: [step('q_destinee', 'ecluse')],
     choices: [{ id: 'traverser', text: 'Traverser.', kind: 'move', next: 'c3_fin' }],

@@ -30,4 +30,9 @@ export const SUMMARY_RULES: SummaryRule[] = [
   { if: all(flag('promis_maelle'), not(flag('theo_vendu')), not(flag('theo_livre')), not(flag('theo_abandonne'))), text: 'Vous avez tenu votre promesse : personne n’a vendu Théo.', tone: 'good' },
   { if: flag('foule_soulevee'), text: 'Vous avez fait entendre la vérité à toute la foule de l’écluse.', tone: 'neutral' },
   { if: flag('cloche_utilisee'), text: 'La cloche du Berger a emmené la horde loin de l’écluse.', tone: 'good' },
+  { if: flag('vanne_auto'), text: 'Votre cliquet préparé a ouvert l’écluse sans sacrifier personne.', tone: 'good' },
+  { if: flag('aide_famille'), text: 'Vous avez soigné un enfant inconnu devant la grille.', tone: 'good' },
+  { if: flag('gaspard_temoigne'), text: 'Gaspard Lenoir a avoué le commerce des porteurs devant la docteure Sorel.', tone: 'good' },
+  { if: flag('en_retard'), text: 'Vous êtes arrivé à l’écluse après l’aube du septième jour.', tone: 'bad' },
+  { if: flag('barge_manquee'), text: 'La Destinée est partie sans vous.', tone: 'bad' },
 ];

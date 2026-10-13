@@ -641,7 +641,7 @@ export const chapter1: Scene[] = [
     text: [
       p('La pharmacie centrale de l’hôpital est intacte. Des étagères entières de boîtes alignées, étiquetées, classées par ordre alphabétique, comme si le monde allait reprendre demain à huit heures.'),
       p('Vous trouvez l’amoxicilline au rayon A. Deux boîtes, pas une de plus — quelqu’un est venu ici avant vous, mais a laissé le reste par précipitation ou par décence. Des compresses, des bandes, une trousse de suture.'),
-      p('Dans le bureau du pharmacien, un classeur ouvert sur le bureau porte le logo d’un hélice d’ADN entouré d’une couronne : Institut Ferrand.'),
+      p('Dans le bureau du pharmacien, un classeur ouvert sur le bureau porte le logo d’une hélice d’ADN entouré d’une couronne : Institut Ferrand.'),
     ],
     onEnter: [give('alcool', 1), 
       set('hopital_fait'),

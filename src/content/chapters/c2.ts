@@ -66,7 +66,7 @@ export const chapter2: Scene[] = [
     choices: [
       {
         id: 'codes',
-        text: '[Cataphile] Lui répondre en traçant à la craie le signe des anciens : « Je connais le chemin, je cherche une compagne. »',
+        text: '[Cataphile] Lui répondre en traçant à la craie le signe des anciens : « Je connais les galeries. Je cherche une passeuse, pas un guide. »',
         kind: 'talk', time: 0.5,
         requires: [background('cataphile')],
         effects: [rel('ines', 3), xp(15)],
@@ -229,7 +229,7 @@ export const chapter2: Scene[] = [
     text: [
       p('L’eau est si froide qu’elle coupe le souffle. Elle monte jusqu’à la poitrine, noire, immobile. Vous avancez en tâtant le fond du pied, les affaires levées au-dessus de la tête.'),
       p('Au centre de la salle, une vieille pompe électrique rouillée est boulonnée au rocher, câbles arrachés. Quelqu’un a tenté de la réparer, puis a abandonné.'),
-      p('Sous l’eau, votre pied heurte une caisse étanche coincée contre un pilier. À l’intérieur, des carreaux d’arbalète enveloppés de graisse.'),
+      p('Sous l’eau, votre pied heurte une caisse étanche coincée contre un pilier. À l’intérieur, des carreaux d’arbalète enveloppés de graisse et quelques pièces de métal récupérables.'),
     ],
     onEnter: [give('ferraille', 1), discover('puits_noye'), give('carreau', 5), xp(10)],
     choices: [{ id: 'suite', text: 'Sortir de l’eau et continuer.', kind: 'move', next: 'c2_ossuaire_porte' }],
@@ -273,7 +273,7 @@ export const chapter2: Scene[] = [
     title: 'Passage dégagé',
     kind: 'story',
     text: [
-      p('Derrière l’éboulis, la galerie est intacte. Sur le sol, le squelette d’un carrier du siècle dernier, sa lampe à carbure encore accrochée au ceinturon, et une gourde de métal pleine de… caféine en comprimés, dans une boîte de pastilles. Quelqu’un est passé par ici plus récemment.'),
+      p('Derrière l’éboulis, la galerie est intacte. Sur le sol, le squelette d’un carrier du siècle dernier, sa lampe à carbure encore accrochée au ceinturon, et, glissée dans sa poche de poitrine, une boîte de pastilles qui contient des comprimés de caféine bien trop récents pour être les siens. Quelqu’un est passé par ici avant vous, et a laissé un bandage propre sur le crâne du mort, comme une offrande. Vous récupérez aussi les rivets et les boucles de son équipement : de la ferraille utile.'),
     ],
     onEnter: [give('ferraille', 2), give('cafeine', 1), give('bandage', 1)],
     choices: [{ id: 'suite', text: 'Continuer vers l’ossuaire.', kind: 'move', next: 'c2_ossuaire_porte' }],
@@ -435,7 +435,7 @@ export const chapter2: Scene[] = [
     kind: 'story',
     text: [
       say('helene', '« Non. » Le mot tombe comme un couperet. « Il passera la nuit dans l’antichambre, derrière la grille. S’il est vivant et sans fièvre demain matin, il entrera. Sa mère peut rester avec lui. »'),
-      p('Maëlle s’assied contre la grille, Théo contre elle, sous une couverture que les Veilleurs leur jettent sans un mot. Vous entrez seul dans l’ossuaire, et vous ne vous retournez pas, parce que vous savez que si vous vous retournez, vous resterez dehors avec eux.'),
+      p('Maëlle s’assied contre la grille, Théo contre elle, sous une couverture que les Veilleurs leur jettent sans un mot. Vous entrez sans eux dans l’ossuaire, et vous ne vous retournez pas, parce que vous savez que si vous vous retournez, vous resterez dehors avec eux.'),
     ],
     onEnter: [set('theo_dehors'), set('theo_malade', false), rel('maelle', -1), rel('helene', -1)],
     choices: [{ id: 'entrer', text: 'Entrer dans l’ossuaire.', kind: 'move', next: 'c2_ossuaire_porte' }],
@@ -507,8 +507,10 @@ export const chapter2: Scene[] = [
       p('L’ossuaire est une ville. Entre les murs de crânes, les Veilleurs ont tendu des draps, installé des lits de camp, des cuisinières à gaz, une école où six enfants récitent des tables de multiplication à voix basse. Des cordes courent au plafond, reliées à des clochettes : tout un système d’alarme silencieux. Personne ne parle fort. Tout le monde sourit un peu.'),
       p('Théo et Maëlle sont dans l’alcôve de quarantaine, derrière un rideau. La sentinelle qui les garde lit un roman de poche à la lueur d’une bougie.', flag('theo_quarantaine')),
       p('Une ancienne pharmacienne, Sœur Prudence, tient le comptoir de troc à côté de l’autel. Plus loin, une forge de fortune rougeoie.'),
+      p('Près de l’autel, un vieil homme en gilet de laine enroule une corde de cloche autour de son poignet. Odilon. Il est descendu sous la ville la nuit de l’incendie, et les Veilleurs lui ont déjà confié leurs clochettes.', flag('odilon_aide')),
+      p('Près de l’autel, un vieil homme en gilet de laine vous regarde passer. Odilon. Il ne dit rien. Il n’a pas besoin : Hélène Vasseur, à côté de lui, a déjà entendu son histoire.', flag('odilon_vole')),
     ],
-    onEnter: [step('q_berger', 'rumeur'), questFx('q_berger', 'active', 'rumeur'), discover('grande_salle')],
+    onEnter: [step('q_berger', 'rumeur'), questFx('q_berger', 'active', 'rumeur'), discover('grande_salle'), when(flag('odilon_vole'), [rel('helene', -2)])],
     choices: [
       {
         id: 'helene',
@@ -523,6 +525,14 @@ export const chapter2: Scene[] = [
         kind: 'explore', time: 1,
         visibleIf: [quest('q_veilleurs', 'active')],
         next: 'c2_pompe',
+      },
+      {
+        id: 'odilon',
+        text: 'Rejoindre Odilon près de l’autel.',
+        kind: 'talk',
+        time: 0.5,
+        visibleIf: [flag('odilon_aide'), notFlag('vu_odilon_c2')],
+        next: 'c2_odilon',
       },
       { id: 'troc', text: 'Passer au comptoir de troc de Sœur Prudence.', kind: 'negotiate', time: 0.5, next: 'c2_troc' },
       {
@@ -541,6 +551,22 @@ export const chapter2: Scene[] = [
         next: 'c2_aqueduc',
       },
     ],
+  },
+  {
+    id: 'c2_odilon',
+    chapter: C,
+    location: 'ossuaire',
+    title: 'Le carillonneur',
+    kind: 'story',
+    optional: true,
+    text: [
+      say('odilon', '« Ah ! La personne aux deux rations. » Odilon vous serre la main entre les siennes, sèches et chaudes. « J’ai sonné pour vous, cette nuit-là. Plus fort que jamais. J’ai cru que mes bras allaient tomber. Et puis j’ai vu la fumée de la pharmacie, et j’ai compris qu’il fallait partir aussi. »'),
+      say('odilon', '« Ici, ils sonnent les cloches pour éloigner les morts, comme moi. Ils ont juste plus de cloches. » Il rit. « Hélène est une femme dure. Mais juste. Je lui ai parlé de vous. Elle vous écoutera. »'),
+      p('Il fouille dans la poche de son gilet et vous tend une dernière fusée rouge, enveloppée dans un mouchoir brodé.'),
+      say('odilon', '« Pour éloigner. Jamais pour appeler. Vous vous souvenez ? »'),
+    ],
+    onEnter: [set('vu_odilon_c2'), give('fusee', 1), rel('helene', 2), rel('odilon', 1)],
+    choices: [{ id: 'retour', text: 'Le remercier et retourner dans l’ossuaire.', kind: 'talk', next: 'c2_ossuaire' }],
   },
   {
     id: 'c2_helene',
@@ -598,7 +624,7 @@ export const chapter2: Scene[] = [
     kind: 'story',
     text: [
       p('Le moteur tousse, crachote, puis se met à ronronner. Un filet d’eau, puis un jet, sort du tuyau qui remonte vers l’ossuaire. Là-haut, quelqu’un pousse un cri de joie aussitôt étouffé, et toutes les clochettes du plafond se mettent à tinter, doucement, comme des applaudissements.'),
-      say('helene', '« Nous tiendrons parole. » Elle vous passe au cou une médaille de Saint-Roch sur un lacet de cuir. « Ceux qui portent ça sont des nôtres, où qu’ils aillent. »'),
+      say('helene', '« Nous tiendrons parole. » Elle vous passe au cou une médaille de Saint-Roch sur un lacet de cuir. « Ceux qui portent ça sont des nôtres, où qu’ils aillent. » Un Veilleur vous tend aussi une machette, lame huilée, manche refait au chatterton : « Elle coupait les ronces au-dessus. Ici, elle ne sert plus. »'),
     ],
     onEnter: [
       questFx('q_veilleurs', 'completed'),
@@ -992,8 +1018,8 @@ export const chapter2: Scene[] = [
     title: 'La berge',
     kind: 'story',
     text: [
-      p('L’air du dehors a un goût de vase et de pluie. Après trois jours sous terre, la lumière grise vous fait pleurer. La Lisière coule devant vous, large, lente, couleur de plomb. En aval, les grues du port fluvial se découpent contre le ciel.'),
-      p('Hélène Vasseur vous a suivis jusqu’à la sortie, deux sentinelles derrière elle. Elle ne regarde pas vous. Elle regarde Théo.', all(flag('veilleurs_savent'), withUs('theo'))),
+      p('L’air du dehors a un goût de vase et de pluie. Après des jours sous terre, la lumière grise vous fait pleurer. La Lisière coule devant vous, large, lente, couleur de plomb. En aval, les grues du port fluvial se découpent contre le ciel.'),
+      p('Hélène Vasseur vous a suivis jusqu’à la sortie, deux sentinelles derrière elle. Ce n’est pas vous qu’elle regarde. Elle regarde Théo.', all(flag('veilleurs_savent'), withUs('theo'))),
       say('helene', '« J’ai entendu ce qui s’est dit cette nuit. Je ne suis pas la seule. » Elle parle lentement, en pesant chaque mot comme un verdict. « Un enfant porteur. Peut-être la seule chose qui puisse encore changer le cours de ce monde. Et vous voulez l’emmener à des gens qui paient les enfants en places de bateau. »', all(flag('veilleurs_savent'), withUs('theo'))),
       say('helene', '« Laissez-le-nous. Ici, il ne sera pas une marchandise. Il sera protégé par quarante personnes qui n’ont rien d’autre à défendre. »', all(flag('veilleurs_savent'), withUs('theo'))),
       say('maelle', '« Il décidera lui-même », dit Maëlle d’une voix blanche. Puis, plus bas : « Ou toi. Il t’écoutera. »', all(flag('veilleurs_savent'), withUs('theo'), withUs('maelle'))),

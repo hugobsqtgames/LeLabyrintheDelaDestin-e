@@ -29,6 +29,10 @@ import {
   clock,
   doc,
   timeAtLeast,
+  take,
+  hurt,
+  profile,
+  give,
 } from '../helpers';
 
 const C = 'c4';
@@ -38,16 +42,53 @@ const KAZ_ICI = withUs('kaz');
 const MAELLE_ICI = withUs('maelle');
 const INES_ICI = withUs('ines');
 const NOUR_ICI = withUs('nour');
-const COLOSSE_TUE = all(notFlag('cloche_utilisee'), notFlag('kaz_sacrifice'));
+const COLOSSE_TUE = all(notFlag('cloche_utilisee'), notFlag('kaz_sacrifice'), notFlag('vanne_auto'));
 
-/** Paragraphes communs décrivant le sort des compagnons dans les épilogues. */
-function epilogueCompagnons(): { text: string; if?: Condition }[] {
+/**
+ * Épilogues des compagnons et des personnages croisés : leur sort dépend de
+ * leur statut, de la relation construite avec eux et des choix du joueur.
+ * `lieu` distingue les fins à bord de la barge et les fins à terre.
+ */
+function epilogueCompagnons(lieu: 'barge' | 'terre'): { text: string; if?: Condition }[] {
+  const aBord = lieu === 'barge';
   return [
-    { text: 'Maëlle a pris en charge l’infirmerie du pont inférieur dès le premier soir. Elle ne dort toujours pas beaucoup. Mais quand elle dort, elle dort.', if: MAELLE_ICI },
-    { text: 'Maëlle n’est pas là. Sa lampe s’est éteinte au fond d’une galerie de l’ossuaire, et parfois, la nuit, Théo la cherche encore des yeux sur le pont.', if: all(companionIs('maelle', 'dead'), THEO_ICI) },
-    { text: 'Inès a recopié le carnet de son frère à l’encre, page après page, pour que personne ne puisse dire qu’il n’a pas existé.', if: INES_ICI },
-    { text: 'Nour a demandé à voir les cages vides de la cale. Elle les a regardées longtemps, puis elle a demandé qu’on les jette par-dessus bord. On l’a fait.', if: NOUR_ICI },
-    { text: 'Kaz tient la barre du pont arrière, la nuit. Il chante en polonais pour les enfants qui ne dorment pas. Il chante faux. Personne ne s’en plaint.', if: all(KAZ_ICI, notFlag('kaz_sacrifice')) },
+    // Maëlle
+    aBord
+      ? { text: 'Maëlle a pris en charge l’infirmerie du pont inférieur dès le premier soir. Elle ne dort toujours pas beaucoup. Mais quand elle dort, elle dort, et c’est vous qu’elle charge de veiller sur Théo pendant ce temps-là.', if: all(MAELLE_ICI, relMin('maelle', 4)) }
+      : { text: 'Maëlle a ouvert une infirmerie entre deux murs de crânes. Elle vous appelle quand un blessé arrive, et elle vous dit merci, maintenant, sans que ça ressemble à une dette.', if: all(MAELLE_ICI, relMin('maelle', 4)) },
+    { text: 'Maëlle soigne, compte les doses, parle peu. Elle ne vous a jamais tout à fait pardonné la lettre, ou le reste. Elle reste polie. C’est sa manière de garder ses distances.', if: all(MAELLE_ICI, relMax('maelle', 3)) },
+    { text: 'Maëlle n’est pas là. Sa lampe s’est éteinte au fond d’une galerie de l’ossuaire, et parfois, la nuit, Théo la cherche encore des yeux.', if: all(companionIs('maelle', 'dead'), THEO_ICI) },
+    // Kaz
+    aBord
+      ? { text: 'Kaz tient la barre du pont arrière, la nuit. Il chante en polonais pour les enfants qui ne dorment pas. Il chante faux. Personne ne s’en plaint. Un soir, il vous a dit qu’Irena aurait aimé la mer.', if: all(KAZ_ICI, notFlag('kaz_sacrifice'), relMin('kaz', 5)) }
+      : { text: 'Kaz a remis en marche une vieille écluse à bras sur le canal des Tanneurs, « pour garder la main ». Les Veilleurs l’appellent le Capitaine. Il fait semblant de détester ça.', if: all(KAZ_ICI, relMin('kaz', 5)) },
+    { text: 'Kaz travaille dur et parle peu. Il vous regarde parfois comme quelqu’un qui attend encore d’être jugé.', if: all(KAZ_ICI, notFlag('kaz_sacrifice'), relMax('kaz', 4)) },
+    { text: 'On raconte au port qu’un grand Polonais au visage peint de cambouis a quitté les Ferrailleurs la nuit où Gaspard est tombé. Personne ne sait où il est allé.', if: all(flag('kaz_refuse'), flag('gaspard_tue')) },
+    { text: 'Kaz porte toujours la peinture des Ferrailleurs. On dit qu’il est devenu le bras droit de Gaspard. On dit aussi qu’il refuse de toucher aux cages.', if: all(flag('kaz_refuse'), notFlag('gaspard_tue')) },
+    { text: 'De Kaz, il ne reste qu’une manivelle tordue, que quelqu’un a soudée sur le parapet de l’écluse de Morvan.', if: flag('kaz_sacrifice') },
+    // Inès
+    aBord
+      ? { text: 'Inès a recopié le carnet de son frère à l’encre, page après page, pour que personne ne puisse dire qu’il n’a pas existé. Sur l’île, elle cartographie les côtes. Elle vous montre chaque nouvelle carte avant tout le monde.', if: all(INES_ICI, relMin('ines', 5)) }
+      : { text: 'Inès est redevenue passeuse. Mais elle ne fait plus payer personne. Sur les murs de la Galerie des Craies, une nouvelle flèche porte un I et un M entrelacés.', if: all(INES_ICI, relMin('ines', 5)) },
+    { text: 'Inès est descendue au premier village du fleuve. « D’autres attendent sous la ville. » Elle a serré votre main, une fois, fort. Elle n’est pas du genre à se retourner.', if: all(INES_ICI, relMax('ines', 4)) },
+    { text: 'Inès est retournée sous Valombre. Les passeurs disent qu’elle connaît maintenant chaque galerie, et qu’elle ne demande plus jamais rien en échange.', if: companionIs('ines', 'away') },
+    // Nour
+    aBord
+      ? { text: 'Nour a demandé à voir les cages vides de la cale. Elle les a regardées longtemps, puis elle a demandé qu’on les jette par-dessus bord. On l’a fait. Elle et Théo ne se quittent plus.', if: NOUR_ICI }
+      : { text: 'Nour apprend à lire avec les enfants de l’ossuaire. Elle est déjà meilleure que tout le monde au calcul mental. Elle a gardé la clé de sa cage autour du cou.', if: NOUR_ICI },
+    { text: 'Nour est arrivée à l’ossuaire avec les autres prisonniers de la casse. Hélène l’a inscrite dans le registre à la colonne « entrées ». C’est la seule colonne qui compte.', if: companionIs('nour', 'away') },
+  ];
+}
+
+/** Ce que deviennent les personnages croisés en chemin. */
+function epilogueMonde(): { text: string; if?: Condition }[] {
+  return [
+    { text: 'Odilon sonne toujours les cloches, chaque soir à sept heures, pour ceux qui marchent encore dans la ville.', if: flag('odilon_aide') },
+    { text: 'Les cloches de Saint-Clair n’ont plus jamais sonné. Personne ne sait ce qu’est devenu le vieil homme du clocher.', if: flag('odilon_vole') },
+    { text: 'Les Veilleurs ont tenu. L’eau est claire, les enfants récitent toujours leurs tables, et Hélène Vasseur a ajouté votre nom en marge de son registre.', if: flag('veilleurs_allies') },
+    { text: 'Gaspard Lenoir tient une buvette sur le Pont de Fer. Il ne vend plus que de l’essence et de mauvais café. Il dit à qui veut l’entendre qu’il a été roulé par plus voleur que lui.', if: all(flag('gaspard_epargne'), notFlag('gaspard_temoigne')) },
+    { text: 'Gaspard Lenoir a témoigné, pour une fois sous serment. Il paraît qu’il en est presque fier.', if: flag('gaspard_temoigne') },
+    { text: 'La famille Delmas a survécu. Le petit Jules a gardé l’habitude de vous saluer d’un geste militaire, chaque fois qu’il vous croise.', if: flag('aide_famille') },
   ];
 }
 
@@ -80,6 +121,14 @@ function mareeScene(voie: 'accord' | 'force'): Scene {
         kind: 'item',
         requires: [has('cloche_berger')],
         effects: [set('cloche_utilisee'), xp(60), journal('La cloche du Berger a emmené la horde loin de l’écluse.')],
+        next: fin,
+      },
+      {
+        id: 'cliquet',
+        text: 'Tirer le fil de fer depuis la passerelle : le cliquet préparé lâche, et l’eau ouvre les portes seule.',
+        kind: 'item',
+        visibleIf: [flag('vanne_preparee')],
+        effects: [set('vanne_auto'), xp(50), journal('Le cliquet préparé a ouvert les portes de l’écluse sans que personne ait à rester.')],
         next: fin,
       },
       {
@@ -211,7 +260,8 @@ export const chapter4: Scene[] = [
     illustration: 'ecluse',
     text: [
       p('Le soleil est déjà haut quand vous arrivez. La foule est à moitié passée, la passerelle à moitié relevée. Vous êtes en retard, et ici, le retard se paie.', flag('en_retard')),
-      p('L’aube du septième jour se lève sur l’écluse de Morvan. Deux portes d’acier, un bassin de cent mètres, une maison d’éclusier aux volets bleus. Et dans le bassin, la Destinée : une barge-citerne repeinte en blanc, longue comme un immeuble couché, un caducée rouge peint sur la cheminée.'),
+      p('L’aube du septième jour se lève.', notFlag('en_retard')),
+      p('L’écluse de Morvan. Deux portes d’acier, un bassin de cent mètres, une maison d’éclusier aux volets bleus. Et dans le bassin, la Destinée : une barge-citerne repeinte en blanc, longue comme un immeuble couché, un caducée rouge peint sur la cheminée.'),
       p('Devant l’écluse, une double grille de barbelés. Et devant la grille, une foule. Soixante, quatre-vingts personnes peut-être, venues de partout, avec des valises, des enfants, des chiens, des vieillards dans des brouettes. Ils attendent depuis la nuit.'),
       p('Sur une plateforme, un homme en combinaison grise parle dans un mégaphone : le capitaine Rousset. « Les porteurs et leurs familles, à gauche. Test sanguin obligatoire. Les autres, nous sommes désolés. Capacité limitée. » Il répète. Il répète encore.'),
       p('À côté de lui, une femme en blouse blanche, les bras croisés, regarde la foule comme on regarde une salle d’attente bondée. La docteure Sorel.'),
@@ -228,8 +278,213 @@ export const chapter4: Scene[] = [
         effects: [set('ecluse_observee'), doc('doc_protocole'), journal('L’écluse est manœuvrée à la main depuis la maison de l’éclusier : le courant est coupé.', false)],
       },
       { id: 'sorel', text: 'Demander à parler à la docteure Sorel.', kind: 'talk', time: 1, requires: [clock(undefined, DEPARTURE_HOUR + 1.5)], next: 'c4_sorel' },
+      { id: 'foule', text: 'Se mêler à la foule qui attend devant la grille.', kind: 'talk', time: 1, visibleIf: [notFlag('vu_foule')], next: 'c4_foule' },
+      { id: 'maison', text: 'Faire le tour par la maison de l’éclusier.', kind: 'explore', time: 1, visibleIf: [notFlag('vu_maison')], next: 'c4_maison' },
+      {
+        id: 'cazal',
+        text: 'Rejoindre La Mouette, amarrée en aval de l’écluse.',
+        kind: 'negotiate',
+        time: 1,
+        visibleIf: [{ type: 'visited', scene: 'c3_mouette' }, notFlag('vu_cazal')],
+        next: 'c4_cazal',
+      },
+      {
+        id: 'gaspard',
+        text: 'Aborder l’homme seul au fond de la foule. Vous connaissez cette carrure.',
+        kind: 'talk',
+        time: 0.5,
+        visibleIf: [flag('gaspard_epargne'), notFlag('theo_vendu'), notFlag('vu_gaspard_c4')],
+        next: 'c4_gaspard',
+      },
       { id: 'grille', text: 'Avancer jusqu’à la grille.', kind: 'move', next: 'c4_decision' },
     ],
+  },
+  {
+    id: 'c4_foule',
+    chapter: C,
+    location: 'ecluse',
+    title: 'Devant la grille',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('La foule sent la sueur, la fumée et la peur. Les gens se parlent à voix basse, comme dans une salle d’attente d’hôpital. Personne ne se dispute : tout le monde a compris que le moindre esclandre ferait fermer la grille.'),
+      p('Une femme vous attrape la manche. Claire Delmas, ancienne professeure de piano, la quarantaine, un enfant de six ans dans les bras. Le garçon a les joues trop rouges et les yeux trop brillants.'),
+      p('« Ce n’est pas la Fièvre, souffle-t-elle. Il s’est coupé sur un barbelé, il y a trois jours. Mais ils ne prennent pas les malades. » Elle ne demande rien. Elle regarde votre sac.'),
+      p('Plus loin, un vieil homme distribue ce qui lui reste de cigarettes à des inconnus, une par une, en souhaitant bonne chance à chacun. Un adolescent récite à mi-voix une liste de noms, toujours la même, pour ne pas l’oublier.'),
+    ],
+    onEnter: [set('vu_foule')],
+    choices: [
+      {
+        id: 'antibio',
+        text: 'Donner une boîte d’antibiotiques pour le petit Jules.',
+        kind: 'item',
+        requires: [has('antibiotiques')],
+        effects: [take('antibiotiques', 1), set('aide_famille'), xp(30), journal('Vous avez donné vos antibiotiques à un enfant inconnu devant la grille.')],
+        next: 'c4_foule_merci',
+      },
+      {
+        id: 'soins',
+        text: 'Nettoyer et panser la plaie vous-même.',
+        kind: 'item',
+        requires: [has('bandage')],
+        effects: [take('bandage', 1), set('aide_famille'), xp(15)],
+        next: 'c4_foule_merci',
+      },
+      { id: 'partir', text: 'Détourner les yeux et retourner vers l’écluse.', kind: 'move', next: 'c4_ecluse' },
+    ],
+  },
+  {
+    id: 'c4_foule_merci',
+    chapter: C,
+    location: 'ecluse',
+    title: 'Jules',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('Jules serre les dents pendant que vous travaillez. Il ne pleure pas. Quand c’est fini, il vous fait un salut militaire, très sérieux, la main à l’envers.'),
+      p('Claire Delmas ne dit pas merci. Elle vous serre l’avant-bras, fort, et elle répète votre nom pour s’en souvenir.'),
+      p('Autour de vous, des gens ont regardé. Une rumeur court le long de la grille : il y a quelqu’un, ici, qui partage.'),
+    ],
+    choices: [{ id: 'retour', text: 'Retourner vers l’écluse.', kind: 'move', next: 'c4_ecluse' }],
+  },
+  {
+    id: 'c4_maison',
+    chapter: C,
+    location: 'ecluse',
+    title: 'La maison de l’éclusier',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('La maison aux volets bleus est vide. Sur la table de la cuisine, un bol de café moisi et un calendrier arrêté au mois de mars d’il y a deux ans. Dans la pièce du fond, le mécanisme des vannes : une grande roue de fonte, une manivelle, un cliquet d’arrêt rongé par la rouille.'),
+      p('Le courant est coupé. Pour ouvrir les portes aval, il faudra tourner la manivelle à la main, longtemps. À moins de bloquer le cliquet de façon à ce que le poids de l’eau fasse le travail tout seul, le moment venu.'),
+      say('kaz', '« Un coin de bois sous le cliquet, et une goupille à retirer au dernier moment, murmure Kaz. Les anciens faisaient ça quand ils étaient trop saouls pour tourner la roue. »', KAZ_ICI),
+    ],
+    onEnter: [set('vu_maison'), set('sait_vanne')],
+    choices: [
+      {
+        id: 'kaz',
+        text: 'Laisser Kaz préparer le cliquet.',
+        kind: 'explore',
+        time: 1,
+        visibleIf: [KAZ_ICI],
+        effects: [set('vanne_preparee'), rel('kaz', 1), xp(20)],
+        next: 'c4_maison_ok',
+      },
+      {
+        id: 'outils',
+        text: 'Préparer le cliquet avec vos outils.',
+        kind: 'explore',
+        time: 1,
+        requires: [any(has('outils'), profile('technicien'))],
+        check: { stat: 'astuce', difficulty: 8, success: 'c4_maison_ok', failure: 'c4_maison_ko', successEffects: [set('vanne_preparee'), xp(20)] },
+      },
+      {
+        id: 'force',
+        text: 'Caler le cliquet à coups de masse et d’épaule.',
+        kind: 'fight',
+        time: 1,
+        check: { stat: 'force', difficulty: 10, success: 'c4_maison_ok', failure: 'c4_maison_ko', successEffects: [set('vanne_preparee'), xp(20)] },
+      },
+      { id: 'partir', text: 'Ressortir sans toucher à rien.', kind: 'move', next: 'c4_ecluse' },
+    ],
+  },
+  {
+    id: 'c4_maison_ok',
+    chapter: C,
+    location: 'ecluse',
+    title: 'Le cliquet',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('Le cliquet tient, coincé par un coin de chêne et une goupille de fortune. Le moment venu, il suffira de tirer sur un fil de fer depuis la fenêtre, et l’eau ouvrira les portes à votre place.'),
+      p('Personne ne saura que c’est vous. C’est sans doute mieux ainsi.'),
+    ],
+    onEnter: [journal('Vous avez préparé le cliquet des vannes de l’écluse.')],
+    choices: [{ id: 'retour', text: 'Retourner vers l’écluse.', kind: 'move', next: 'c4_ecluse' }],
+  },
+  {
+    id: 'c4_maison_ko',
+    chapter: C,
+    location: 'ecluse',
+    title: 'La rouille',
+    kind: 'story',
+    optional: true,
+    text: [p('La goupille casse net. Le cliquet retombe dans un claquement qui fait sursauter toute la foule dehors. Il faudra tourner la manivelle à la main, comme tout le monde.')],
+    choices: [{ id: 'retour', text: 'Retourner vers l’écluse, les mains écorchées.', kind: 'move', effects: [hurt(2, 'la rouille')], next: 'c4_ecluse' }],
+  },
+  {
+    id: 'c4_cazal',
+    chapter: C,
+    location: 'ecluse',
+    title: 'La Mouette, en aval',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('La Mouette est amarrée trois cents mètres en aval, bâchée jusqu’au bastingage. Mère Cazal fume sa pipe éteinte sur le pont, les yeux sur la barge blanche.'),
+      say('cazal', '« Je suis venue voir partir le dernier bateau du monde. Et vendre deux ou trois choses aux gens qui ne monteront pas dessus. » Elle tapote sa pipe. « Les affaires sont les affaires. »'),
+      say('cazal', '« Gaspard est là, dans la foule. Seul. Il a tout perdu au Pont de Fer. Il cherche une place, comme les autres. Drôle de monde. »', flag('gaspard_epargne')),
+      say('cazal', '« Rousset garde les clés de la grille sur lui. Et il ne dort jamais. Ça, c’est gratuit. »'),
+    ],
+    onEnter: [set('vu_cazal')],
+    choices: [
+      {
+        id: 'antibio',
+        text: 'Une boîte d’antibiotiques contre 2 rations.',
+        kind: 'negotiate',
+        once: true,
+        requires: [has('ration', 2)],
+        effects: [take('ration', 2), give('antibiotiques', 1)],
+      },
+      {
+        id: 'molotov',
+        text: '2 cocktails Molotov contre 1 ration.',
+        kind: 'negotiate',
+        once: true,
+        requires: [has('ration', 1)],
+        effects: [take('ration', 1), give('molotov', 2)],
+      },
+      { id: 'retour', text: 'Saluer la vieille batelière et remonter vers l’écluse.', kind: 'move', next: 'c4_ecluse' },
+    ],
+  },
+  {
+    id: 'c4_gaspard',
+    chapter: C,
+    location: 'ecluse',
+    title: 'Le roi déchu',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('Gaspard Lenoir n’a plus de plastron, plus de masse, plus de chiens. Juste un manteau trop grand et le cou couvert de pansements. Il vous reconnaît avant que vous soyez à trois mètres.', { type: 'visited', scene: 'c3_gaspard_tombe' }),
+      p('Gaspard Lenoir est venu seul, sans ses hommes, en manteau de ville. La barge ne lui achète plus rien ; alors il est venu, comme tout le monde, essayer d’y acheter sa place. Il vous reconnaît avant que vous soyez à trois mètres.', not({ type: 'visited', scene: 'c3_gaspard_tombe' })),
+      say('gaspard', '« Tiens. Toi. Tu m’as laissé la vie, au Pont de Fer. » Il crache par terre.', { type: 'visited', scene: 'c3_gaspard_tombe' }),
+      say('gaspard', '« Tiens. La petite bande de la casse. » Il crache par terre.', not({ type: 'visited', scene: 'c3_gaspard_tombe' })),
+      say('gaspard', '« Tu viens voir si je fais la queue comme les autres ? Je fais la queue comme les autres. »'),
+      say('gaspard', '« Je sais ce que je leur ai vendu. Je sais combien ils payaient. Je sais à qui. » Il regarde la blouse blanche de Sorel, de l’autre côté des barbelés. « Si quelqu’un veut l’entendre de ma bouche, je le dirai. Pas pour toi. Pour que ce salaud de Rousset ne remonte pas le fleuve avec sa conscience propre. »'),
+    ],
+    onEnter: [set('vu_gaspard_c4')],
+    choices: [
+      {
+        id: 'temoigner',
+        text: 'L’emmener jusqu’à la grille pour qu’il parle à la docteure Sorel.',
+        kind: 'negotiate',
+        effects: [set('gaspard_temoigne'), rel('sorel', 2), xp(30), journal('Gaspard Lenoir a avoué devant la docteure Sorel le commerce des porteurs.')],
+        next: 'c4_gaspard_aveu',
+      },
+      { id: 'laisser', text: 'Le laisser à sa file d’attente.', kind: 'move', next: 'c4_ecluse' },
+    ],
+  },
+  {
+    id: 'c4_gaspard_aveu',
+    chapter: C,
+    location: 'ecluse',
+    title: 'L’aveu',
+    kind: 'story',
+    optional: true,
+    text: [
+      p('Gaspard parle à travers les barbelés pendant dix minutes, sans hausser la voix. Les livraisons. Les cages. Les places sur le pont inférieur. Le nom du capitaine qui signait les bons.'),
+      p('La docteure Sorel ne l’interrompt pas une seule fois. À la fin, elle enlève ses lunettes et se pince l’arête du nez, très longtemps.'),
+    ],
+    choices: [{ id: 'retour', text: 'Retourner vers l’écluse.', kind: 'move', next: 'c4_ecluse' }],
   },
   {
     id: 'c4_sorel',
@@ -239,7 +494,7 @@ export const chapter4: Scene[] = [
     kind: 'story',
     text: [
       p('On vous fait entrer dans une tente de triage, à côté de la grille. Anaïs Sorel est assise sur une caisse de matériel médical, une tasse de café froid entre les mains. Elle a la quarantaine, des cernes jusqu’au milieu des joues, et une voix que vous reconnaissez tout de suite : celle de la radio.'),
-      say('sorel', '« C’est vous. L’appel de la capitainerie. » Elle vous détaille. « Vous êtes venu. »', flag('sorel_contactee')),
+      say('sorel', '« C’est vous. L’appel de la capitainerie. » Elle vous détaille. « Vous avez fait tout le chemin. »', flag('sorel_contactee')),
       say('sorel', '« Les porteurs représentent un humain sur dix mille. Leur sang contient des anticorps que personne d’autre ne produit. Sur l’île Ferrand, nous avons un laboratoire, des généraux qui attendent, et un vaccin qui ne marche pas encore. Avec vingt porteurs, je peux le faire marcher. Avec vingt porteurs, je peux sauver tous ceux qui sont derrière cette grille, et des millions d’autres. »'),
       say('sorel', '« Le capitaine pense que la fin justifie les moyens. Je pensais qu’il avait tort. Je ne sais plus. Convainquez-moi. »'),
     ],
@@ -455,12 +710,14 @@ export const chapter4: Scene[] = [
     text: [
       p('La Destinée descend dans le bassin. Les portes aval s’ouvrent dans un grondement d’eau, et la barge glisse vers le fleuve libre, tous feux éteints.'),
       p('Sur la berge, la horde s’éloigne vers les champs, au rythme d’une cloche de vache qui sonne de plus en plus loin. Vous nagez jusqu’à la barge, et des mains vous hissent à bord.', flag('cloche_utilisee')),
+      p('Un fil de fer tiré depuis la passerelle, un claquement sourd dans la maison de l’éclusier, et les portes s’ouvrent toutes seules sous le poids du fleuve. La horde arrive sur un quai vide. Personne n’a eu à rester.', flag('vanne_auto')),
       p('Le Colosse gît en travers du chemin de halage, et la horde, privée de son chef, s’est égaillée dans les peupliers.', COLOSSE_TUE),
       p('Sur la berge, la maison de l’éclusier disparaît sous la marée grise. Jusqu’au dernier moment, vous entendez la manivelle grincer. Puis plus rien. Kaz a tenu ses douze minutes.', flag('kaz_sacrifice')),
       p('Trois jours plus tard, la barge accoste à l’île Ferrand. Théo descend la passerelle le premier, sans menottes, sans escorte, la main de la docteure Sorel posée sur son épaule. Pas l’épaule gauche. L’autre.'),
       p('Sorel tient parole. Les porteurs de l’île ont désormais une chambre, un nom sur la porte et le droit de dire non. Théo dit oui, trois fois par semaine, pour une prise de sang. Le reste du temps, il dessine la carte de l’île.'),
       p('Six mois plus tard, le premier lot de vaccin quitte le laboratoire. On l’appelle le lot T, et personne ne dit pourquoi.'),
-      ...epilogueCompagnons(),
+      ...epilogueCompagnons('barge'),
+      ...epilogueMonde(),
       p('Vous, {nom}, vous avez un lit, une fenêtre sur la mer, et un travail : escorter les barges qui remontent le fleuve chercher les autres. Il y en a encore beaucoup. Il y en aura toujours.'),
     ],
     choices: [],
@@ -475,13 +732,15 @@ export const chapter4: Scene[] = [
     text: [
       p('La Destinée descend dans le bassin, et les portes aval s’ouvrent dans un grondement d’eau. Rousset est enfermé dans sa propre cabine, menotté à sa couchette. Personne ne sait encore ce qu’on fera de lui.'),
       p('Au loin, une cloche de vache emmène la horde vers les champs. Vous nagez jusqu’à la barge sous les acclamations.', flag('cloche_utilisee')),
+      p('Le cliquet préparé lâche au bon moment, et les portes s’ouvrent sous le poids du fleuve. Personne n’a eu à rester à la manivelle.', flag('vanne_auto')),
       p('Le Colosse gît en travers du chemin de halage, et la horde, privée de son chef, se disperse sous les peupliers.', COLOSSE_TUE),
       p('La maison de l’éclusier disparaît sous la marée grise. Jusqu’au dernier moment, la manivelle grince. Kaz a tenu ses douze minutes.', flag('kaz_sacrifice')),
       p('À bord, la foule de la grille a tout envahi : les coursives, les cales, le pont supérieur. Quatre-vingts couchettes pour deux cents personnes. On dort à tour de rôle, on partage tout, on se dispute pour tout.', flag('foule_soulevee')),
       p('La docteure Sorel est restée à bord. Elle a pris la parole devant tout le monde, le premier soir, pour dire ce qu’elle savait, et ce qu’elle avait accepté de ne pas savoir. Puis elle a ouvert son laboratoire aux porteurs, et elle leur a demandé, cette fois.', any(flag('sorel_alliee'), relMin('sorel', 4))),
       p('Théo dort dans le poste de pilotage, roulé dans une couverture, à côté de vous. Il ne sait pas encore s’il donnera son sang. Il a le temps de décider. C’est tout ce qu’il demandait.', THEO_ICI),
       p('L’île Ferrand vous attend à trois jours de navigation. Personne ne sait comment l’Institut accueillera une barge mutinée. Vous verrez bien. Vous avez vu pire.'),
-      ...epilogueCompagnons(),
+      ...epilogueCompagnons('barge'),
+      ...epilogueMonde(),
       p('Au matin, quelqu’un a repeint le nom sur la coque. On ne lit plus « La Destinée ». On lit, en lettres maladroites : « La Nôtre ».'),
     ],
     choices: [],
@@ -499,7 +758,8 @@ export const chapter4: Scene[] = [
       p('Par la fenêtre, vous voyez la Destinée descendre lentement dans le bassin, chargée de tous ceux qui n’auraient jamais dû monter, et qui montent quand même.', not(THEO_ICI)),
       p('Les coups contre la porte commencent à la quatrième minute. Le cliquetis des dents, à travers le bois, comme une pluie de grêle. L’armoire recule d’un centimètre, puis d’un autre.'),
       p('À la douzième minute, les portes aval s’ouvrent dans un grondement d’eau. La barge glisse vers le fleuve libre. Vous lâchez la manivelle. Vos mains saignent. Vous vous asseyez par terre, dos à l’armoire, et vous écoutez l’eau.'),
-      ...epilogueCompagnons(),
+      ...epilogueCompagnons('barge'),
+      ...epilogueMonde(),
       p('Sur l’île Ferrand, dans le hall du laboratoire, il y a une plaque de cuivre. Théo l’a fait graver avec le premier argent qu’on lui a donné : « {nom}, gardien de l’écluse de Morvan. Douze minutes. »', THEO_ICI),
     ],
     choices: [],
@@ -532,7 +792,7 @@ export const chapter4: Scene[] = [
       p('L’écluse est ouverte. Le bassin est vide. Sur le quai, des barbelés renversés, des valises éventrées, un mégaphone abandonné dans une flaque.'),
       p('Loin en aval, sur le fleuve gris, un point blanc rapetisse. La Destinée est partie à l’heure. Elle n’a attendu personne.'),
       p('Théo regarde le point blanc jusqu’à ce qu’il disparaisse. Puis il vous regarde. Il ne vous reproche rien. C’est presque pire.', THEO_ICI),
-      p('Quelque part derrière ce point blanc, Théo est dans une cage, en route vers l’île. Vous êtes arrivé trop tard pour le reprendre.', THEO_GASPARD),
+      p('Quelque part derrière ce point blanc, Théo est dans une cage, en route vers l’île. Vous arrivez trop tard pour le reprendre.', THEO_GASPARD),
     ],
     onEnter: [set('barge_manquee'), journal('La Destinée est partie sans vous.')],
     choices: [
@@ -582,8 +842,9 @@ export const chapter4: Scene[] = [
       p('Maëlle dirige l’infirmerie de l’ossuaire. Elle a enfin dormi une nuit entière.', any(MAELLE_ICI, companionIs('maelle', 'away'))),
       p('Hélène tient parole : Théo n’est pas une marchandise, ici. Il est un Veilleur parmi d’autres. Les Veilleurs fabriquent leur propre sérum, avec du matériel volé à l’hôpital Delorme et l’aide de Sœur Prudence. Ça ne marche pas. Pas encore. Un jour, peut-être.'),
       p('Odilon Brac est descendu vivre avec eux. Il sonne les cloches de l’ossuaire, chaque soir, pour les enfants.', flag('odilon_aide')),
-      ...epilogueCompagnons().filter((b) => !b.text.startsWith('Maëlle')),
-      p('Vous, {nom}, vous devenez passeur. Vous faites traverser le Labyrinthe à ceux qui veulent rejoindre le fleuve, et vous ramenez ceux qui veulent rester. La Destinée ne repasse jamais par Morvan. Personne ici ne la regrette.'),
+      ...epilogueCompagnons('terre').filter((b) => !b.text.startsWith('Maëlle a ouvert')),
+      ...epilogueMonde(),
+      p('Vous, {nom}, vous reprenez le métier des passeurs. Vous faites traverser le Labyrinthe à ceux qui veulent rejoindre le fleuve, et vous ramenez ceux qui veulent rester. La Destinée ne repasse jamais par Morvan. Personne ici ne la regrette.'),
     ],
     choices: [],
   },
@@ -598,7 +859,8 @@ export const chapter4: Scene[] = [
       p('Vous trouvez une barque à fond plat amarrée sous les saules, avec deux rames et un bidon d’eau. Vous la poussez dans le courant, et le fleuve vous emporte vers l’aval, loin de l’écluse, loin de la barge, loin de Valombre.'),
       p('Théo est assis à l’avant. Il dessine la berge qui défile sur une page arrachée. Il ne vous demande pas où vous allez. Vous ne le savez pas non plus.', THEO_ICI),
       p('Vous ne regardez pas le camion des Ferrailleurs. Vous ne regarderez plus jamais un camion de la même façon.', THEO_GASPARD),
-      ...epilogueCompagnons().filter((b) => !b.text.startsWith('Maëlle a pris')),
+      p('Ceux qui sont restés avec vous rament à tour de rôle. Le soir, on accoste sur des berges sans nom, et on se raconte Valombre comme une histoire qui serait arrivée à d’autres.', any(MAELLE_ICI, KAZ_ICI, INES_ICI, NOUR_ICI)),
+      ...epilogueMonde(),
       p('Le fleuve est long. Il traverse des villes mortes, des forêts, des plaines où l’herbe a repris les autoroutes. Quelque part, peut-être, il y a d’autres gens, d’autres refuges, d’autres règles. Vous verrez bien.'),
       p('Vous êtes en vie, {nom}. Dans ce monde-là, c’est déjà une victoire. Ce n’est pas tout à fait une fin.'),
     ],
