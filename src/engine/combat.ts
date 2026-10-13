@@ -10,6 +10,7 @@
 import { armorValue, effectiveStat, hasPerk, healingMultiplier, maxHp, maxStamina } from './character';
 import { applyEffect } from './effects';
 import { removeItem } from './inventory';
+import { MESSAGES_FR, msg, msgCount } from './messages';
 import { BROKEN_DAMAGE_FACTOR, COMBAT, JAM_CHANCE, JAM_THRESHOLD } from './rules';
 import { chance, nextInt, pickWeighted } from './rng';
 import type {
@@ -31,16 +32,17 @@ import { clamp } from './util';
 
 const MAX_LOG = 40;
 
-export const STATUS_LABELS: Record<StatusKind, string> = {
-  saignement: 'Saignement',
-  sonne: 'Sonné',
-  affaibli: 'Affaibli',
-  agrippe: 'Agrippé',
-  etourdi: 'Étourdi',
-  brulure: 'Brûlure',
-  distrait: 'Distrait',
-  garde: 'En garde',
-};
+const STATUS_KINDS: StatusKind[] = ['saignement', 'sonne', 'affaibli', 'agrippe', 'etourdi', 'brulure', 'distrait', 'garde'];
+
+/** Libellés français des statuts (référence ; à l'exécution : `statusLabel`). */
+export const STATUS_LABELS = Object.fromEntries(
+  STATUS_KINDS.map((k) => [k, MESSAGES_FR[`status.${k}`]]),
+) as Record<StatusKind, string>;
+
+/** Libellé d'un statut dans la langue du contenu. */
+export function statusLabel(content: GameContent, kind: StatusKind): string {
+  return msg(content, `status.${kind}`);
+}
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -142,7 +144,7 @@ export function startCombat(content: GameContent, state: GameState, sceneId: Sce
     xpEarned: 0,
   };
   combat = log(combat, encounter.intro, 'system');
-  if (encounter.ambush) combat = log(combat, 'Vous avez l’avantage de la surprise : votre première attaque sera dévastatrice.', 'system');
+  if (encounter.ambush) combat = log(combat, msg(content, 'combat.ambushIntro'), 'system');
   return chooseIntents(content, withCombat(state, combat));
 }
 
@@ -174,7 +176,7 @@ function wear(content: GameContent, state: GameState, item: string | null | unde
   if (!d || d.current <= 0) return state;
   const current = d.current - 1;
   let s: GameState = { ...state, durability: { ...state.durability, [item]: current } };
-  if (current === 0) s = withCombat(s, log(s.combat!, `${content.items[item].name} est abîmé : dégâts réduits de moitié jusqu’à réparation.`, 'danger'));
+  if (current === 0) s = withCombat(s, log(s.combat!, msg(content, 'combat.weaponBroken', { item: content.items[item].name }), 'danger'));
   return s;
 }
 
@@ -236,62 +238,62 @@ export interface ActionAvailability {
 
 export function canPerform(content: GameContent, state: GameState, action: CombatAction): ActionAvailability {
   const c = state.combat;
-  if (!c || c.outcome !== 'ongoing') return { ok: false, reason: 'Le combat est terminé.' };
+  if (!c || c.outcome !== 'ongoing') return { ok: false, reason: msg(content, 'combat.over') };
   const grabbed = hasStatus(c.playerStatuses, 'agrippe');
   const stamina = state.player.stamina;
   const needsTarget = action.type === 'attack' || action.type === 'skill' || (action.type === 'item' && !!action.item);
   if (needsTarget && action.target) {
     const t = c.enemies.find((e) => e.uid === action.target);
-    if (!t || t.hp <= 0) return { ok: false, reason: 'Cible invalide.' };
+    if (!t || t.hp <= 0) return { ok: false, reason: msg(content, 'combat.invalidTarget') };
   }
   switch (action.type) {
     case 'attack': {
       const kind = action.weapon ?? 'melee';
       if (kind === 'ranged') {
         const w = equippedWeapon(content, state, 'ranged');
-        if (!w) return { ok: false, reason: 'Aucune arme à distance équipée.' };
-        if (grabbed) return { ok: false, reason: 'Impossible de viser en étant agrippé.' };
-        if (w.ammo && (state.inventory[w.ammo] ?? 0) <= 0) return { ok: false, reason: `Plus de ${content.items[w.ammo]?.name ?? 'munitions'}.` };
+        if (!w) return { ok: false, reason: msg(content, 'combat.noRanged') };
+        if (grabbed) return { ok: false, reason: msg(content, 'combat.cannotAimGrabbed') };
+        if (w.ammo && (state.inventory[w.ammo] ?? 0) <= 0) return { ok: false, reason: msg(content, 'combat.noAmmo', { ammo: content.items[w.ammo]?.name ?? msg(content, 'combat.ammoFallback') }) };
       }
       const cost = attackStaminaCost(content, state, kind);
-      if (stamina < cost) return { ok: false, reason: `Endurance insuffisante (${cost} requise).` };
+      if (stamina < cost) return { ok: false, reason: msg(content, 'combat.lowStamina', { cost }) };
       return { ok: true };
     }
     case 'defend':
       return { ok: true };
     case 'dodge':
-      if (grabbed) return { ok: false, reason: 'Impossible d’esquiver en étant agrippé.' };
-      if (stamina < COMBAT.dodgeStamina) return { ok: false, reason: `Endurance insuffisante (${COMBAT.dodgeStamina} requise).` };
+      if (grabbed) return { ok: false, reason: msg(content, 'combat.cannotDodgeGrabbed') };
+      if (stamina < COMBAT.dodgeStamina) return { ok: false, reason: msg(content, 'combat.lowStamina', { cost: COMBAT.dodgeStamina }) };
       return { ok: true };
     case 'skill': {
       const skill = content.profiles[state.player.profile].skill;
-      if (c.skillCooldown > 0) return { ok: false, reason: `Disponible dans ${c.skillCooldown} tour${c.skillCooldown > 1 ? 's' : ''}.` };
-      if (stamina < skill.staminaCost) return { ok: false, reason: `Endurance insuffisante (${skill.staminaCost} requise).` };
+      if (c.skillCooldown > 0) return { ok: false, reason: msgCount(content, 'combat.cooldown', c.skillCooldown) };
+      if (stamina < skill.staminaCost) return { ok: false, reason: msg(content, 'combat.lowStamina', { cost: skill.staminaCost }) };
       return { ok: true };
     }
     case 'skill2': {
       const skill2 = content.profiles[state.player.profile].skill2;
-      if (state.player.level < skill2.level) return { ok: false, reason: `Débloquée au niveau ${skill2.level}.` };
-      if (c.skill2Cooldown > 0) return { ok: false, reason: `Disponible dans ${c.skill2Cooldown} tour${c.skill2Cooldown > 1 ? 's' : ''}.` };
-      if (stamina < skill2.staminaCost) return { ok: false, reason: `Endurance insuffisante (${skill2.staminaCost} requise).` };
+      if (state.player.level < skill2.level) return { ok: false, reason: msg(content, 'combat.unlockedAtLevel', { level: skill2.level }) };
+      if (c.skill2Cooldown > 0) return { ok: false, reason: msgCount(content, 'combat.cooldown', c.skill2Cooldown) };
+      if (stamina < skill2.staminaCost) return { ok: false, reason: msg(content, 'combat.lowStamina', { cost: skill2.staminaCost }) };
       return { ok: true };
     }
     case 'item': {
-      if (!action.item) return { ok: false, reason: 'Aucun objet choisi.' };
+      if (!action.item) return { ok: false, reason: msg(content, 'combat.noItem') };
       const def = content.items[action.item];
-      if (!def?.use?.inCombat) return { ok: false, reason: 'Inutilisable en combat.' };
-      if ((state.inventory[action.item] ?? 0) <= 0) return { ok: false, reason: 'Vous n’en avez plus.' };
+      if (!def?.use?.inCombat) return { ok: false, reason: msg(content, 'combat.itemNotUsable') };
+      if ((state.inventory[action.item] ?? 0) <= 0) return { ok: false, reason: msg(content, 'combat.noneLeft') };
       return { ok: true };
     }
     case 'flee': {
       const scene = content.scenes[c.sceneId];
-      if (!scene?.encounter?.canFlee) return { ok: false, reason: 'Impossible de fuir ici.' };
-      if (grabbed) return { ok: false, reason: 'Libérez-vous d’abord de l’étreinte.' };
-      if (stamina < COMBAT.fleeStamina) return { ok: false, reason: `Endurance insuffisante (${COMBAT.fleeStamina} requise).` };
+      if (!scene?.encounter?.canFlee) return { ok: false, reason: msg(content, 'combat.cannotFlee') };
+      if (grabbed) return { ok: false, reason: msg(content, 'combat.breakGrabFirst') };
+      if (stamina < COMBAT.fleeStamina) return { ok: false, reason: msg(content, 'combat.lowStamina', { cost: COMBAT.fleeStamina }) };
       return { ok: true };
     }
     default:
-      return { ok: false, reason: 'Action inconnue.' };
+      return { ok: false, reason: msg(content, 'combat.unknownAction') };
   }
 }
 
@@ -323,9 +325,9 @@ function damageEnemy(
   dmg = Math.max(1, dmg);
   const hp = Math.max(0, target.hp - dmg);
   combat = updateEnemy(combat, uid, (e) => ({ ...e, hp }));
-  combat = log(combat, `${source} : ${def.name} perd ${dmg} PV.`, tone);
+  combat = log(combat, msg(content, 'combat.enemyDamaged', { source, enemy: def.name, n: dmg }), tone);
   if (hp <= 0) {
-    combat = log(combat, `${def.name} s’effondre.`, 'system');
+    combat = log(combat, msg(content, 'combat.enemyFalls', { enemy: def.name }), 'system');
     combat = { ...combat, xpEarned: combat.xpEarned + def.xp };
   } else if (def.phases) {
     // Changement de phase des boss.
@@ -372,14 +374,14 @@ function playerAttack(content: GameContent, state: GameState, action: CombatActi
   if (kind === 'ranged' && weapon?.ammo) s = removeItem(content, s, weapon.ammo, 1, false);
   const target = s.combat!.enemies.find((e) => e.uid === targetUid)!;
   const def = enemyDef(content, target);
-  const weaponName = weapon?.name ?? 'Poings';
+  const weaponName = weapon?.name ?? msg(content, 'combat.fists');
 
   // Une arme à feu usée peut s'enrayer : la munition est perdue, le tour aussi.
   const dura = weapon ? weaponDurability(content, s, weapon.id) : null;
   if (weapon?.loud && dura && dura.current / dura.max < JAM_THRESHOLD) {
     const jam = chance(s.rng, JAM_CHANCE);
     s = { ...s, rng: jam.seed };
-    if (jam.value) return withCombat(wear(content, s, weapon.id), log(s.combat!, `${weaponName} s’enraye ! Le coup ne part pas.`, 'danger'));
+    if (jam.value) return withCombat(wear(content, s, weapon.id), log(s.combat!, msg(content, 'combat.jammed', { weapon: weaponName }), 'danger'));
   }
   s = wear(content, s, weapon?.id);
 
@@ -388,7 +390,7 @@ function playerAttack(content: GameContent, state: GameState, action: CombatActi
   const ambush = !s.combat!.ambushUsed;
   if (ambush) s = withCombat(s, { ...s.combat!, ambushUsed: true });
   if (!hit.value && !ambush) {
-    s = withCombat(s, log(s.combat!, `${weaponName} : vous manquez ${def.name}.`, 'player'));
+    s = withCombat(s, log(s.combat!, msg(content, 'combat.miss', { weapon: weaponName, enemy: def.name }), 'player'));
   } else {
     const [min, max] = weaponDamageRange(content, s, kind);
     const roll = nextInt(s.rng, min, max);
@@ -400,10 +402,10 @@ function playerAttack(content: GameContent, state: GameState, action: CombatActi
     if (ambush) {
       const mult = s.player.profile === 'eclaireur' ? COMBAT.ambushMultiplier + 0.5 : COMBAT.ambushMultiplier;
       dmg = Math.round(dmg * mult);
-      label = `Attaque surprise (${weaponName})`;
+      label = msg(content, 'combat.ambushLabel', { weapon: weaponName });
     } else if (crit.value) {
       dmg = Math.round(dmg * COMBAT.critMultiplier);
-      label = `Coup critique (${weaponName})`;
+      label = msg(content, 'combat.critLabel', { weapon: weaponName });
     }
     if (hasStatus(s.combat!.playerStatuses, 'affaibli')) dmg = Math.round(dmg * 0.7);
     s = damageEnemy(content, s, targetUid, dmg, label, crit.value || ambush ? 'crit' : 'player');
@@ -415,7 +417,7 @@ function playerAttack(content: GameContent, state: GameState, action: CombatActi
   if (weapon?.loud && !livingEnemies(s.combat!).some((e) => enemyDef(content, e).boss) && s.combat!.summons < COMBAT.maxSummons) {
     const noise = chance(s.rng, 0.25);
     s = { ...s, rng: noise.seed };
-    if (noise.value) s = summon(content, s, 'rodeur', 'La détonation résonne entre les murs. Un Muet accourt.');
+    if (noise.value) s = summon(content, s, 'rodeur', msg(content, 'combat.gunshotSummon'));
   }
   return s;
 }
@@ -445,9 +447,9 @@ function playerSkill(content: GameContent, state: GameState, action: CombatActio
       const def = enemyDef(content, target);
       if (!def.boss || target.phase === 0) {
         s = applyEnemyStatus(s, targetUid, 'etourdi', 1);
-        s = withCombat(s, log(s.combat!, `${def.name} est étourdi.`, 'player'));
+        s = withCombat(s, log(s.combat!, msg(content, 'combat.enemyStunned', { enemy: def.name }), 'player'));
       } else {
-        s = withCombat(s, log(s.combat!, `${def.name} encaisse sans broncher.`, 'enemy'));
+        s = withCombat(s, log(s.combat!, msg(content, 'combat.enemyShrugs', { enemy: def.name }), 'enemy'));
       }
       return s;
     }
@@ -457,7 +459,7 @@ function playerSkill(content: GameContent, state: GameState, action: CombatActio
       s = { ...s, rng: roll.seed };
       const exposed = hasStatus(target.statuses, 'distrait') || hasStatus(target.statuses, 'etourdi');
       const mult = exposed ? 2.6 : COMBAT.critMultiplier + 0.2;
-      s = damageEnemy(content, s, targetUid, Math.round(roll.value * mult), `${profile.skill.name}${exposed ? ' (cible exposée)' : ''}`, 'crit');
+      s = damageEnemy(content, s, targetUid, Math.round(roll.value * mult), exposed ? msg(content, 'combat.exposed', { skill: profile.skill.name }) : profile.skill.name, 'crit');
       s = applyEnemyStatus(s, targetUid, 'saignement', 3);
       return s;
     }
@@ -466,7 +468,7 @@ function playerSkill(content: GameContent, state: GameState, action: CombatActio
       for (const e of livingEnemies(combat)) {
         combat = updateEnemy(combat, e.uid, (en) => ({ ...en, statuses: addStatus(en.statuses, 'distrait', 2) }));
       }
-      combat = log(combat, `${profile.skill.name} : un réveil bricolé se met à sonner. Les ennemis se détournent.`, 'player');
+      combat = log(combat, msg(content, 'combat.alarm', { skill: profile.skill.name }), 'player');
       return withCombat(s, combat);
     }
     default:
@@ -481,16 +483,16 @@ function playerSkill2(content: GameContent, state: GameState): GameState {
   switch (state.player.profile) {
     case 'guerrier': {
       s = { ...s, player: { ...s.player, stamina: clamp(s.player.stamina + 4, 0, maxStamina(content, s)) } };
-      return withCombat(s, log({ ...s.combat!, fortified: true, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, `${skill.name} : vous plantez vos pieds et levez la garde. Rien ne passera ce tour.`, 'player'));
+      return withCombat(s, log({ ...s.combat!, fortified: true, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, msg(content, 'combat.fortify', { skill: skill.name }), 'player'));
     }
     case 'eclaireur':
-      return withCombat(s, log({ ...s.combat!, vanished: true, ambushUsed: false, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, `${skill.name} : vous vous fondez dans l’ombre. Votre prochaine attaque sera une attaque surprise.`, 'player'));
+      return withCombat(s, log({ ...s.combat!, vanished: true, ambushUsed: false, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, msg(content, 'combat.vanish', { skill: skill.name }), 'player'));
     case 'technicien': {
-      s = withCombat(s, log(s.combat!, `${skill.name} : une bonbonne de gaz rafistolée explose au milieu des ennemis.`, 'crit'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.gasBomb', { skill: skill.name }), 'crit'));
       for (const e of livingEnemies(s.combat!)) {
         const roll = nextInt(s.rng, 6, 10);
         s = { ...s, rng: roll.seed };
-        s = damageEnemy(content, s, e.uid, roll.value, 'Explosion', 'crit', true);
+        s = damageEnemy(content, s, e.uid, roll.value, msg(content, 'combat.explosion'), 'crit', true);
         if (s.combat!.enemies.find((x) => x.uid === e.uid)!.hp > 0) s = applyEnemyStatus(s, e.uid, 'brulure', 2);
       }
       return s;
@@ -516,10 +518,16 @@ function playerItem(content: GameContent, state: GameState, action: CombatAction
   for (const cure of u.cures ?? []) playerStatuses = removeStatus(playerStatuses, cure);
   combat = { ...combat, playerStatuses };
   const parts: string[] = [];
-  if (hp > p.hp) parts.push(`+${hp - p.hp} PV`);
-  if (stamina > p.stamina) parts.push(`+${stamina - p.stamina} endurance`);
-  if (u.cures?.length) parts.push(`soigne ${u.cures.map((c) => STATUS_LABELS[c].toLowerCase()).join(', ')}`);
-  combat = log(combat, `${def.name}${parts.length ? ` : ${parts.join(', ')}` : ''}.`, 'player');
+  if (hp > p.hp) parts.push(msg(content, 'gain.hp', { n: hp - p.hp }));
+  if (stamina > p.stamina) parts.push(msg(content, 'gain.stamina', { n: stamina - p.stamina }));
+  if (u.cures?.length) {
+    parts.push(msg(content, 'combat.cures', { list: u.cures.map((c) => statusLabel(content, c).toLowerCase()).join(', ') }));
+  }
+  combat = log(
+    combat,
+    parts.length ? msg(content, 'combat.itemUsedWith', { item: def.name, effects: parts.join(', ') }) : msg(content, 'combat.itemUsed', { item: def.name }),
+    'player',
+  );
   s = withCombat(s, combat);
   if (u.cureInfection && s.player.infection > 0) s = applyEffect(content, s, { type: 'cureInfection' });
   // Effets offensifs.
@@ -533,7 +541,7 @@ function playerItem(content: GameContent, state: GameState, action: CombatAction
     }
   }
   if (u.applyToEnemy) {
-    s = withCombat(s, log(s.combat!, `${STATUS_LABELS[u.applyToEnemy.status]} infligé.`, 'player'));
+    s = withCombat(s, log(s.combat!, msg(content, 'combat.statusInflicted', { status: statusLabel(content, u.applyToEnemy.status) }), 'player'));
   }
   return s;
 }
@@ -543,7 +551,7 @@ function playerItem(content: GameContent, state: GameState, action: CombatAction
 // ---------------------------------------------------------------------------
 
 function hurtPlayer(content: GameContent, state: GameState, amount: number, text: string, ignoreArmor = false): GameState {
-  if (state.combat!.fortified) return withCombat(state, log(state.combat!, `${text} : le coup s’écrase sur votre rempart.`, 'player'));
+  if (state.combat!.fortified) return withCombat(state, log(state.combat!, msg(content, 'combat.rampart', { text }), 'player'));
   let dmg = amount;
   if (!ignoreArmor) dmg -= armorValue(content, state);
   const c = state.combat!;
@@ -551,47 +559,51 @@ function hurtPlayer(content: GameContent, state: GameState, amount: number, text
   dmg = Math.max(1, dmg);
   const hp = Math.max(0, state.player.hp - dmg);
   const s: GameState = { ...state, player: { ...state.player, hp } };
-  return withCombat(s, log(c, `${text} (−${dmg} PV)`, 'enemy'));
+  return withCombat(s, log(c, msg(content, 'combat.playerHurt', { text, n: dmg }), 'enemy'));
 }
 
 function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): GameState {
   const def = enemyDef(content, enemy);
   let s = state;
   if (hasStatus(enemy.statuses, 'etourdi')) {
-    return withCombat(s, log(s.combat!, `${def.name} titube, incapable d’agir.`, 'player'));
+    return withCombat(s, log(s.combat!, msg(content, 'combat.enemyReels', { enemy: def.name }), 'player'));
   }
   if (hasStatus(enemy.statuses, 'distrait')) {
-    return withCombat(s, log(s.combat!, `${def.name} se tourne vers le bruit et vous oublie un instant.`, 'player'));
+    return withCombat(s, log(s.combat!, msg(content, 'combat.enemyDistracted', { enemy: def.name }), 'player'));
   }
   const move = findMove(def, enemy.phase, enemy.intent) ?? currentMoves(def, enemy.phase)[0];
   const combat = s.combat!;
 
   if (move.kind === 'guard') {
     s = applyEnemyStatus(s, enemy.uid, 'garde', 1);
-    return withCombat(s, log(s.combat!, `${def.name} : ${move.name}.`, 'enemy'));
+    return withCombat(s, log(s.combat!, msg(content, 'combat.enemyMove', { enemy: def.name, move: move.name }), 'enemy'));
   }
   if (move.kind === 'scream') {
     if (move.summon && combat.summons < COMBAT.maxSummons) {
-      return summon(content, s, move.summon, `${def.name} : ${move.name} ! Un ${content.enemies[move.summon]?.name ?? 'Muet'} surgit.`);
+      return summon(content, s, move.summon, msg(content, 'combat.summoned', {
+          enemy: def.name,
+          move: move.name,
+          summon: content.enemies[move.summon]?.name ?? msg(content, 'combat.muteFallback'),
+        }));
     }
-    return withCombat(s, log(combat, `${def.name} hurle, mais personne ne répond plus.`, 'enemy'));
+    return withCombat(s, log(combat, msg(content, 'combat.screamUnanswered', { enemy: def.name }), 'enemy'));
   }
 
   // Esquive (les étreintes ne s'esquivent pas si l'on est déjà agrippé).
   if (combat.vanished) {
-    return withCombat(s, log(s.combat!, `${def.name} frappe dans le vide : vous n’êtes plus là.`, 'player'));
+    return withCombat(s, log(s.combat!, msg(content, 'combat.strikesNothing', { enemy: def.name }), 'player'));
   }
   if (combat.dodging) {
     const d = chance(s.rng, dodgeChance(content, s));
     s = { ...s, rng: d.seed };
     if (d.value) {
-      s = withCombat(s, log(s.combat!, `Vous esquivez : ${move.name}.`, 'player'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.dodged', { move: move.name }), 'player'));
       // L'éclaireur riposte après chaque esquive réussie.
       if (s.player.profile === 'eclaireur') {
         const [min, max] = weaponDamageRange(content, s, 'melee');
         const counter = nextInt(s.rng, min, max);
         s = { ...s, rng: counter.seed };
-        s = damageEnemy(content, s, enemy.uid, Math.round(counter.value * 0.6), 'Contre-attaque', 'crit');
+        s = damageEnemy(content, s, enemy.uid, Math.round(counter.value * 0.6), msg(content, 'combat.counter'), 'crit');
       }
       return s;
     }
@@ -602,12 +614,12 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
   s = { ...s, rng: roll.seed };
   let dmg = roll.value;
   if (move.kind === 'bite' && hasStatus(s.combat!.playerStatuses, 'agrippe')) dmg += 2;
-  if (dmg > 0) s = hurtPlayer(content, s, dmg, `${def.name} : ${move.name}`, move.kind === 'spit');
-  else s = withCombat(s, log(s.combat!, `${def.name} : ${move.name}.`, 'enemy'));
+  if (dmg > 0) s = hurtPlayer(content, s, dmg, msg(content, 'combat.enemyMoveName', { enemy: def.name, move: move.name }), move.kind === 'spit');
+  else s = withCombat(s, log(s.combat!, msg(content, 'combat.enemyMove', { enemy: def.name, move: move.name }), 'enemy'));
 
   if (move.kind === 'grab') {
     if (s.combat!.defending) {
-      s = withCombat(s, log(s.combat!, 'Votre garde l’empêche de vous saisir.', 'player'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.guardStopsGrab'), 'player'));
     } else {
       s = withCombat(s, { ...s.combat!, playerStatuses: addStatus(s.combat!.playerStatuses, 'agrippe', 2) });
     }
@@ -620,7 +632,7 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
         ...s.combat!,
         playerStatuses: addStatus(s.combat!.playerStatuses, move.applies.status, move.applies.turns),
       });
-      s = withCombat(s, log(s.combat!, `Vous êtes ${STATUS_LABELS[move.applies.status].toLowerCase()}.`, 'danger'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.playerStatus', { status: statusLabel(content, move.applies.status).toLowerCase() }), 'danger'));
     }
   }
   if (move.infectionChance && s.player.hp > 0 && !s.combat!.defending) {
@@ -629,7 +641,7 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
     s = { ...s, rng: inf.seed };
     if (inf.value) {
       s = applyEffect(content, s, { type: 'infection', amount: 1 });
-      s = withCombat(s, log(s.combat!, 'Les dents ont percé la peau. La morsure brûle.', 'danger'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.bitten'), 'danger'));
     }
   }
   return s;
@@ -652,7 +664,7 @@ function alliesAct(content: GameContent, state: GameState): GameState {
       if (s.player.hp >= maxHp(content, s)) continue;
       const hp = clamp(s.player.hp + roll.value, 0, maxHp(content, s));
       s = { ...s, player: { ...s.player, hp } };
-      s = withCombat(s, log(s.combat!, `${ch.name} ${assist.text} (+${roll.value} PV)`, 'ally'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.allyHeal', { name: ch.name, text: assist.text, n: roll.value }), 'ally'));
     } else {
       const target = livingEnemies(s.combat!)[0];
       if (!target) continue;
@@ -668,14 +680,14 @@ function endOfRound(content: GameContent, state: GameState): GameState {
   // Statuts du joueur.
   if (hasStatus(combat.playerStatuses, 'saignement')) {
     s = { ...s, player: { ...s.player, hp: Math.max(0, s.player.hp - COMBAT.bleedDamage) } };
-    combat = log(combat, `Vous saignez (−${COMBAT.bleedDamage} PV).`, 'danger');
+    combat = log(combat, msg(content, 'combat.bleeding', { n: COMBAT.bleedDamage }), 'danger');
   }
   // Statuts des ennemis.
   s = withCombat(s, combat);
   for (const e of livingEnemies(s.combat!)) {
-    if (hasStatus(e.statuses, 'saignement')) s = damageEnemy(content, s, e.uid, COMBAT.bleedDamage, 'Saignement', 'player', true);
+    if (hasStatus(e.statuses, 'saignement')) s = damageEnemy(content, s, e.uid, COMBAT.bleedDamage, statusLabel(content, 'saignement'), 'player', true);
     const after = s.combat!.enemies.find((x) => x.uid === e.uid)!;
-    if (after.hp > 0 && hasStatus(after.statuses, 'brulure')) s = damageEnemy(content, s, e.uid, COMBAT.burnDamage, 'Brûlure', 'player', true);
+    if (after.hp > 0 && hasStatus(after.statuses, 'brulure')) s = damageEnemy(content, s, e.uid, COMBAT.burnDamage, statusLabel(content, 'brulure'), 'player', true);
   }
   combat = s.combat!;
   combat = {
@@ -695,11 +707,11 @@ function endOfRound(content: GameContent, state: GameState): GameState {
   return chooseIntents(content, s);
 }
 
-function checkOutcome(state: GameState): GameState {
+function checkOutcome(content: GameContent, state: GameState): GameState {
   const c = state.combat!;
   if (c.outcome !== 'ongoing') return state;
-  if (state.player.hp <= 0) return withCombat(state, log({ ...c, outcome: 'defeat' }, 'Vous vous effondrez.', 'danger'));
-  if (livingEnemies(c).length === 0) return withCombat(state, log({ ...c, outcome: 'victory', playerStatuses: [] }, 'Le silence retombe. Vous avez survécu.', 'system'));
+  if (state.player.hp <= 0) return withCombat(state, log({ ...c, outcome: 'defeat' }, msg(content, 'combat.collapse'), 'danger'));
+  if (livingEnemies(c).length === 0) return withCombat(state, log({ ...c, outcome: 'victory', playerStatuses: [] }, msg(content, 'combat.victory'), 'system'));
   return state;
 }
 
@@ -723,13 +735,13 @@ export function performAction(content: GameContent, state: GameState, action: Co
       const wasGrabbed = hasStatus(s.combat!.playerStatuses, 'agrippe');
       s = { ...s, player: { ...s.player, stamina: clamp(s.player.stamina + COMBAT.defendStaminaGain, 0, maxStamina(content, s)) } };
       let c = { ...s.combat!, defending: true, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') };
-      c = log(c, wasGrabbed ? 'Vous repoussez l’étreinte et levez votre garde.' : 'Vous levez votre garde et reprenez votre souffle.', 'player');
+      c = log(c, msg(content, wasGrabbed ? 'combat.breakGrab' : 'combat.guardUp'), 'player');
       s = withCombat(s, c);
       break;
     }
     case 'dodge':
       s = spendStamina(content, s, COMBAT.dodgeStamina);
-      s = withCombat(s, log({ ...s.combat!, dodging: true }, 'Vous vous préparez à esquiver.', 'player'));
+      s = withCombat(s, log({ ...s.combat!, dodging: true }, msg(content, 'combat.readyDodge'), 'player'));
       break;
     case 'skill':
       s = playerSkill(content, s, action);
@@ -745,38 +757,38 @@ export function performAction(content: GameContent, state: GameState, action: Co
       const f = chance(s.rng, fleeChance(content, s));
       s = { ...s, rng: f.seed };
       if (f.value) {
-        return withCombat(s, log({ ...s.combat!, outcome: 'fled', playerStatuses: [] }, 'Vous prenez la fuite.', 'system'));
+        return withCombat(s, log({ ...s.combat!, outcome: 'fled', playerStatuses: [] }, msg(content, 'combat.fled'), 'system'));
       }
-      s = withCombat(s, log(s.combat!, 'Votre fuite échoue : le passage est coupé.', 'danger'));
+      s = withCombat(s, log(s.combat!, msg(content, 'combat.fleeFailed'), 'danger'));
       break;
     }
   }
 
-  s = checkOutcome(s);
+  s = checkOutcome(content, s);
   if (s.combat!.outcome !== 'ongoing') return s;
 
   s = alliesAct(content, s);
-  s = checkOutcome(s);
+  s = checkOutcome(content, s);
   if (s.combat!.outcome !== 'ongoing') return s;
 
   for (const enemy of livingEnemies(s.combat!)) {
     const fresh = s.combat!.enemies.find((e) => e.uid === enemy.uid)!;
     if (fresh.hp <= 0) continue;
     s = enemyAct(content, s, fresh);
-    s = checkOutcome(s);
+    s = checkOutcome(content, s);
     if (s.combat!.outcome !== 'ongoing') return s;
   }
 
   s = endOfRound(content, s);
-  return checkOutcome(s);
+  return checkOutcome(content, s);
 }
 
 /** Description lisible de l'intention d'un ennemi. */
 export function describeIntent(content: GameContent, enemy: CombatEnemy): { text: string; kind: string } | null {
   const def = enemyDef(content, enemy);
   if (enemy.hp <= 0) return null;
-  if (hasStatus(enemy.statuses, 'etourdi')) return { text: 'Étourdi : ne pourra pas agir.', kind: 'stunned' };
-  if (hasStatus(enemy.statuses, 'distrait')) return { text: 'Distrait : regarde ailleurs.', kind: 'stunned' };
+  if (hasStatus(enemy.statuses, 'etourdi')) return { text: msg(content, 'intent.stunned'), kind: 'stunned' };
+  if (hasStatus(enemy.statuses, 'distrait')) return { text: msg(content, 'intent.distracted'), kind: 'stunned' };
   const move = findMove(def, enemy.phase, enemy.intent);
   if (!move) return null;
   return { text: move.telegraph, kind: move.kind };

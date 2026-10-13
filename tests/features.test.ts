@@ -14,7 +14,7 @@ describe('horloge des sept jours', () => {
   it('commence le jour 1 à 23 h et avance avec les choix', () => {
     let s = start();
     expect(s.clock).toBe(CLOCK_START);
-    expect(formatClock(s.clock)).toBe('Jour 1 · 23 h · nuit');
+    expect(formatClock(C, s.clock)).toBe('Jour 1 · 23 h · nuit');
     s = pick(s, 'regler'); // 30 minutes
     expect(s.clock).toBe(CLOCK_START + 0.5);
   });

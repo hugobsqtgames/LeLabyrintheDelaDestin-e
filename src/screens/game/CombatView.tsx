@@ -15,7 +15,7 @@ import {
   hitChance,
   livingEnemies,
   performAction,
-  STATUS_LABELS,
+  statusLabel,
   weaponDamageRange,
   weaponDurability,
 } from '../../engine/combat';
@@ -98,7 +98,7 @@ function EnemyCard({ enemy, selected, onPress, compact }: { enemy: CombatEnemy; 
         {enemy.statuses.length > 0 && (
           <View style={styles.statusRow}>
             {enemy.statuses.map((s) => (
-              <Badge key={s.kind} label={`${STATUS_LABELS[s.kind]} ${s.turns}`} color={colors.ice} />
+              <Badge key={s.kind} label={`${statusLabel(content, s.kind)} ${s.turns}`} color={colors.ice} />
             ))}
           </View>
         )}
@@ -231,7 +231,7 @@ export function CombatView({ game }: { game: GameState }) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.sm }}>
             <Label style={{ flex: 1 }}>{t('combat.log')}</Label>
             {combat.playerStatuses.map((s) => (
-              <Badge key={s.kind} label={`${STATUS_LABELS[s.kind]} ${s.turns}`} color={colors.rustBright} />
+              <Badge key={s.kind} label={`${statusLabel(content, s.kind)} ${s.turns}`} color={colors.rustBright} />
             ))}
           </View>
           {recent.map((l, i) => (

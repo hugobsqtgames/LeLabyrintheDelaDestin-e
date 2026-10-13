@@ -2,6 +2,7 @@
  * Récapitulatif d'une fin de partie ou d'un chapitre.
  */
 import { evaluate } from './conditions';
+import { msg } from './messages';
 import type { CompanionStatus, EndingDef, GameContent, GameState } from './types';
 
 export interface AllyLine {
@@ -58,11 +59,13 @@ export function summarize(content: GameContent, state: GameState): GameSummary {
   };
 }
 
-export function formatPlaytime(ms: number): string {
+export function formatPlaytime(content: GameContent, ms: number): string {
   const minutes = Math.floor(ms / 60000);
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return h > 0 ? `${h} h ${m.toString().padStart(2, '0')}` : `${m} min`;
+  return h > 0
+    ? msg(content, 'time.playtimeHours', { h, m: m.toString().padStart(2, '0') })
+    : msg(content, 'time.playtimeMinutes', { m });
 }
 
 /** Résumé « Que s'est-il passé ? », affiché à la reprise d'une partie. */

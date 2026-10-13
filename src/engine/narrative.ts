@@ -7,7 +7,8 @@ import { evaluate, evaluateAll, missingRequirements } from './conditions';
 import { startCombat } from './combat';
 import { applyEffects } from './effects';
 import { addItem, EQUIP_SLOTS } from './inventory';
-import { checkProbability, CHECK_DICE, CHECK_SIDES, CLOCK_START, STAT_LABELS } from './rules';
+import { msg } from './messages';
+import { checkProbability, CHECK_DICE, CHECK_SIDES, CLOCK_START } from './rules';
 import { rollDice } from './rng';
 import type {
   CharacterDraft,
@@ -98,7 +99,16 @@ export function newGame(
     if (item && state.inventory[item]) state = { ...state, equipment: { ...state.equipment, [slot]: item } };
   }
   state = { ...state, player: { ...state.player, hp: maxHp(content, state), stamina: maxStamina(content, state) } };
-  state = addChronicle(content, state, `${player.name}, ${profile.name.toLowerCase()}, ${background.name.toLowerCase()}, prend son tour de garde.`, true);
+  state = addChronicle(
+    content,
+    state,
+    msg(content, 'chronicle.start', {
+      name: player.name,
+      profile: profile.name.toLowerCase(),
+      background: background.name.toLowerCase(),
+    }),
+    true,
+  );
   return enterScene(content, state, content.startScene);
 }
 
@@ -116,7 +126,7 @@ const MAX_ROUTE_DEPTH = 8;
 
 export function enterScene(content: GameContent, state: GameState, sceneId: SceneId, depth = 0): GameState {
   const scene = content.scenes[sceneId];
-  if (!scene) return addNotice(state, `Erreur de contenu : scène « ${sceneId} » introuvable.`, 'bad');
+  if (!scene) return addNotice(state, msg(content, 'scene.missing', { id: sceneId }), 'bad');
   if (scene.routes && depth < MAX_ROUTE_DEPTH) {
     const route = scene.routes.find((r) => evaluate(content, state, r.if));
     if (route) return enterScene(content, state, route.to, depth + 1);
@@ -139,7 +149,7 @@ export function enterScene(content: GameContent, state: GameState, sceneId: Scen
   if ((scene.kind === 'ending' || scene.kind === 'death') && scene.ending) {
     s = { ...s, ending: { id: scene.ending, kind: scene.kind === 'death' ? 'death' : 'ending' } };
     const def = content.endings[scene.ending];
-    s = addChronicle(content, s, def ? `Fin : ${def.title}.` : 'Fin de l’histoire.', true);
+    s = addChronicle(content, s, def ? msg(content, 'chronicle.ending', { title: def.title }) : msg(content, 'chronicle.endingUnknown'), true);
     return s;
   }
   if (scene.kind === 'combat' && scene.encounter && !s.combat) {
@@ -152,7 +162,7 @@ export function enterScene(content: GameContent, state: GameState, sceneId: Scen
 export function visibleText(content: GameContent, state: GameState, scene: Scene): TextBlock[] {
   return scene.text
     .filter((b) => !b.if || evaluate(content, state, b.if))
-    .map((b) => ({ ...b, text: interpolate(b.text, state) }));
+    .map((b) => ({ ...b, text: interpolate(content, b.text, state) }));
 }
 
 // ---------------------------------------------------------------------------
@@ -184,10 +194,10 @@ export function isChoiceConsumed(state: GameState, sceneId: SceneId, choiceId: s
 function describeCosts(content: GameContent, effects: Effect[] | undefined): string[] {
   const costs: string[] = [];
   for (const e of effects ?? []) {
-    if (e.type === 'damage') costs.push(`−${e.amount} PV`);
-    if (e.type === 'takeItem') costs.push(`−${e.qty ?? 1} ${content.items[e.item]?.name ?? e.item}`);
-    if (e.type === 'infection' && e.amount > 0) costs.push('Risque d’infection');
-    if (e.type === 'stamina' && e.amount < 0) costs.push(`−${-e.amount} endurance`);
+    if (e.type === 'damage') costs.push(msg(content, 'loss.hp', { n: e.amount }));
+    if (e.type === 'takeItem') costs.push(msg(content, 'item.lost', { qty: e.qty ?? 1, item: content.items[e.item]?.name ?? e.item }));
+    if (e.type === 'infection' && e.amount > 0) costs.push(msg(content, 'cost.infection'));
+    if (e.type === 'stamina' && e.amount < 0) costs.push(msg(content, 'loss.stamina', { n: -e.amount }));
   }
   return costs;
 }
@@ -207,11 +217,11 @@ export function choiceViews(content: GameContent, state: GameState): ChoiceView[
     const costs = describeCosts(content, choice.effects);
     if (choice.check?.failureEffects) {
       const failCosts = describeCosts(content, choice.check.failureEffects);
-      if (failCosts.length) costs.push(`En cas d’échec : ${failCosts.join(', ')}`);
+      if (failCosts.length) costs.push(msg(content, 'cost.onFailure', { list: failCosts.join(', ') }));
     }
     views.push({
       choice,
-      text: interpolate(choice.text, state),
+      text: interpolate(content, choice.text, state),
       available,
       lockedReasons: missing.known,
       lockedUnknown: missing.unknown > 0,
@@ -233,21 +243,21 @@ export interface ChoiceResult {
  * double appui ou un choix affiché sur un écran périmé est ainsi ignoré.
  */
 export function choose(content: GameContent, state: GameState, sceneId: SceneId, choiceId: string): ChoiceResult {
-  if (state.ending) return { state, ok: false, error: 'La partie est terminée.' };
-  if (state.combat) return { state, ok: false, error: 'Un combat est en cours.' };
-  if (state.currentScene !== sceneId) return { state, ok: false, error: 'Choix périmé.' };
+  if (state.ending) return { state, ok: false, error: msg(content, 'choice.gameOver') };
+  if (state.combat) return { state, ok: false, error: msg(content, 'choice.inCombat') };
+  if (state.currentScene !== sceneId) return { state, ok: false, error: msg(content, 'choice.stale') };
   const scene = content.scenes[sceneId];
-  if (!scene) return { state, ok: false, error: 'Scène introuvable.' };
+  if (!scene) return { state, ok: false, error: msg(content, 'choice.sceneMissing') };
   const choice = scene.choices.find((c) => c.id === choiceId);
-  if (!choice) return { state, ok: false, error: 'Choix introuvable.' };
-  if (choice.visibleIf && !evaluateAll(content, state, choice.visibleIf)) return { state, ok: false, error: 'Choix indisponible.' };
-  if (!evaluateAll(content, state, choice.requires)) return { state, ok: false, error: 'Conditions non remplies.' };
+  if (!choice) return { state, ok: false, error: msg(content, 'choice.missing') };
+  if (choice.visibleIf && !evaluateAll(content, state, choice.visibleIf)) return { state, ok: false, error: msg(content, 'choice.unavailable') };
+  if (!evaluateAll(content, state, choice.requires)) return { state, ok: false, error: msg(content, 'choice.requirements') };
   const key = choiceKey(sceneId, choiceId);
-  if (choice.once && state.consumed.includes(key)) return { state, ok: false, error: 'Déjà fait.' };
+  if (choice.once && state.consumed.includes(key)) return { state, ok: false, error: msg(content, 'choice.alreadyDone') };
 
   let s: GameState = { ...state, turn: state.turn + 1, lastCheck: null, notices: [] };
   if (choice.once) s = { ...s, consumed: [...s.consumed, key] };
-  s = addChronicle(content, s, interpolate(choice.text, s), false);
+  s = addChronicle(content, s, interpolate(content, choice.text, s), false);
   if (choice.time) s = { ...s, clock: s.clock + choice.time };
   s = applyEffects(content, s, choice.effects);
   if (s.ending) return { state: s, ok: true };
@@ -267,7 +277,15 @@ export function choose(content: GameContent, state: GameState, sceneId: SceneId,
     s = addChronicle(
       content,
       s,
-      `${STAT_LABELS[c.stat]} : ${dice.value[0]}+${dice.value[1]}+${bonus} = ${total} contre ${c.difficulty} — ${success ? 'réussite' : 'échec'}.`,
+      msg(content, 'check.roll', {
+        stat: content.statLabels[c.stat],
+        d1: dice.value[0],
+        d2: dice.value[1],
+        bonus,
+        total,
+        difficulty: c.difficulty,
+        result: msg(content, success ? 'check.success' : 'check.failure'),
+      }),
       false,
     );
     s = applyEffects(content, s, success ? c.successEffects : c.failureEffects);
@@ -291,17 +309,17 @@ export function resolveCombat(content: GameContent, state: GameState): GameState
   if (!encounter) return s;
   if (state.ending) return s;
   if (combat.outcome === 'victory') {
-    s = addChronicle(content, s, `Victoire : ${scene.title}.`, !!encounter.enemies.some((e) => content.enemies[e]?.boss));
+    s = addChronicle(content, s, msg(content, 'chronicle.victory', { title: scene.title }), !!encounter.enemies.some((e) => content.enemies[e]?.boss));
     if (combat.xpEarned > 0) s = applyEffects(content, s, [{ type: 'xp', amount: combat.xpEarned }]);
     return enterScene(content, s, encounter.victory);
   }
   if (combat.outcome === 'fled') {
-    s = addChronicle(content, s, `Fuite : ${scene.title}.`, false);
+    s = addChronicle(content, s, msg(content, 'chronicle.fled', { title: scene.title }), false);
     return enterScene(content, s, encounter.flee ?? encounter.defeat);
   }
   // Défaite : selon la scène, blessure, capture ou mort.
   const defeatScene = content.scenes[encounter.defeat];
-  s = addChronicle(content, s, `Défaite : ${scene.title}.`, true);
+  s = addChronicle(content, s, msg(content, 'chronicle.defeat', { title: scene.title }), true);
   if (defeatScene && defeatScene.kind !== 'death') {
     s = { ...s, player: { ...s.player, hp: Math.max(1, s.player.hp) } };
   }

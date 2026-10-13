@@ -65,7 +65,7 @@ export function EndingView({ game }: { game: GameState }) {
         <Tile style={styles.tile} label={t('end.decisions')} value={summary.decisions} icon="chevron" />
         <Tile style={styles.tile} label={t('hud.levelLabel')} value={summary.level} icon="star" color={colors.violet} />
         <Tile style={styles.tile} label={t('tab.quests')} value={`${summary.questsCompleted.length}`} sub={summary.questsFailed.length ? t('end.failed', { n: summary.questsFailed.length }) : undefined} icon="quest" color={colors.mossBright} />
-        <Tile style={styles.tile} label={t('end.time')} value={formatPlaytime(summary.playtimeMs)} icon="clock" />
+        <Tile style={styles.tile} label={t('end.time')} value={formatPlaytime(content, summary.playtimeMs)} icon="clock" />
       </View>
 
       <SectionTitle>{t('end.what')}</SectionTitle>

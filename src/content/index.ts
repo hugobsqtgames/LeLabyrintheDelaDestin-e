@@ -3,6 +3,7 @@
  * chapters/, ajouter le chapitre à CHAPTERS (world.ts) et ses scènes ici.
  * Aucun écran n'a besoin d'être modifié.
  */
+import { MESSAGES_FR } from '../engine/messages';
 import { STAT_DESCRIPTIONS, STAT_LABELS } from '../engine/rules';
 import type { GameContent } from '../engine/types';
 import { chapter1 } from './chapters/c1';
@@ -39,4 +40,5 @@ export const CONTENT: GameContent = {
   diaryRules: DIARY_RULES,
   summaryRules: SUMMARY_RULES,
   startScene: 'c1_toit',
+  messages: MESSAGES_FR,
 };

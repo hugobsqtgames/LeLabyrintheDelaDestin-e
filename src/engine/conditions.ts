@@ -2,7 +2,7 @@
  * Évaluation et explication des conditions.
  */
 import { effectiveStat } from './character';
-import { STAT_LABELS } from './rules';
+import { msg } from './messages';
 import type { Condition, GameContent, GameState } from './types';
 
 export function evaluate(content: GameContent, state: GameState, c: Condition): boolean {
@@ -77,37 +77,47 @@ export function evaluateAll(content: GameContent, state: GameState, conditions: 
 export function explain(content: GameContent, state: GameState, c: Condition): string | null {
   switch (c.type) {
     case 'stat':
-      return `${STAT_LABELS[c.stat]} ${c.min} requise (vous : ${effectiveStat(content, state, c.stat)})`;
+      return msg(content, 'explain.stat', {
+        stat: content.statLabels[c.stat],
+        min: c.min,
+        value: effectiveStat(content, state, c.stat),
+      });
     case 'profile':
-      return `Réservé au profil ${c.profiles.map((p) => content.profiles[p]?.name ?? p).join(' ou ')}`;
+      return msg(content, 'explain.profile', {
+        list: c.profiles.map((p) => content.profiles[p]?.name ?? p).join(msg(content, 'explain.or')),
+      });
     case 'background':
-      return `Passé requis : ${c.backgrounds.map((b) => content.backgrounds[b]?.name ?? b).join(' ou ')}`;
+      return msg(content, 'explain.background', {
+        list: c.backgrounds.map((b) => content.backgrounds[b]?.name ?? b).join(msg(content, 'explain.or')),
+      });
     case 'item': {
       const name = content.items[c.item]?.name ?? c.item;
       const qty = c.qty ?? 1;
-      return qty > 1 ? `Nécessite ${qty} × ${name} (vous : ${state.inventory[c.item] ?? 0})` : `Nécessite : ${name}`;
+      return qty > 1
+        ? msg(content, 'explain.itemQty', { qty, item: name, owned: state.inventory[c.item] ?? 0 })
+        : msg(content, 'explain.item', { item: name });
     }
     case 'relation': {
       const ch = content.characters[c.character]?.name ?? c.character;
-      if (c.min !== undefined) return `${ch} doit vous faire davantage confiance`;
-      return `${ch} se méfie trop de vous`;
+      if (c.min !== undefined) return msg(content, 'explain.relationMin', { name: ch });
+      return msg(content, 'explain.relationMax', { name: ch });
     }
     case 'companion': {
       const ch = content.characters[c.character]?.name ?? c.character;
-      if (c.status.includes('companion')) return `${ch} doit être à vos côtés`;
+      if (c.status.includes('companion')) return msg(content, 'explain.companion', { name: ch });
       return null;
     }
     case 'hp':
-      return `Santé ${c.min} minimum (vous : ${state.player.hp})`;
+      return msg(content, 'explain.hp', { min: c.min, hp: state.player.hp });
     case 'level':
-      return `Niveau ${c.min} requis`;
+      return msg(content, 'explain.level', { level: c.min });
     case 'perk':
-      return `Compétence requise : ${content.perks[c.perk]?.name ?? c.perk}`;
+      return msg(content, 'explain.perk', { perk: content.perks[c.perk]?.name ?? c.perk });
     case 'infection':
-      if (c.max !== undefined) return 'La fièvre vous en empêche';
+      if (c.max !== undefined) return msg(content, 'explain.fever');
       return null;
     case 'clock':
-      if (c.max !== undefined) return 'Il est trop tard pour cela';
+      if (c.max !== undefined) return msg(content, 'explain.tooLate');
       return null;
     case 'all': {
       const parts = c.conditions
@@ -118,7 +128,7 @@ export function explain(content: GameContent, state: GameState, c: Condition): s
     }
     case 'any': {
       const parts = c.conditions.map((sub) => explain(content, state, sub)).filter((p): p is string => !!p);
-      return parts.length ? parts.join(' — ou — ') : null;
+      return parts.length ? parts.join(msg(content, 'explain.anyJoin')) : null;
     }
     default:
       return null;

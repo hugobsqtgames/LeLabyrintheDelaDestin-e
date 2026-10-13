@@ -619,4 +619,10 @@ export interface GameContent {
   diaryRules: DiaryRule[];
   summaryRules: SummaryRule[];
   startScene: SceneId;
+  /**
+   * Messages du moteur (notifications, journal de combat, raisons de
+   * verrouillage…) dans la langue du contenu. Paramètres entre accolades :
+   * « Lieu découvert : {name} ». Voir engine/messages.ts.
+   */
+  messages: Record<string, string>;
 }

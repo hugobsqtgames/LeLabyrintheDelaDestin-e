@@ -1,7 +1,8 @@
 /**
  * Règles chiffrées du jeu : une seule source de vérité pour l'équilibrage.
  */
-import type { StatId } from './types';
+import { msg } from './messages';
+import type { GameContent, StatId } from './types';
 
 export const STAT_IDS: StatId[] = ['force', 'discretion', 'survie', 'astuce'];
 
@@ -107,16 +108,19 @@ export const DEPARTURE_HOUR = 6 * 24 + 6;
 /** Au-delà (minuit du jour 7), la barge est partie. */
 export const DEPARTED_HOUR = DEPARTURE_HOUR + 18;
 
-export function clockParts(hours: number): { day: number; hour: number; period: string } {
+export type ClockPeriod = 'night' | 'dawn' | 'morning' | 'afternoon' | 'evening';
+
+export function clockParts(hours: number): { day: number; hour: number; period: ClockPeriod } {
   const h = Math.max(0, Math.floor(hours));
   const hour = h % 24;
-  const period = hour < 5 ? 'nuit' : hour < 8 ? 'aube' : hour < 12 ? 'matin' : hour < 18 ? 'après-midi' : hour < 22 ? 'soir' : 'nuit';
+  const period: ClockPeriod =
+    hour < 5 ? 'night' : hour < 8 ? 'dawn' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : hour < 22 ? 'evening' : 'night';
   return { day: Math.floor(h / 24) + 1, hour, period };
 }
 
-export function formatClock(hours: number): string {
+export function formatClock(content: GameContent, hours: number): string {
   const { day, hour, period } = clockParts(hours);
-  return `Jour ${day} · ${hour} h · ${period}`;
+  return msg(content, 'clock.format', { day, hour, period: msg(content, `clock.${period}`) });
 }
 
 /** Temps restant avant l'embarquement, en heures (négatif : en retard). */

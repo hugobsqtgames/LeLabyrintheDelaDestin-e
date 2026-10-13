@@ -13,15 +13,22 @@ import { clampVitals, hasPerk, healingMultiplier, maxHp, maxStamina } from './ch
 import type { EquipSlot, GameContent, GameState, ItemId } from './types';
 import { addNotice, clamp } from './util';
 import { missingRequirements } from './conditions';
+import { MESSAGES_FR, msg, msgCount } from './messages';
 
 export const EQUIP_SLOTS: EquipSlot[] = ['melee', 'ranged', 'armor', 'accessory'];
 
+/** Libellés français des emplacements (référence ; à l'exécution : `slotLabel`). */
 export const SLOT_LABELS: Record<EquipSlot, string> = {
-  melee: 'Arme de mêlée',
-  ranged: 'Arme à distance',
-  armor: 'Protection',
-  accessory: 'Accessoire',
+  melee: MESSAGES_FR['slot.melee'],
+  ranged: MESSAGES_FR['slot.ranged'],
+  armor: MESSAGES_FR['slot.armor'],
+  accessory: MESSAGES_FR['slot.accessory'],
 };
+
+/** Libellé d'un emplacement dans la langue du contenu. */
+export function slotLabel(content: GameContent, slot: EquipSlot): string {
+  return msg(content, `slot.${slot}`);
+}
 
 export function capacity(content: GameContent, state: GameState): number {
   const bg = content.backgrounds[state.player.background];
@@ -90,11 +97,11 @@ export function addItem(content: GameContent, state: GameState, item: ItemId, qt
     s = { ...s, ground: { ...s.ground, [item]: groundQty } };
   }
   if (notify) {
-    if (fits > 0) s = addNotice(s, `+${fits} ${def.name}`, 'good');
+    if (fits > 0) s = addNotice(s, msg(content, 'item.gained', { qty: fits, item: def.name }), 'good');
     if (grounded > 0)
-      s = addNotice(s, `${def.name} : trop lourd (${grounded} laissé${grounded > 1 ? 's' : ''} au sol). Faites de la place dans le sac.`, 'bad');
+      s = addNotice(s, msgCount(content, 'inventory.grounded', grounded, { item: def.name }), 'bad');
     if (refused > 0 && fits === 0 && grounded === 0)
-      s = addNotice(s, `${def.name} : vous en portez déjà le maximum (${def.maxStack}).`, 'info');
+      s = addNotice(s, msg(content, 'inventory.stackFull', { item: def.name, max: def.maxStack }), 'info');
   }
   return { state: s, added: fits, grounded, refused };
 }
@@ -104,15 +111,15 @@ export function removeItem(content: GameContent, state: GameState, item: ItemId,
   if (owned <= 0 || qty <= 0) return state;
   const removed = Math.min(owned, qty);
   let s = setQty(state, item, owned - removed);
-  if (notify) s = addNotice(s, `−${removed} ${content.items[item]?.name ?? item}`, 'bad');
+  if (notify) s = addNotice(s, msg(content, 'item.lost', { qty: removed, item: content.items[item]?.name ?? item }), 'bad');
   return clampVitals(content, s);
 }
 
 export function canDrop(content: GameContent, state: GameState, item: ItemId): { ok: boolean; reason?: string } {
   const def = content.items[item];
-  if (!def) return { ok: false, reason: 'Objet inconnu.' };
-  if (itemCount(state, item) <= 0) return { ok: false, reason: 'Vous ne possédez pas cet objet.' };
-  if (def.questItem) return { ok: false, reason: 'Objet indispensable : impossible de s’en séparer.' };
+  if (!def) return { ok: false, reason: msg(content, 'inventory.unknownItem') };
+  if (itemCount(state, item) <= 0) return { ok: false, reason: msg(content, 'inventory.notOwned') };
+  if (def.questItem) return { ok: false, reason: msg(content, 'inventory.questItem') };
   return { ok: true };
 }
 
@@ -123,7 +130,7 @@ export function dropItem(content: GameContent, state: GameState, item: ItemId, q
   const removed = Math.min(itemCount(state, item), qty);
   let s = setQty(state, item, itemCount(state, item) - removed);
   s = { ...s, ground: { ...s.ground, [item]: Math.min(def.maxStack, (s.ground[item] ?? 0) + removed) } };
-  s = addNotice(s, `${def.name} posé au sol.`, 'info');
+  s = addNotice(s, msg(content, 'inventory.dropped', { item: def.name }), 'info');
   return clampVitals(content, s);
 }
 
@@ -137,8 +144,8 @@ export function pickUp(content: GameContent, state: GameState, item: ItemId): Ga
   if (leftover > 0) ground[item] = leftover;
   else delete ground[item];
   s = { ...s, ground };
-  if (res.added > 0) s = addNotice(s, `Ramassé : ${res.added} ${content.items[item].name}.`, 'good');
-  else s = addNotice(s, `Toujours trop lourd : libérez ${content.items[item].weight} kg.`, 'bad');
+  if (res.added > 0) s = addNotice(s, msg(content, 'inventory.pickedUp', { qty: res.added, item: content.items[item].name }), 'good');
+  else s = addNotice(s, msg(content, 'inventory.stillTooHeavy', { weight: content.items[item].weight }), 'bad');
   return s;
 }
 
@@ -155,13 +162,13 @@ export function abandonGround(state: GameState, item?: ItemId): GameState {
 
 export function canEquip(content: GameContent, state: GameState, item: ItemId): { ok: boolean; reason?: string } {
   const def = content.items[item];
-  if (!def) return { ok: false, reason: 'Objet inconnu.' };
-  if (!def.slot) return { ok: false, reason: 'Cet objet ne s’équipe pas.' };
-  if (itemCount(state, item) <= 0) return { ok: false, reason: 'Vous ne possédez pas cet objet.' };
-  if (state.equipment[def.slot] === item) return { ok: false, reason: 'Déjà équipé.' };
+  if (!def) return { ok: false, reason: msg(content, 'inventory.unknownItem') };
+  if (!def.slot) return { ok: false, reason: msg(content, 'equip.notEquippable') };
+  if (itemCount(state, item) <= 0) return { ok: false, reason: msg(content, 'inventory.notOwned') };
+  if (state.equipment[def.slot] === item) return { ok: false, reason: msg(content, 'equip.already') };
   if (def.category === 'ranged' && def.ammo && itemCount(state, def.ammo) <= 0) {
     // Autorisé, mais signalé : l'arme ne pourra pas tirer.
-    return { ok: true, reason: `Aucune munition (${content.items[def.ammo]?.name ?? def.ammo}).` };
+    return { ok: true, reason: msg(content, 'equip.noAmmo', { ammo: content.items[def.ammo]?.name ?? def.ammo }) };
   }
   return { ok: true };
 }
@@ -175,9 +182,19 @@ export function equip(content: GameContent, state: GameState, item: ItemId): Gam
   let s: GameState = { ...state, equipment: { ...state.equipment, [slot]: item } };
   // Remplacer un sac par un sac plus petit peut rendre la charge excessive.
   if (currentWeight(content, s) > capacity(content, s)) {
-    return addNotice(state, `Impossible : sans ${content.items[previous ?? '']?.name ?? 'cet équipement'}, la charge serait trop lourde.`, 'bad');
+    return addNotice(
+      state,
+      msg(content, 'equip.tooHeavyWithout', { item: content.items[previous ?? '']?.name ?? msg(content, 'equip.thisEquipment') }),
+      'bad',
+    );
   }
-  s = addNotice(s, `${def.name} équipé${previous ? ` (remplace ${content.items[previous]?.name})` : ''}.`, 'info');
+  s = addNotice(
+    s,
+    previous
+      ? msg(content, 'equip.doneReplaces', { item: def.name, previous: String(content.items[previous]?.name) })
+      : msg(content, 'equip.done', { item: def.name }),
+    'info',
+  );
   return clampVitals(content, s);
 }
 
@@ -186,9 +203,9 @@ export function unequip(content: GameContent, state: GameState, slot: EquipSlot)
   if (!current) return state;
   const s: GameState = { ...state, equipment: { ...state.equipment, [slot]: null } };
   if (currentWeight(content, s) > capacity(content, s)) {
-    return addNotice(state, 'Impossible : votre charge dépasserait votre capacité. Allégez d’abord le sac.', 'bad');
+    return addNotice(state, msg(content, 'unequip.tooHeavy'), 'bad');
   }
-  return clampVitals(content, addNotice(s, `${content.items[current].name} rangé.`, 'info'));
+  return clampVitals(content, addNotice(s, msg(content, 'unequip.done', { item: content.items[current].name }), 'info'));
 }
 
 // ---------------------------------------------------------------------------
@@ -197,15 +214,15 @@ export function unequip(content: GameContent, state: GameState, slot: EquipSlot)
 
 export function canUseOutOfCombat(content: GameContent, state: GameState, item: ItemId): { ok: boolean; reason?: string } {
   const def = content.items[item];
-  if (!def?.use?.outOfCombat) return { ok: false, reason: 'Ne s’utilise pas ainsi.' };
-  if (itemCount(state, item) <= 0) return { ok: false, reason: 'Vous n’en avez plus.' };
-  if (state.combat) return { ok: false, reason: 'Utilisez-le depuis l’écran de combat.' };
+  if (!def?.use?.outOfCombat) return { ok: false, reason: msg(content, 'use.notThisWay') };
+  if (itemCount(state, item) <= 0) return { ok: false, reason: msg(content, 'use.noneLeft') };
+  if (state.combat) return { ok: false, reason: msg(content, 'use.inCombat') };
   const u = def.use;
   const needsHeal = (u.heal ?? 0) > 0 && state.player.hp < maxHp(content, state);
   const needsStamina = (u.stamina ?? 0) > 0 && state.player.stamina < maxStamina(content, state);
   const needsCure = !!u.cureInfection && state.player.infection > 0;
   if (!needsHeal && !needsStamina && !needsCure) {
-    return { ok: false, reason: 'Inutile pour le moment : vous ne gaspilleriez que des ressources.' };
+    return { ok: false, reason: msg(content, 'use.useless') };
   }
   return { ok: true };
 }
@@ -222,12 +239,16 @@ export function applyConsumable(content: GameContent, state: GameState, item: It
   s = { ...s, player: { ...p, hp, stamina } };
   if (u.cureInfection && s.player.infection > 0) {
     s = { ...s, player: { ...s.player, infection: 0 } };
-    s = addNotice(s, 'L’infection recule. La fièvre tombe.', 'good');
+    s = addNotice(s, msg(content, 'use.feverDown'), 'good');
   }
   const parts: string[] = [];
-  if (hp > p.hp) parts.push(`+${hp - p.hp} PV`);
-  if (stamina > p.stamina) parts.push(`+${stamina - p.stamina} endurance`);
-  s = addNotice(s, `${def.name} utilisé${parts.length ? ` : ${parts.join(', ')}` : ''}.`, 'good');
+  if (hp > p.hp) parts.push(msg(content, 'gain.hp', { n: hp - p.hp }));
+  if (stamina > p.stamina) parts.push(msg(content, 'gain.stamina', { n: stamina - p.stamina }));
+  s = addNotice(
+    s,
+    parts.length ? msg(content, 'use.doneWith', { item: def.name, effects: parts.join(', ') }) : msg(content, 'use.done', { item: def.name }),
+    'good',
+  );
   return clampVitals(content, s);
 }
 
@@ -252,7 +273,7 @@ export function repairWeapons(content: GameContent, state: GameState, amount: nu
     }
   }
   if (!repaired.length) return state;
-  return addNotice({ ...state, durability }, `Réparé : ${repaired.join(', ')}.`, 'good');
+  return addNotice({ ...state, durability }, msg(content, 'repair.done', { list: repaired.join(', ') }), 'good');
 }
 
 // ---------------------------------------------------------------------------
@@ -261,21 +282,21 @@ export function repairWeapons(content: GameContent, state: GameState, amount: nu
 
 export function canCraft(content: GameContent, state: GameState, recipeId: string): { ok: boolean; reason?: string } {
   const r = content.recipes[recipeId];
-  if (!r) return { ok: false, reason: 'Recette inconnue.' };
-  if (state.combat) return { ok: false, reason: 'Pas en plein combat.' };
+  if (!r) return { ok: false, reason: msg(content, 'craft.unknown') };
+  if (state.combat) return { ok: false, reason: msg(content, 'craft.inCombat') };
   const missing = Object.entries(r.inputs)
     .filter(([id, qty]) => itemCount(state, id) < qty)
-    .map(([id, qty]) => `${qty} × ${content.items[id]?.name ?? id}`);
-  if (missing.length) return { ok: false, reason: `Il manque : ${missing.join(', ')}.` };
+    .map(([id, qty]) => msg(content, 'craft.qtyItem', { qty, item: content.items[id]?.name ?? id }));
+  if (missing.length) return { ok: false, reason: msg(content, 'craft.missing', { list: missing.join(', ') }) };
   const req = missingRequirements(content, state, r.requires);
-  if (req.known.length || req.unknown) return { ok: false, reason: req.known.join(' · ') || 'Vous ne savez pas encore faire cela.' };
+  if (req.known.length || req.unknown) return { ok: false, reason: req.known.join(' · ') || msg(content, 'craft.unknownSkill') };
   if (r.repair) {
     const weapons = [state.equipment.melee, state.equipment.ranged].filter((x): x is string => !!x);
     const needs = weapons.some((w) => {
       const max = content.items[w]?.durability;
       return !!max && (state.durability[w] ?? max) < max;
     });
-    if (!needs) return { ok: false, reason: 'Vos armes équipées sont en parfait état.' };
+    if (!needs) return { ok: false, reason: msg(content, 'craft.weaponsPristine') };
   }
   return { ok: true };
 }

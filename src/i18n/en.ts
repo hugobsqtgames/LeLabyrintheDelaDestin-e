@@ -335,6 +335,16 @@ export const EN: Record<string, string> = {
   'settings.privacy': 'A fully offline single-player game. No account, no ads, no purchases, no data sent. Games are stored only on this device.',
   'settings.credits': 'Fonts: Instrument Serif, Newsreader, Inter Tight, JetBrains Mono (SIL Open Font License, bundled). Ambient sound synthesised for the game.',
 
+  'persist.unreadable': 'Unreadable save file.',
+  'persist.invalid': 'Invalid save format.',
+  'persist.checksum': 'Save file damaged (checksum mismatch).',
+  'persist.read': 'Could not read.',
+  'persist.backup': 'Can be restored from the backup copy.',
+  'persist.newer': 'Save created by a newer version of the game.',
+  'crash.title': 'Something broke.',
+  'crash.text': 'Your game was saved before the incident. Go back to the menu to resume it.',
+  'crash.menu': 'Back to menu',
+
   // Gallery
   'gallery.count': 'Mockup {n}/{total}',
   'gallery.prev': 'Previous',

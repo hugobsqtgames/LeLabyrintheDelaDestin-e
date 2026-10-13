@@ -335,6 +335,16 @@ export const FR: Record<string, string> = {
   'settings.privacy': 'Jeu solo entièrement hors ligne. Aucun compte, aucune publicité, aucun achat, aucune donnée envoyée. Les parties sont stockées uniquement sur cet appareil.',
   'settings.credits': 'Polices : Instrument Serif, Newsreader, Inter Tight, JetBrains Mono (licence SIL Open Font, incluses). Ambiances sonores synthétisées pour le jeu.',
 
+  'persist.unreadable': 'Fichier de sauvegarde illisible.',
+  'persist.invalid': 'Format de sauvegarde invalide.',
+  'persist.checksum': 'Sauvegarde altérée (somme de contrôle incorrecte).',
+  'persist.read': 'Lecture impossible.',
+  'persist.backup': 'Restaurable depuis la copie de secours.',
+  'persist.newer': 'Sauvegarde créée par une version plus récente du jeu.',
+  'crash.title': 'Quelque chose s’est brisé.',
+  'crash.text': 'Votre partie a été sauvegardée avant l’incident. Revenez au menu pour la reprendre.',
+  'crash.menu': 'Retour au menu',
+
   // Galerie
   'gallery.count': 'Maquette {n}/{total}',
   'gallery.prev': 'Précédente',

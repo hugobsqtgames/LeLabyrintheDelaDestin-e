@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPlaytime } from '../engine/summary';
 import type { SlotInfo } from '../persistence/saves';
-import { useT } from '../i18n';
+import { translateSaveMessage, useT } from '../i18n';
 import { useStore } from '../store/GameStore';
 import { PlayerPortrait } from '../ui/art/Portraits';
 import { EmblemBadge } from '../ui/art/Emblems';
@@ -28,7 +28,7 @@ function formatDate(ts?: number): string {
 }
 
 export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
-  const { saves, model, back, go, loadGame, setPendingSlot, feedback } = useStore();
+  const { saves, model, back, go, loadGame, setPendingSlot, feedback, content, lang } = useStore();
   const t = useT();
   const mode = model.savesMode;
   const [slots, setSlots] = useState<SlotInfo[] | null>(initialSlots ?? null);
@@ -87,7 +87,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
       setBusy(true);
       const res = await loadGame(s.slot);
       setBusy(false);
-      if (!res.ok) setMessage(res.error ?? t('saves.loadFailed'));
+      if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
     }
   };
 
@@ -148,7 +148,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                         {sum.chapterTitle}
                       </Text>
                       <Text style={type.uiSmall} numberOfLines={1}>
-                        {sum.sceneTitle} · {formatPlaytime(sum.playtimeMs)} · {formatDate(s.savedAt)}
+                        {sum.sceneTitle} · {formatPlaytime(content, sum.playtimeMs)} · {formatDate(s.savedAt)}
                       </Text>
                     </>
                   )}
@@ -156,7 +156,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                 {current && <Badge label={t('saves.current')} color={colors.mossBright} />}
                 {sum?.ended && <Badge label={sum.ended === 'death' ? t('saves.dead') : t('saves.ended')} color={sum.ended === 'death' ? colors.blood : colors.amber} />}
               </View>
-              {s.error && <Text style={[type.uiSmall, { color: colors.amber }]}>{s.error}</Text>}
+              {s.error && <Text style={[type.uiSmall, { color: colors.amber }]}>{translateSaveMessage(lang, s.error)}</Text>}
               <View style={{ flexDirection: 'row', gap: space.sm }}>
                 {mode === 'load' && s.status !== 'empty' && (
                   <Button label={s.status === 'corrupt' ? t('saves.try') : t('saves.load')} compact style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />

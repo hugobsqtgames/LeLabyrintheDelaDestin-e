@@ -1,6 +1,7 @@
 /**
  * Création du personnage et statistiques dérivées.
  */
+import { msg, msgCount } from './messages';
 import {
   CREATION_CAP,
   CREATION_POINTS,
@@ -101,19 +102,19 @@ export interface DraftValidation {
 export function validateDraft(content: GameContent, draft: CharacterDraft): DraftValidation {
   const errors: string[] = [];
   const name = normalizeName(draft.name);
-  if (name.length < NAME_MIN) errors.push(`Le nom doit comporter au moins ${NAME_MIN} caractères.`);
-  if (name.length > NAME_MAX) errors.push(`Le nom ne peut dépasser ${NAME_MAX} caractères.`);
-  if (/[<>{}\[\]\\]/.test(name)) errors.push('Le nom contient des caractères interdits.');
-  if (!draft.profile || !content.profiles[draft.profile]) errors.push('Choisissez un profil.');
-  if (!draft.background || !content.backgrounds[draft.background]) errors.push('Choisissez un passé.');
-  if (!draft.emblem) errors.push('Choisissez un emblème.');
+  if (name.length < NAME_MIN) errors.push(msg(content, 'draft.nameTooShort', { min: NAME_MIN }));
+  if (name.length > NAME_MAX) errors.push(msg(content, 'draft.nameTooLong', { max: NAME_MAX }));
+  if (/[<>{}\[\]\\]/.test(name)) errors.push(msg(content, 'draft.nameForbidden'));
+  if (!draft.profile || !content.profiles[draft.profile]) errors.push(msg(content, 'draft.chooseProfile'));
+  if (!draft.background || !content.backgrounds[draft.background]) errors.push(msg(content, 'draft.chooseBackground'));
+  if (!draft.emblem) errors.push(msg(content, 'draft.chooseEmblem'));
   for (const s of STAT_IDS) {
-    if (draft.allocated[s] < 0 || !Number.isInteger(draft.allocated[s])) errors.push('Répartition invalide.');
-    if (draftStat(content, draft, s) > CREATION_CAP) errors.push(`Une caractéristique dépasse le plafond de ${CREATION_CAP}.`);
+    if (draft.allocated[s] < 0 || !Number.isInteger(draft.allocated[s])) errors.push(msg(content, 'draft.invalidAllocation'));
+    if (draftStat(content, draft, s) > CREATION_CAP) errors.push(msg(content, 'draft.overCap', { cap: CREATION_CAP }));
   }
   const remaining = remainingPoints(draft);
-  if (remaining > 0) errors.push(`Il reste ${remaining} point${remaining > 1 ? 's' : ''} à répartir.`);
-  if (remaining < 0) errors.push('Trop de points ont été répartis.');
+  if (remaining > 0) errors.push(msgCount(content, 'draft.pointsLeft', remaining));
+  if (remaining < 0) errors.push(msg(content, 'draft.tooManyPoints'));
   return { valid: errors.length === 0, errors: Array.from(new Set(errors)) };
 }
 
@@ -239,12 +240,8 @@ export function grantXp(content: GameContent, state: GameState, amount: number):
       },
     };
     s = { ...s, player: { ...s.player, hp: Math.min(maxHp(content, s), s.player.hp + 5), stamina: maxStamina(content, s) } };
-    s = addNotice(
-      s,
-      `Niveau ${newLevel} atteint : 1 point de caractéristique${gainsPerk ? ' et 1 compétence' : ''} à attribuer.`,
-      'level',
-    );
-    s = addChronicle(content, s, `Atteint le niveau ${newLevel}.`, false);
+    s = addNotice(s, msg(content, gainsPerk ? 'level.upPerk' : 'level.up', { level: newLevel }), 'level');
+    s = addChronicle(content, s, msg(content, 'chronicle.levelUp', { level: newLevel }), false);
   }
   if (s.player.level >= LEVEL_MAX) {
     s = { ...s, player: { ...s.player, xp: Math.min(s.player.xp, xpToNext(LEVEL_MAX)) } };
@@ -270,6 +267,6 @@ export function choosePerk(content: GameContent, state: GameState, perk: PerkId)
   const p = state.player;
   if (p.unspentPerks <= 0 || p.perks.includes(perk) || !content.perks[perk]) return state;
   let s: GameState = { ...state, player: { ...p, unspentPerks: p.unspentPerks - 1, perks: [...p.perks, perk] } };
-  s = addChronicle(content, s, `Nouvelle compétence : ${content.perks[perk].name}.`, false);
+  s = addChronicle(content, s, msg(content, 'chronicle.newPerk', { perk: content.perks[perk].name }), false);
   return clampVitals(content, s);
 }

@@ -22,12 +22,13 @@ import { Ambience } from './audio/Ambience';
 import { CONTENT } from './content';
 import { asyncStorageAdapter } from './persistence/asyncStorage';
 import { SaveManager } from './persistence/saves';
+import { useT } from './i18n';
 import { GameProvider, useStore } from './store/GameStore';
 import { Emblem } from './ui/art/Logo';
 import { Button } from './ui/components/primitives';
 import { colors, space } from './ui/theme';
 
-class ErrorBoundary extends React.Component<{ children: React.ReactNode; onReset: () => void }, { error: Error | null }> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode; onReset: () => void; labels: { title: string; text: string; menu: string } }, { error: Error | null }> {
   state = { error: null as Error | null };
 
   static getDerivedStateFromError(error: Error) {
@@ -39,13 +40,13 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode; onReset
     return (
       <View style={styles.center}>
         <Emblem size={96} glow={false} />
-        <Text style={styles.errTitle}>Quelque chose s’est brisé.</Text>
-        <Text style={styles.errText}>Votre partie a été sauvegardée avant l’incident. Revenez au menu pour la reprendre.</Text>
+        <Text style={styles.errTitle}>{this.props.labels.title}</Text>
+        <Text style={styles.errText}>{this.props.labels.text}</Text>
         <Text style={styles.errDetail} numberOfLines={3}>
           {this.state.error.message}
         </Text>
         <Button
-          label="Retour au menu"
+          label={this.props.labels.menu}
           onPress={() => {
             this.setState({ error: null });
             this.props.onReset();
@@ -58,8 +59,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode; onReset
 
 function Shell() {
   const { closeGame } = useStore();
+  const t = useT();
   return (
-    <ErrorBoundary onReset={() => closeGame()}>
+    <ErrorBoundary onReset={() => closeGame()} labels={{ title: t('crash.title'), text: t('crash.text'), menu: t('crash.menu') }}>
       <AppRouter />
     </ErrorBoundary>
   );

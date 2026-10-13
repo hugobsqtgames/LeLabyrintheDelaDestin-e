@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPlaytime } from '../engine/summary';
-import { useT } from '../i18n';
+import { translateSaveMessage, useT } from '../i18n';
 import type { SlotInfo } from '../persistence/saves';
 import { useStore } from '../store/GameStore';
 import { Emblem } from '../ui/art/Logo';
@@ -16,7 +16,7 @@ import { Icon } from '../ui/icons';
 import { colors, fonts, MAX_SCALE_UI, radius, space, type, NATIVE_DRIVER } from '../ui/theme';
 
 export function TitleScreen() {
-  const { saves, model, loadGame, openSaves, go, reduceMotion } = useStore();
+  const { saves, model, loadGame, openSaves, go, reduceMotion, content, lang } = useStore();
   const t = useT();
   const [slots, setSlots] = useState<SlotInfo[] | null>(saves ? null : []);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export function TitleScreen() {
     setLoading(true);
     const res = await loadGame(last.slot);
     setLoading(false);
-    if (!res.ok) setError(res.error ?? t('saves.loadFailed'));
+    if (!res.ok) setError(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
   };
 
   return (
@@ -80,7 +80,7 @@ export function TitleScreen() {
                     {last.summary.name} · {t('hud.level', { n: last.summary.level })}
                   </Text>
                   <Text style={[type.uiSmall, { fontSize: 12.5 }]} numberOfLines={1}>
-                    {last.summary.sceneTitle} · {formatPlaytime(last.summary.playtimeMs)}
+                    {last.summary.sceneTitle} · {formatPlaytime(content, last.summary.playtimeMs)}
                   </Text>
                 </View>
                 <View style={styles.play}>
