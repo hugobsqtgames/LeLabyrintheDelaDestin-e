@@ -127,6 +127,19 @@ rendus dans un cadre iPhone 390 × 844 avec des états produits par le moteur. E
 ![Planche 1](docs/maquettes-planche-1.jpg)
 ![Planche 2](docs/maquettes-planche-2.jpg)
 
+## Vidéo de présentation et captures App Store
+
+Une **App Store Preview de 30 s** (français et anglais) et **6 captures App Store** par langue, réalisées à partir
+des **vrais écrans de l’application**, filmés image par image puis mis en scène dans un iPhone 3D avec l’identité
+visuelle du jeu. Détails, storyboard et commandes : [`promo/README.md`](promo/README.md).
+
+| | |
+| --- | --- |
+| Vidéo | [`docs/promo/app-preview-fr.mp4`](docs/promo/app-preview-fr.mp4) · [`app-preview-en.mp4`](docs/promo/app-preview-en.mp4) (886 × 1920, 30 i/s, H.264 + AAC) |
+| Captures | [`docs/appstore/fr/`](docs/appstore/fr) · [`docs/appstore/en/`](docs/appstore/en) (1290 × 2796) |
+
+![Captures App Store](docs/appstore/planche-fr.jpg)
+
 ## Architecture
 
 ```
@@ -161,6 +174,8 @@ src/
   content/en/                traductions anglaises du contenu et des messages du moteur
   screens/                   écrans (titre, création, jeu et ses vues, sauvegardes, paramètres)
   gallery/                   galerie de maquettes et états de démonstration
+  promo/PromoRoot.tsx        mode capture (web) utilisé pour filmer la vidéo
+promo/                       vidéo App Store Preview : capture, scène, bande-son, rendu
 tests/                       tests Vitest
 scripts/                     validation du contenu, équilibrage, banc de combat
 docs/maquettes/              exports des maquettes
