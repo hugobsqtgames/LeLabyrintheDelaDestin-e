@@ -314,6 +314,7 @@ export const FR: Record<string, string> = {
   'settings.ambience': 'Ambiance sonore',
   'settings.mute': 'Coupé',
   'settings.soundHint': 'Nappes d’ambiance propres à chaque région, jouées en boucle depuis l’application. Respecte le mode silencieux de l’iPhone.',
+  'settings.soundWeb': 'L’ambiance sonore est jouée sur iPhone et Android ; elle est désactivée dans la version web.',
   'settings.comfort': 'Confort',
   'settings.timed': 'Choix chronométrés',
   'settings.timedHint': 'Quelques rares moments vous laissent peu de secondes pour décider. Désactivés, vous avez tout votre temps.',

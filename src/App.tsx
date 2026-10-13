@@ -18,6 +18,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppRouter } from './AppRouter';
+import { Ambience } from './audio/Ambience';
 import { CONTENT } from './content';
 import { asyncStorageAdapter } from './persistence/asyncStorage';
 import { SaveManager } from './persistence/saves';
@@ -83,6 +84,7 @@ export default function App() {
       <StatusBar style="light" />
       {fontsLoaded || fontError ? (
         <GameProvider saves={saves}>
+          <Ambience />
           <Shell />
         </GameProvider>
       ) : (

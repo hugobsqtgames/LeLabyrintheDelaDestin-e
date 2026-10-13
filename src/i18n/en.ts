@@ -314,6 +314,7 @@ export const EN: Record<string, string> = {
   'settings.ambience': 'Ambient sound',
   'settings.mute': 'Off',
   'settings.soundHint': 'Looping ambient beds for each region, played from the app. Respects the iPhone silent switch.',
+  'settings.soundWeb': 'Ambient sound plays on iPhone and Android; it is turned off in the web version.',
   'settings.comfort': 'Comfort',
   'settings.timed': 'Timed choices',
   'settings.timedHint': 'A few rare moments give you only seconds to decide. When off, you have all the time you need.',

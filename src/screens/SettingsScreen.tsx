@@ -83,7 +83,7 @@ export function SettingsScreen() {
               );
             })}
           </View>
-          <Text style={type.uiSmall}>{t('settings.soundHint')}</Text>
+          <Text style={type.uiSmall}>{Platform.OS === 'web' ? t('settings.soundWeb') : t('settings.soundHint')}</Text>
         </Panel>
 
         <SectionTitle>{t('settings.comfort')}</SectionTitle>
