@@ -1,14 +1,14 @@
 # Le Labyrinthe de la Destinée
 
-Jeu mobile narratif solo de survie horrifique post-apocalyptique, en français, pour iPhone (React Native + Expo SDK 57).
-Entièrement hors ligne : aucun compte, serveur, publicité, achat intégré ni télémétrie.
+Jeu mobile narratif solo de survie horrifique post-apocalyptique, **en français et en anglais**, pour iPhone
+(React Native + Expo SDK 57). Entièrement hors ligne : aucun compte, serveur, publicité, achat intégré ni télémétrie.
 
 > Valombre, quatorze mois après la Grande Fièvre. Une voix à la radio annonce qu’une barge, la *Destinée*,
 > embarquera des survivants à l’écluse de Morvan à l’aube du septième jour. Pour l’atteindre, il faut traverser
 > le Labyrinthe : les carrières sous la ville, le port des Ferrailleurs… et décider de ce que vaut la vie d’un
 > enfant que tout le monde veut.
 
-![Maquettes](docs/maquettes/06-recit-ouverture.jpg)
+![Maquettes](docs/maquettes-planche-1.jpg)
 
 ## Lancer le jeu
 
@@ -18,31 +18,38 @@ npx expo start            # puis scanner le QR code avec Expo Go sur iPhone
 npx expo start --web      # version navigateur (utile pour prévisualiser)
 ```
 
-Toutes les dépendances natives (AsyncStorage, react-native-svg, expo-linear-gradient, expo-haptics,
-expo-font, safe-area-context) sont incluses dans Expo Go SDK 57 : aucun development build n’est nécessaire.
+Toutes les dépendances natives (AsyncStorage, react-native-svg, expo-linear-gradient, expo-blur, expo-glass-effect,
+expo-audio, expo-localization, expo-haptics, expo-font, safe-area-context) sont incluses dans Expo Go SDK 57 :
+aucun development build n’est nécessaire.
 
 ## Vérifier
 
 | Commande | Rôle |
 | --- | --- |
-| `npm test` | 98 tests Vitest : moteur, combat, inventaire, quêtes, sauvegardes, migrations, corruption, parcours complets |
+| `npm test` | 131 tests Vitest : moteur, combat, inventaire, horloge, atelier, sauvegardes et migrations, parcours complets, traduction anglaise complète, contraste des couleurs |
 | `npm run typecheck` | TypeScript strict |
 | `npx expo lint` | ESLint (configuration Expo, règles React Compiler) |
 | `npm run validate` | Validateur du contenu narratif |
 | `npm run balance [n]` | Lance n parties automatiques par style de jeu et affiche la répartition des fins et des morts |
 | `npm run bench` | Banc d’essai des combats (taux de victoire par profil et par rencontre) |
 | `npx expo-doctor` | Cohérence de la configuration Expo |
+| `python3 scripts/generate-ambience.py` | Régénère les ambiances sonores (synthèse numpy + ffmpeg) |
+
+Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, validation, équilibrage et export web à chaque push.
 
 ## Contenu livré
 
-- **4 chapitres, 149 scènes, 259 choix, environ 16 000 mots** de narration et de dialogues (tout est écrit et relié ;
+- **4 chapitres, 159 scènes, 290 choix, environ 19 000 mots** de narration et de dialogues (plus 5 000 mots de
+  données du monde : objets, documents, journal…), **intégralement traduits en anglais** (tout est écrit et relié ;
   aucun texte de remplissage). La durée d’une partie dépend des branches suivies : une seule partie ne parcourt qu’une
   partie du texte.
 - **6 fins** (l’Accord, les Capitaines, le Prix du passage, le Gardien de l’écluse, les Racines, le Fleuve) et
   **4 morts définitives** distinctes, chacune avec un épilogue qui dépend des alliés, des quêtes et des décisions.
 - **24 rencontres de combat** dont **6 boss** à phases ou comportements propres (Hurleur, Berger, Gaspard Lenoir,
   capitaine Rousset, Colosse de l’écluse).
-- **11 personnages** récurrents dont 5 compagnons possibles, **20 lieux** sur 4 régions, **10 quêtes**, **39 objets**.
+- **11 personnages** récurrents dont 5 compagnons possibles (épilogues selon la relation), **20 lieux** sur 4 régions
+  reliés par de vrais chemins, **10 quêtes**, **42 objets**, **7 recettes**, **14 documents d’archives**, un **journal
+  intime** écrit à la fin de chaque chapitre selon ce qui a été vécu.
 
 ### Exemples de conséquences différées
 
@@ -75,15 +82,37 @@ expo-font, safe-area-context) sont incluses dans Expo Go SDK 57 : aucun developm
 - **Monde persistant** : carte par région révélée progressivement, notes des changements (refuge incendié, pompe
   réparée, cages ouvertes…), relations et statut des personnages, repas du groupe à chaque fin de chapitre.
 - **Chronique** de toutes les décisions et récapitulatif de fin (moments marquants, alliés, quêtes, bilan).
+- **Horloge des sept jours** : chaque choix coûte du temps ; arriver en retard ferme des portes, très en retard la barge
+  est partie. Le temps restant s’affiche dans le bandeau.
+- **Atelier et usure** : fabrication (pansements, Molotov, carreaux…), solidité des armes, enrayage des armes à feu
+  usées, réparation ; comparaison avec l’équipement porté avant d’équiper.
+- **Seconde compétence** par profil au niveau 4 (Rempart, Disparition, Charge improvisée).
+- **Choix chronométrés** rares, avec choix de repli annoncé ; désactivables, et toujours désactivés avec VoiceOver.
 - **Mort et défaites** : les dégâts narratifs ne tuent jamais par surprise ; seules certaines défaites (boss
   annoncés comme tels, captivité) sont mortelles. Les autres mènent à une blessure, une perte ou une capture.
+
+## Interface (refonte 2026)
+
+- Surfaces de **verre** : Liquid Glass natif sur iOS 26 (`expo-glass-effect`), flou d’arrière-plan ailleurs ;
+  bandeau et barre d’onglets **flottants** en pilule ; halos colorés propres à chaque chapitre ; grain béton/papier.
+- Typographie éditoriale : Instrument Serif (titres), Newsreader (récit), Inter Tight (interface), JetBrains Mono
+  (étiquettes, horloge).
+- **Portraits dessinés** de chaque personnage, **illustrations plein écran** aux moments clés, **transitions de
+  chapitre**, résumé **« Que s’est-il passé ? »** à la reprise, **détail des jets** en touchant le pourcentage.
+- **Accessibilité** : taille de texte iOS respectée (jusqu’à ×1,8 pour le récit), réglage de taille propre au récit,
+  contrastes WCAG vérifiés par un test (≥ 4,5:1), animations réductibles, libellés VoiceOver.
+- **Ambiance sonore** : cinq boucles synthétisées pour le jeu (ville, carrières, port, écluse, combat), volume
+  réglable, respect du mode silencieux, mélange avec la musique de l’utilisateur.
+- **Langues** : français ou anglais, selon l’appareil ou au choix dans les paramètres. Le moteur reçoit le contenu
+  traduit (dictionnaire français → anglais appliqué à tout le contenu, messages du moteur traduits) ; un test vérifie
+  que chaque texte a sa traduction.
 
 ## Sauvegardes
 
 - 3 emplacements ; chaque partie se sauvegarde automatiquement **après chaque décision, action de combat ou
   changement d’inventaire**, et à la mise en arrière-plan.
 - Enveloppe versionnée (`schemaVersion`) avec **somme de contrôle** ; avant d’écraser une sauvegarde valide, elle
-  est copiée en **secours** ; au chargement : vérification, **migration** (v1 → v2 incluse et testée),
+  est copiée en **secours** ; au chargement : vérification, **migration** (v1 → v2 → v3 incluses et testées),
   validation/réparation (objets inconnus retirés, scène disparue → début du chapitre, combat relancé).
 - **File d’écriture** : jamais deux écritures concurrentes, les rafales sont fusionnées.
 - Nouvelle partie dans un emplacement occupé, suppression et copie : **confirmation explicite**. Le RNG est stocké
@@ -91,16 +120,12 @@ expo-font, safe-area-context) sont incluses dans Expo Go SDK 57 : aucun developm
 
 ## Maquettes
 
-L’application contient une **galerie de 22 maquettes** (menu principal → *Maquettes*) : ce sont les vrais écrans,
+L’application contient une **galerie de 27 maquettes** (menu principal → *Maquettes*) : ce sont les vrais écrans,
 rendus dans un cadre iPhone 390 × 844 avec des états produits par le moteur. Exports dans
-[`docs/maquettes/`](docs/maquettes) :
+[`docs/maquettes/`](docs/maquettes) (versions anglaises préfixées `en-`) :
 
-| | | | |
-| --- | --- | --- | --- |
-| ![](docs/maquettes/01-titre.jpg) | ![](docs/maquettes/03-creation-profil.jpg) | ![](docs/maquettes/04-creation-aptitudes.jpg) | ![](docs/maquettes/07-recit-dialogue-verrou.jpg) |
-| ![](docs/maquettes/08-recit-jet.jpg) | ![](docs/maquettes/09-combat.jpg) | ![](docs/maquettes/10-combat-boss.jpg) | ![](docs/maquettes/11-fiche-progression.jpg) |
-| ![](docs/maquettes/12-sac-plein.jpg) | ![](docs/maquettes/14-carte.jpg) | ![](docs/maquettes/16-chronique.jpg) | ![](docs/maquettes/18-pause.jpg) |
-| ![](docs/maquettes/20-sauvegardes.jpg) | ![](docs/maquettes/17-fin-de-chapitre.jpg) | ![](docs/maquettes/21-mort.jpg) | ![](docs/maquettes/22-fin-accord.jpg) |
+![Planche 1](docs/maquettes-planche-1.jpg)
+![Planche 2](docs/maquettes-planche-2.jpg)
 
 ## Architecture
 
@@ -130,7 +155,10 @@ src/
     items.ts, enemies.ts, summary.ts, helpers.ts, index.ts
   persistence/               stockage, format, migrations, emplacements
   store/GameStore.tsx        pont moteur ↔ interface, autosauvegarde, paramètres
-  ui/                        design system : thème, icônes, illustrations SVG, composants
+  ui/                        design system : jetons, verre, icônes, portraits, illustrations, composants
+  i18n/                      textes d’interface (fr, en) et choix de la langue
+  audio/                     ambiance sonore (choix de la piste, lecteur)
+  content/en/                traductions anglaises du contenu et des messages du moteur
   screens/                   écrans (titre, création, jeu et ses vues, sauvegardes, paramètres)
   gallery/                   galerie de maquettes et états de démonstration
 tests/                       tests Vitest
@@ -149,16 +177,12 @@ la partie (retour arrière Android géré explicitement : onglet → récit → 
 
 ## Résultats obtenus
 
-- `npm test` : **98/98 tests réussis** (dont 125 parties automatiques complètes sans blocage, les 9 fins non
-  génériques atteintes avec le vrai moteur, et 4 parcours scénarisés : Accord, Prix du passage, Kaz Ferrailleur,
-  Racines).
-- `npm run validate` : 149 scènes, 259 choix, **0 erreur, 0 avertissement**.
+- `npm test` : **131/131 tests réussis** (dont des parties automatiques complètes en français et en anglais).
+- `npm run validate` : 159 scènes, 290 choix, 10 fins, **0 erreur, 0 avertissement**.
 - `npm run typecheck`, `npx expo lint`, `npx expo-doctor` (21/21) : **aucun problème**.
-- Export web (`npx expo export --platform web`) puis parcours automatisé dans Chromium au format iPhone :
-  création d’un personnage, choix, combat, consultation des onglets, **rechargement de la page et reprise à la même
-  scène** : aucune erreur console. Les 22 maquettes se rendent sans erreur.
-- Banc de combat : selon la préparation, un joueur « compétent » gagne 60 à 95 % des combats de boss avec chacun des
-  trois profils (voir `npm run bench`).
+- Export web puis parcours automatisé dans Chromium au format iPhone : création, choix, combat, onglets,
+  **rechargement et reprise** avec résumé : aucune erreur console. Les 27 maquettes se rendent sans erreur, en
+  français et en anglais.
 
 ## Limites connues
 
@@ -166,5 +190,9 @@ la partie (retour arrière Android géré explicitement : onglet → récit → 
   visuelle a été faite sur le build web au format iPhone. Un essai sur appareil via Expo Go reste à faire
   (haptique et rendu natif des polices en particulier).
 - L’équilibrage repose sur des joueurs automatiques ; il mérite des sessions de jeu humaines.
-- Aucun son n’est intégré : il n’y a donc pas de réglage audio.
+- L’ambiance sonore est désactivée dans la version web (codec AAC et lecture automatique non garantis par les
+  navigateurs) ; elle est jouée sur iOS et Android.
+- Changer de langue en cours de partie traduit tout le contenu, mais l’historique déjà écrit (chronique, notes)
+  reste dans la langue où il a été vécu.
+- Le Liquid Glass natif n’apparaît que sur iOS 26 ; en dessous, le verre est rendu par un flou classique.
 - Le fichier `LICENSE` est celui du modèle `create-expo-app` ; à remplacer selon la licence souhaitée pour le jeu.
