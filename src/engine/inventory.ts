@@ -12,6 +12,7 @@ import { CAPACITY_BASE } from './rules';
 import { clampVitals, hasPerk, healingMultiplier, maxHp, maxStamina } from './character';
 import type { EquipSlot, GameContent, GameState, ItemId } from './types';
 import { addNotice, clamp } from './util';
+import { missingRequirements } from './conditions';
 
 export const EQUIP_SLOTS: EquipSlot[] = ['melee', 'ranged', 'armor', 'accessory'];
 
@@ -233,4 +234,59 @@ export function applyConsumable(content: GameContent, state: GameState, item: It
 export function consumeItemOutOfCombat(content: GameContent, state: GameState, item: ItemId): GameState {
   if (!canUseOutOfCombat(content, state, item).ok) return state;
   return applyConsumable(content, state, item);
+}
+
+/** Rend de la solidité à une arme (ou à toutes les armes équipées). */
+export function repairWeapons(content: GameContent, state: GameState, amount: number, item?: string): GameState {
+  const targets = item ? [item] : [state.equipment.melee, state.equipment.ranged].filter((x): x is string => !!x);
+  let durability = state.durability;
+  const repaired: string[] = [];
+  for (const id of targets) {
+    const max = content.items[id]?.durability;
+    if (!max || !state.inventory[id]) continue;
+    const before = durability[id] ?? max;
+    const after = Math.min(max, before + amount);
+    if (after > before) {
+      durability = { ...durability, [id]: after };
+      repaired.push(content.items[id].name);
+    }
+  }
+  if (!repaired.length) return state;
+  return addNotice({ ...state, durability }, `Réparé : ${repaired.join(', ')}.`, 'good');
+}
+
+// ---------------------------------------------------------------------------
+// Atelier : fabrication et réparation
+// ---------------------------------------------------------------------------
+
+export function canCraft(content: GameContent, state: GameState, recipeId: string): { ok: boolean; reason?: string } {
+  const r = content.recipes[recipeId];
+  if (!r) return { ok: false, reason: 'Recette inconnue.' };
+  if (state.combat) return { ok: false, reason: 'Pas en plein combat.' };
+  const missing = Object.entries(r.inputs)
+    .filter(([id, qty]) => itemCount(state, id) < qty)
+    .map(([id, qty]) => `${qty} × ${content.items[id]?.name ?? id}`);
+  if (missing.length) return { ok: false, reason: `Il manque : ${missing.join(', ')}.` };
+  const req = missingRequirements(content, state, r.requires);
+  if (req.known.length || req.unknown) return { ok: false, reason: req.known.join(' · ') || 'Vous ne savez pas encore faire cela.' };
+  if (r.repair) {
+    const weapons = [state.equipment.melee, state.equipment.ranged].filter((x): x is string => !!x);
+    const needs = weapons.some((w) => {
+      const max = content.items[w]?.durability;
+      return !!max && (state.durability[w] ?? max) < max;
+    });
+    if (!needs) return { ok: false, reason: 'Vos armes équipées sont en parfait état.' };
+  }
+  return { ok: true };
+}
+
+export function craft(content: GameContent, state: GameState, recipeId: string): GameState {
+  if (!canCraft(content, state, recipeId).ok) return state;
+  const r = content.recipes[recipeId];
+  let s = state;
+  for (const [id, qty] of Object.entries(r.inputs)) s = removeItem(content, s, id, qty, false);
+  s = { ...s, clock: s.clock + r.time };
+  if (r.output) s = addItem(content, s, r.output.item, r.output.qty).state;
+  if (r.repair) s = repairWeapons(content, s, r.repair);
+  return s;
 }

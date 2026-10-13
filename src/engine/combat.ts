@@ -10,7 +10,7 @@
 import { armorValue, effectiveStat, hasPerk, healingMultiplier, maxHp, maxStamina } from './character';
 import { applyEffect } from './effects';
 import { removeItem } from './inventory';
-import { COMBAT } from './rules';
+import { BROKEN_DAMAGE_FACTOR, COMBAT, JAM_CHANCE, JAM_THRESHOLD } from './rules';
 import { chance, nextInt, pickWeighted } from './rng';
 import type {
   CombatAction,
@@ -131,6 +131,9 @@ export function startCombat(content: GameContent, state: GameState, sceneId: Sce
     defending: false,
     dodging: false,
     skillCooldown: 0,
+    skill2Cooldown: 0,
+    fortified: false,
+    vanished: false,
     ambushUsed: !encounter.ambush,
     log: [],
     logCounter: 0,
@@ -150,6 +153,29 @@ export function startCombat(content: GameContent, state: GameState, sceneId: Sce
 export function equippedWeapon(content: GameContent, state: GameState, kind: 'melee' | 'ranged'): ItemDef | null {
   const id = state.equipment[kind];
   return id ? content.items[id] ?? null : null;
+}
+
+/** Solidité courante d'une arme (pleine si jamais utilisée). */
+export function weaponDurability(content: GameContent, state: GameState, item: string): { current: number; max: number } | null {
+  const max = content.items[item]?.durability;
+  if (!max) return null;
+  return { current: Math.max(0, Math.min(max, state.durability[item] ?? max)), max };
+}
+
+export function isBroken(content: GameContent, state: GameState, item: string | null | undefined): boolean {
+  if (!item) return false;
+  const d = weaponDurability(content, state, item);
+  return !!d && d.current <= 0;
+}
+
+function wear(content: GameContent, state: GameState, item: string | null | undefined): GameState {
+  if (!item) return state;
+  const d = weaponDurability(content, state, item);
+  if (!d || d.current <= 0) return state;
+  const current = d.current - 1;
+  let s: GameState = { ...state, durability: { ...state.durability, [item]: current } };
+  if (current === 0) s = withCombat(s, log(s.combat!, `${content.items[item].name} est abîmé : dégâts réduits de moitié jusqu’à réparation.`, 'danger'));
+  return s;
 }
 
 /** Caractéristique utilisée par une arme : Force (mêlée), Astuce (distance), Discrétion possible (finesse). */
@@ -194,7 +220,8 @@ export function weaponDamageRange(content: GameContent, state: GameState, kind: 
   const stat = weaponStat(content, state, kind);
   let bonus = Math.floor(stat / 2);
   if (kind === 'melee' && hasPerk(state, 'main_lourde')) bonus += 2;
-  return [base[0] + bonus, base[1] + bonus];
+  const factor = weapon && isBroken(content, state, weapon.id) ? BROKEN_DAMAGE_FACTOR : 1;
+  return [Math.max(1, Math.floor((base[0] + bonus) * factor)), Math.max(1, Math.floor((base[1] + bonus) * factor))];
 }
 
 export function attackStaminaCost(content: GameContent, state: GameState, kind: 'melee' | 'ranged'): number {
@@ -240,6 +267,13 @@ export function canPerform(content: GameContent, state: GameState, action: Comba
       const skill = content.profiles[state.player.profile].skill;
       if (c.skillCooldown > 0) return { ok: false, reason: `Disponible dans ${c.skillCooldown} tour${c.skillCooldown > 1 ? 's' : ''}.` };
       if (stamina < skill.staminaCost) return { ok: false, reason: `Endurance insuffisante (${skill.staminaCost} requise).` };
+      return { ok: true };
+    }
+    case 'skill2': {
+      const skill2 = content.profiles[state.player.profile].skill2;
+      if (state.player.level < skill2.level) return { ok: false, reason: `Débloquée au niveau ${skill2.level}.` };
+      if (c.skill2Cooldown > 0) return { ok: false, reason: `Disponible dans ${c.skill2Cooldown} tour${c.skill2Cooldown > 1 ? 's' : ''}.` };
+      if (stamina < skill2.staminaCost) return { ok: false, reason: `Endurance insuffisante (${skill2.staminaCost} requise).` };
       return { ok: true };
     }
     case 'item': {
@@ -340,6 +374,15 @@ function playerAttack(content: GameContent, state: GameState, action: CombatActi
   const def = enemyDef(content, target);
   const weaponName = weapon?.name ?? 'Poings';
 
+  // Une arme à feu usée peut s'enrayer : la munition est perdue, le tour aussi.
+  const dura = weapon ? weaponDurability(content, s, weapon.id) : null;
+  if (weapon?.loud && dura && dura.current / dura.max < JAM_THRESHOLD) {
+    const jam = chance(s.rng, JAM_CHANCE);
+    s = { ...s, rng: jam.seed };
+    if (jam.value) return withCombat(wear(content, s, weapon.id), log(s.combat!, `${weaponName} s’enraye ! Le coup ne part pas.`, 'danger'));
+  }
+  s = wear(content, s, weapon?.id);
+
   const hit = chance(s.rng, hitChance(content, s, target, kind));
   s = { ...s, rng: hit.seed };
   const ambush = !s.combat!.ambushUsed;
@@ -431,6 +474,32 @@ function playerSkill(content: GameContent, state: GameState, action: CombatActio
   }
 }
 
+function playerSkill2(content: GameContent, state: GameState): GameState {
+  const skill = content.profiles[state.player.profile].skill2;
+  let s = spendStamina(content, state, skill.staminaCost);
+  s = withCombat(s, { ...s.combat!, skill2Cooldown: skill.cooldown + 1 });
+  switch (state.player.profile) {
+    case 'guerrier': {
+      s = { ...s, player: { ...s.player, stamina: clamp(s.player.stamina + 4, 0, maxStamina(content, s)) } };
+      return withCombat(s, log({ ...s.combat!, fortified: true, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, `${skill.name} : vous plantez vos pieds et levez la garde. Rien ne passera ce tour.`, 'player'));
+    }
+    case 'eclaireur':
+      return withCombat(s, log({ ...s.combat!, vanished: true, ambushUsed: false, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, `${skill.name} : vous vous fondez dans l’ombre. Votre prochaine attaque sera une attaque surprise.`, 'player'));
+    case 'technicien': {
+      s = withCombat(s, log(s.combat!, `${skill.name} : une bonbonne de gaz rafistolée explose au milieu des ennemis.`, 'crit'));
+      for (const e of livingEnemies(s.combat!)) {
+        const roll = nextInt(s.rng, 6, 10);
+        s = { ...s, rng: roll.seed };
+        s = damageEnemy(content, s, e.uid, roll.value, 'Explosion', 'crit', true);
+        if (s.combat!.enemies.find((x) => x.uid === e.uid)!.hp > 0) s = applyEnemyStatus(s, e.uid, 'brulure', 2);
+      }
+      return s;
+    }
+    default:
+      return s;
+  }
+}
+
 function playerItem(content: GameContent, state: GameState, action: CombatAction): GameState {
   const itemId = action.item!;
   const def = content.items[itemId];
@@ -474,6 +543,7 @@ function playerItem(content: GameContent, state: GameState, action: CombatAction
 // ---------------------------------------------------------------------------
 
 function hurtPlayer(content: GameContent, state: GameState, amount: number, text: string, ignoreArmor = false): GameState {
+  if (state.combat!.fortified) return withCombat(state, log(state.combat!, `${text} : le coup s’écrase sur votre rempart.`, 'player'));
   let dmg = amount;
   if (!ignoreArmor) dmg -= armorValue(content, state);
   const c = state.combat!;
@@ -508,6 +578,9 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
   }
 
   // Esquive (les étreintes ne s'esquivent pas si l'on est déjà agrippé).
+  if (combat.vanished) {
+    return withCombat(s, log(s.combat!, `${def.name} frappe dans le vide : vous n’êtes plus là.`, 'player'));
+  }
   if (combat.dodging) {
     const d = chance(s.rng, dodgeChance(content, s));
     s = { ...s, rng: d.seed };
@@ -612,6 +685,9 @@ function endOfRound(content: GameContent, state: GameState): GameState {
     defending: false,
     dodging: false,
     skillCooldown: Math.max(0, combat.skillCooldown - 1),
+    skill2Cooldown: Math.max(0, combat.skill2Cooldown - 1),
+    fortified: false,
+    vanished: false,
     turn: combat.turn + 1,
   };
   s = withCombat(s, combat);
@@ -657,6 +733,9 @@ export function performAction(content: GameContent, state: GameState, action: Co
       break;
     case 'skill':
       s = playerSkill(content, s, action);
+      break;
+    case 'skill2':
+      s = playerSkill2(content, s);
       break;
     case 'item':
       s = playerItem(content, s, action);

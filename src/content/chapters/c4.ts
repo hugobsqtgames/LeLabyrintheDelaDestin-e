@@ -2,6 +2,7 @@
  * Chapitre 4 — La Destinée
  * L'écluse de Morvan, la docteure Sorel, le capitaine Rousset, et la décision.
  */
+import { DEPARTED_HOUR, DEPARTURE_HOUR } from '../../engine/rules';
 import type { Condition, Scene } from '../../engine/types';
 import {
   all,
@@ -25,6 +26,9 @@ import {
   when,
   withUs,
   xp,
+  clock,
+  doc,
+  timeAtLeast,
 } from '../helpers';
 
 const C = 'c4';
@@ -56,6 +60,8 @@ function mareeScene(voie: 'accord' | 'force'): Scene {
     title: 'La marée',
     kind: 'story',
     checkpoint: true,
+    timed: { seconds: 15, fallback: 'colosse' },
+    illustration: 'maree',
     text: [
       p('C’est le bruit qui les a attirés. Les cris, les moteurs, les tirs peut-être. Sur le chemin de halage, en amont, une marée grise s’avance entre les peupliers : des centaines de Muets, en silence, avec ce cliquetis immense, comme une pluie de grêle sur un toit de tôle.'),
       p('Pour quitter l’écluse, la Destinée doit descendre dans le bassin et attendre que les portes aval s’ouvrent. Mais le courant électrique est coupé depuis l’aube, et les vannes se manœuvrent à la main, depuis la maison de l’éclusier, au bord du chemin. Là où la horde arrivera en premier.'),
@@ -130,6 +136,7 @@ export const chapter4: Scene[] = [
     title: 'Le chemin de halage',
     kind: 'story',
     checkpoint: true,
+    timed: { seconds: 12, fallback: 'attendre' },
     text: [
       p('Vous marchez toute la nuit sur le chemin de halage, sous des peupliers qui grincent dans le vent. Le fleuve coule à votre gauche, large et noir. À droite, des champs de colza retournés à la friche, et des fermes aux volets clos.'),
       p('Théo marche devant, comme toujours, une carte dans la tête.', THEO_ICI),
@@ -145,7 +152,7 @@ export const chapter4: Scene[] = [
       {
         id: 'cloche',
         text: 'Faire tinter doucement la cloche du Berger, depuis le champ, pour détourner la horde.',
-        kind: 'item',
+        kind: 'item', time: 1,
         requires: [has('cloche_berger')],
         effects: [xp(20)],
         next: 'c4_ecluse',
@@ -153,13 +160,13 @@ export const chapter4: Scene[] = [
       {
         id: 'attendre',
         text: 'Se coucher dans le fossé et attendre qu’ils passent.',
-        kind: 'stealth',
+        kind: 'stealth', time: 2,
         check: { stat: 'discretion', difficulty: 8, success: 'c4_ecluse', failure: 'c4_horde' },
       },
       {
         id: 'forcer',
         text: 'Foncer à travers les traînards avant que le gros de la horde ne se retourne.',
-        kind: 'fight',
+        kind: 'fight', time: 0.5,
         next: 'c4_horde',
       },
     ],
@@ -201,23 +208,26 @@ export const chapter4: Scene[] = [
     title: 'L’écluse de Morvan',
     kind: 'story',
     checkpoint: true,
+    illustration: 'ecluse',
     text: [
+      p('Le soleil est déjà haut quand vous arrivez. La foule est à moitié passée, la passerelle à moitié relevée. Vous êtes en retard, et ici, le retard se paie.', flag('en_retard')),
       p('L’aube du septième jour se lève sur l’écluse de Morvan. Deux portes d’acier, un bassin de cent mètres, une maison d’éclusier aux volets bleus. Et dans le bassin, la Destinée : une barge-citerne repeinte en blanc, longue comme un immeuble couché, un caducée rouge peint sur la cheminée.'),
       p('Devant l’écluse, une double grille de barbelés. Et devant la grille, une foule. Soixante, quatre-vingts personnes peut-être, venues de partout, avec des valises, des enfants, des chiens, des vieillards dans des brouettes. Ils attendent depuis la nuit.'),
       p('Sur une plateforme, un homme en combinaison grise parle dans un mégaphone : le capitaine Rousset. « Les porteurs et leurs familles, à gauche. Test sanguin obligatoire. Les autres, nous sommes désolés. Capacité limitée. » Il répète. Il répète encore.'),
       p('À côté de lui, une femme en blouse blanche, les bras croisés, regarde la foule comme on regarde une salle d’attente bondée. La docteure Sorel.'),
       p('Un camion arrive par la route du pont, klaxon bloqué. Sur le plateau, des cages. Dans une cage, Théo. Il vous voit. Il détourne la tête.', THEO_GASPARD),
     ],
-    onEnter: [step('q_destinee', 'choix'), heal(4)],
+    routes: [{ if: clock(DEPARTED_HOUR + 0.01), to: 'c4_quai_vide' }],
+    onEnter: [when(clock(DEPARTURE_HOUR + 0.5), [set('en_retard'), journal('Vous êtes arrivé à l’écluse après l’aube.', false)]), timeAtLeast(DEPARTURE_HOUR), step('q_destinee', 'choix'), heal(4)],
     choices: [
       {
         id: 'observer',
         text: 'Observer l’écluse et la barge avant d’agir.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         once: true,
-        effects: [set('ecluse_observee'), journal('L’écluse est manœuvrée à la main depuis la maison de l’éclusier : le courant est coupé.', false)],
+        effects: [set('ecluse_observee'), doc('doc_protocole'), journal('L’écluse est manœuvrée à la main depuis la maison de l’éclusier : le courant est coupé.', false)],
       },
-      { id: 'sorel', text: 'Demander à parler à la docteure Sorel.', kind: 'talk', next: 'c4_sorel' },
+      { id: 'sorel', text: 'Demander à parler à la docteure Sorel.', kind: 'talk', time: 1, requires: [clock(undefined, DEPARTURE_HOUR + 1.5)], next: 'c4_sorel' },
       { id: 'grille', text: 'Avancer jusqu’à la grille.', kind: 'move', next: 'c4_decision' },
     ],
   },
@@ -313,6 +323,14 @@ export const chapter4: Scene[] = [
       p('Théo vous regarde. Il ne dit rien. Il attend de voir ce que vous allez faire de lui.', THEO_ICI),
     ],
     choices: [
+      {
+        id: 'cassette_grille',
+        text: 'Glisser la cassette entre les barbelés, jusqu’aux mains de la docteure Sorel.',
+        kind: 'talk',
+        once: true,
+        visibleIf: [flag('en_retard'), has('enregistrement')],
+        effects: [rel('sorel', 2), set('sorel_cassette')],
+      },
       {
         id: 'accord',
         text: 'Proposer l’Accord : Théo embarque comme volontaire, sous la protection de Sorel, et tout le groupe avec lui.',
@@ -502,6 +520,31 @@ export const chapter4: Scene[] = [
       p('Vous êtes en vie. Vous êtes à bord. Vous avez payé le prix du passage, et ce n’est pas vous qui l’avez payé.'),
     ],
     choices: [],
+  },
+  {
+    id: 'c4_quai_vide',
+    chapter: C,
+    location: 'ecluse',
+    title: 'Le quai vide',
+    kind: 'story',
+    illustration: 'ecluse',
+    text: [
+      p('L’écluse est ouverte. Le bassin est vide. Sur le quai, des barbelés renversés, des valises éventrées, un mégaphone abandonné dans une flaque.'),
+      p('Loin en aval, sur le fleuve gris, un point blanc rapetisse. La Destinée est partie à l’heure. Elle n’a attendu personne.'),
+      p('Théo regarde le point blanc jusqu’à ce qu’il disparaisse. Puis il vous regarde. Il ne vous reproche rien. C’est presque pire.', THEO_ICI),
+      p('Quelque part derrière ce point blanc, Théo est dans une cage, en route vers l’île. Vous êtes arrivé trop tard pour le reprendre.', THEO_GASPARD),
+    ],
+    onEnter: [set('barge_manquee'), journal('La Destinée est partie sans vous.')],
+    choices: [
+      {
+        id: 'veilleurs',
+        text: 'Remonter vers l’ossuaire Saint-Roch et rejoindre les Veilleurs.',
+        kind: 'move',
+        requires: [any(flag('veilleurs_allies'), flag('theo_veilleurs'))],
+        next: 'c4_fin_racines',
+      },
+      { id: 'fleuve', text: 'Prendre une barque et suivre le fleuve, à votre façon.', kind: 'move', next: 'c4_fin_errance' },
+    ],
   },
   {
     id: 'c4_demitour',

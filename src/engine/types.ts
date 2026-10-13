@@ -30,6 +30,8 @@ export type CharacterId = string;
 export type LocationId = string;
 export type ChapterId = string;
 export type EndingId = string;
+export type DocumentId = string;
+export type RecipeId = string;
 
 export type Stats = Record<StatId, number>;
 
@@ -57,6 +59,10 @@ export type Condition =
   | { type: 'perk'; perk: PerkId }
   | { type: 'visited'; scene: SceneId }
   | { type: 'infection'; min?: number; max?: number }
+  /** Heures écoulées depuis le début (horloge des sept jours). */
+  | { type: 'clock'; min?: number; max?: number }
+  /** Document d'archives trouvé. */
+  | { type: 'document'; doc: DocumentId }
   | { type: 'all'; conditions: Condition[] }
   | { type: 'any'; conditions: Condition[] }
   | { type: 'not'; condition: Condition };
@@ -92,6 +98,18 @@ export type Effect =
   | { type: 'meal' }
   | { type: 'rest'; amount?: number }
   | { type: 'chapter'; chapter: ChapterId }
+  /** Fait avancer l'horloge. */
+  | { type: 'time'; hours: number }
+  /** Porte l'horloge au moins à cette heure absolue. */
+  | { type: 'timeAtLeast'; hour: number }
+  /** Attend la prochaine occurrence de cette heure de la journée (dormir jusqu'à l'aube…). */
+  | { type: 'waitUntil'; hourOfDay: number }
+  /** Ajoute un document aux archives. */
+  | { type: 'document'; doc: DocumentId }
+  /** Répare une arme (ou toutes les armes équipées si `item` est omis). */
+  | { type: 'repair'; item?: ItemId; amount: number }
+  /** Écrit la page du journal intime pour ce chapitre (composée selon l'état). */
+  | { type: 'diary'; chapter: ChapterId }
   /** Effet conditionnel, évalué au moment de l'application. */
   | { type: 'if'; cond: Condition; then: Effect[]; else?: Effect[] };
 
@@ -144,6 +162,14 @@ export interface Choice {
   check?: SkillCheck;
   /** Le choix ne peut être pris qu'une seule fois (fouille, récompense…). */
   once?: boolean;
+  /** Heures consommées par l'action (horloge des sept jours). */
+  time?: number;
+}
+
+/** Choix chronométré : à l'expiration, le choix de repli est appliqué. */
+export interface TimedChoice {
+  seconds: number;
+  fallback: string;
 }
 
 export interface EncounterDef {
@@ -181,6 +207,10 @@ export interface Scene {
   checkpoint?: boolean;
   /** Scène optionnelle (utilisé par le validateur et les statistiques). */
   optional?: boolean;
+  /** Moment de panique : les choix sont chronométrés (désactivable dans les paramètres). */
+  timed?: TimedChoice;
+  /** Illustration plein écran affichée à l'entrée de la scène. */
+  illustration?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,7 +271,31 @@ export interface ItemDef {
   use?: ItemUse;
   /** Objet de quête : ne peut être jeté. */
   questItem?: boolean;
+  /** Armes : solidité maximale. Chaque attaque l'use ; à zéro, l'arme est abîmée. */
+  durability?: number;
   icon: string;
+}
+
+export interface RecipeDef {
+  id: RecipeId;
+  name: string;
+  description: string;
+  inputs: Record<ItemId, number>;
+  /** Objet produit (absent pour une réparation). */
+  output?: { item: ItemId; qty: number };
+  /** Réparation : points de solidité rendus aux armes équipées. */
+  repair?: number;
+  requires?: Condition[];
+  /** Heures de travail. */
+  time: number;
+}
+
+export interface DocumentDef {
+  id: DocumentId;
+  title: string;
+  /** Provenance affichée sous le titre. */
+  source: string;
+  body: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -306,7 +360,7 @@ export interface CombatEnemy {
   phase: number;
 }
 
-export type CombatActionType = 'attack' | 'defend' | 'dodge' | 'skill' | 'item' | 'flee';
+export type CombatActionType = 'attack' | 'defend' | 'dodge' | 'skill' | 'skill2' | 'item' | 'flee';
 
 export interface CombatAction {
   type: CombatActionType;
@@ -335,6 +389,11 @@ export interface CombatState {
   outcome: 'ongoing' | 'victory' | 'defeat' | 'fled';
   summons: number;
   xpEarned: number;
+  skill2Cooldown: number;
+  /** Rempart du guerrier : aucun dégât subi ce tour. */
+  fortified: boolean;
+  /** Disparition de l'éclaireur : esquive garantie ce tour. */
+  vanished: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -423,6 +482,14 @@ export interface GameState {
   noticeCounter: number;
   ending: { id: EndingId; kind: 'ending' | 'death'; cause?: string } | null;
   playtimeMs: number;
+  /** Heures écoulées depuis le jour 1 à minuit. */
+  clock: number;
+  /** Solidité restante des armes possédées. */
+  durability: Record<ItemId, number>;
+  /** Documents d'archives trouvés, dans l'ordre. */
+  documents: DocumentId[];
+  /** Journal intime : une entrée par chapitre. */
+  diary: { chapter: ChapterId; text: string }[];
   /** Dernier jet de dés effectué (affiché dans l'histoire). */
   lastCheck: { stat: StatId; roll: [number, number]; total: number; difficulty: number; success: boolean } | null;
 }
@@ -438,6 +505,8 @@ export interface ProfileDef {
   description: string;
   bonuses: Partial<Stats>;
   skill: { name: string; description: string; staminaCost: number; cooldown: number };
+  /** Seconde compétence, débloquée au niveau 4. */
+  skill2: { name: string; description: string; staminaCost: number; cooldown: number; level: number };
   startingItems: Record<ItemId, number>;
   startingEquipment: Partial<Record<EquipSlot, ItemId>>;
   art: string;
@@ -500,6 +569,13 @@ export interface ChapterDef {
   start: SceneId;
 }
 
+/** Une phrase du journal intime, retenue si sa condition est remplie. */
+export interface DiaryRule {
+  chapter: ChapterId;
+  if?: Condition;
+  text: string;
+}
+
 export interface EndingDef {
   id: EndingId;
   title: string;
@@ -531,6 +607,9 @@ export interface GameContent {
   profiles: Record<ProfileId, ProfileDef>;
   backgrounds: Record<BackgroundId, BackgroundDef>;
   perks: Record<PerkId, PerkDef>;
+  recipes: Record<RecipeId, RecipeDef>;
+  documents: Record<DocumentId, DocumentDef>;
+  diaryRules: DiaryRule[];
   summaryRules: SummaryRule[];
   startScene: SceneId;
 }

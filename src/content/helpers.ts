@@ -61,6 +61,11 @@ export const journal = (text: string, major = true): Effect => ({ type: 'journal
 export const meal = (): Effect => ({ type: 'meal' });
 export const rest = (amount?: number): Effect => ({ type: 'rest', amount });
 export const when = (cond: Condition, then: Effect[], otherwise?: Effect[]): Effect => ({ type: 'if', cond, then, else: otherwise });
+export const doc = (d: string): Effect => ({ type: 'document', doc: d });
+export const diary = (chapter: string): Effect => ({ type: 'diary', chapter });
+export const waitUntil = (hourOfDay: number): Effect => ({ type: 'waitUntil', hourOfDay });
+export const timeAtLeast = (hour: number): Effect => ({ type: 'timeAtLeast', hour });
+export const clock = (min?: number, max?: number): Condition => ({ type: 'clock', min, max });
 export const counter = (c: string, amount: number): Effect => ({ type: 'addCounter', counter: c, amount });
 
 export function scenes(list: Scene[]): Record<string, Scene> {

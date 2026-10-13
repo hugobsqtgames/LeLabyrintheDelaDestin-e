@@ -12,6 +12,9 @@ import { ENEMIES } from './enemies';
 import { scenes } from './helpers';
 import { ITEMS } from './items';
 import { SUMMARY_RULES } from './summary';
+import { RECIPES } from './recipes';
+import { DOCUMENTS } from './documents';
+import { DIARY_RULES } from './diary';
 import { BACKGROUNDS, CHAPTERS, CHARACTERS, ENDINGS, LOCATIONS, PERKS, PROFILES, QUESTS } from './world';
 
 export const CONTENT: GameContent = {
@@ -26,6 +29,9 @@ export const CONTENT: GameContent = {
   profiles: PROFILES,
   backgrounds: BACKGROUNDS,
   perks: PERKS,
+  recipes: RECIPES,
+  documents: DOCUMENTS,
+  diaryRules: DIARY_RULES,
   summaryRules: SUMMARY_RULES,
   startScene: 'c1_toit',
 };

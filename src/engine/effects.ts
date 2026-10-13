@@ -6,7 +6,7 @@
  * de santé, objets de quête) sont donc garanties au même endroit.
  */
 import { clampVitals, grantXp, maxHp, maxStamina } from './character';
-import { addItem, removeItem } from './inventory';
+import { addItem, removeItem, repairWeapons } from './inventory';
 import { INFECTION_MAX } from './rules';
 import { evaluate } from './conditions';
 import type { Effect, GameContent, GameState } from './types';
@@ -163,6 +163,28 @@ export function applyEffect(content: GameContent, state: GameState, e: Effect): 
     }
     case 'if':
       return applyEffects(content, state, evaluate(content, state, e.cond) ? e.then : e.else);
+    case 'time':
+      return e.hours > 0 ? { ...state, clock: state.clock + e.hours } : state;
+    case 'timeAtLeast':
+      return state.clock < e.hour ? { ...state, clock: e.hour } : state;
+    case 'waitUntil': {
+      const day = Math.floor(state.clock / 24);
+      let target = day * 24 + e.hourOfDay;
+      if (target <= state.clock) target += 24;
+      return { ...state, clock: target };
+    }
+    case 'document': {
+      if (state.documents.includes(e.doc) || !content.documents[e.doc]) return state;
+      const s = { ...state, documents: [...state.documents, e.doc] };
+      return addNotice(s, `Archive ajoutée : ${content.documents[e.doc].title}`, 'info');
+    }
+    case 'repair':
+      return repairWeapons(content, state, e.amount, e.item);
+    case 'diary': {
+      const text = composeDiary(content, state, e.chapter);
+      if (!text || state.diary.some((d) => d.chapter === e.chapter)) return state;
+      return addNotice({ ...state, diary: [...state.diary, { chapter: e.chapter, text }] }, 'Une page de votre carnet a été écrite.', 'info');
+    }
     default: {
       const never: never = e;
       throw new Error(`Effet inconnu : ${JSON.stringify(never)}`);
@@ -197,6 +219,14 @@ export function applyMeal(content: GameContent, state: GameState): GameState {
   }
   // La faim affaiblit mais ne tue pas (dégâts narratifs non mortels).
   return applyEffect(content, s, { type: 'damage', amount: 2 * missing, cause: 'la faim' });
+}
+
+/** Compose la page du journal intime d'un chapitre à partir des règles de contenu. */
+export function composeDiary(content: GameContent, state: GameState, chapter: string): string {
+  return content.diaryRules
+    .filter((r) => r.chapter === chapter && (!r.if || evaluate(content, state, r.if)))
+    .map((r) => r.text.replace(/\{nom\}/g, state.player.name))
+    .join(' ');
 }
 
 export function applyEffects(content: GameContent, state: GameState, effects: Effect[] | undefined): GameState {

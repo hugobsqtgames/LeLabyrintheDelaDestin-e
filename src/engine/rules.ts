@@ -97,3 +97,37 @@ export const COMBAT = {
   maxSummons: 2,
   ambushMultiplier: 2,
 };
+
+// --- Horloge des sept jours ----------------------------------------------
+
+/** La partie commence le jour 1 à 23 h, sur le toit de la pharmacie. */
+export const CLOCK_START = 23;
+/** La Destinée embarque à l'aube du septième jour (jour 7, 6 h). */
+export const DEPARTURE_HOUR = 6 * 24 + 6;
+/** Au-delà (minuit du jour 7), la barge est partie. */
+export const DEPARTED_HOUR = DEPARTURE_HOUR + 18;
+
+export function clockParts(hours: number): { day: number; hour: number; period: string } {
+  const h = Math.max(0, Math.floor(hours));
+  const hour = h % 24;
+  const period = hour < 5 ? 'nuit' : hour < 8 ? 'aube' : hour < 12 ? 'matin' : hour < 18 ? 'après-midi' : hour < 22 ? 'soir' : 'nuit';
+  return { day: Math.floor(h / 24) + 1, hour, period };
+}
+
+export function formatClock(hours: number): string {
+  const { day, hour, period } = clockParts(hours);
+  return `Jour ${day} · ${hour} h · ${period}`;
+}
+
+/** Temps restant avant l'embarquement, en heures (négatif : en retard). */
+export function hoursLeft(clock: number): number {
+  return DEPARTURE_HOUR - clock;
+}
+
+// --- Usure des armes ------------------------------------------------------
+
+/** En dessous de cette fraction de solidité, une arme à feu peut s'enrayer. */
+export const JAM_THRESHOLD = 0.3;
+export const JAM_CHANCE = 0.2;
+/** Une arme abîmée (solidité nulle) ne fait plus que la moitié de ses dégâts. */
+export const BROKEN_DAMAGE_FACTOR = 0.5;

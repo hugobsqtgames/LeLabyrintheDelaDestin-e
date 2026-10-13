@@ -5,11 +5,13 @@
  *  - v1 : inventaire sous forme de liste [{ id, qty }], équipement sans
  *         emplacement « accessoire », pas de changements du monde ni de sol.
  *  - v2 : inventaire en dictionnaire, quatre emplacements, monde persistant.
+ *  - v3 : horloge des sept jours, usure des armes, archives et journal intime.
  */
 import { EQUIP_SLOTS } from '../engine/inventory';
+import { CLOCK_START } from '../engine/rules';
 import type { CombatState, CompanionStatus, GameContent, GameState, QuestState, QuestStatus } from '../engine/types';
 
-export const SAVE_SCHEMA_VERSION = 2;
+export const SAVE_SCHEMA_VERSION = 3;
 
 export interface SaveSummary {
   name: string;
@@ -91,6 +93,17 @@ export const MIGRATIONS: Record<number, Migration> = {
     if (!next.world) next.world = {};
     if (!next.ground) next.ground = {};
     return next;
+  },
+  // v2 → v3 : l'horloge est estimée d'après le chapitre en cours.
+  2: (s) => {
+    const estimate: Record<string, number> = { c1: 30, c2: 52, c3: 100, c4: 140 };
+    return {
+      ...s,
+      clock: typeof s.clock === 'number' ? s.clock : estimate[String(s.chapter)] ?? 30,
+      durability: s.durability ?? {},
+      documents: s.documents ?? [],
+      diary: s.diary ?? [],
+    };
   },
 };
 
@@ -268,6 +281,12 @@ export function validateState(content: GameContent, raw: unknown): ValidationRes
     noticeCounter: num(raw.noticeCounter, 0),
     ending,
     playtimeMs: Math.max(0, num(raw.playtimeMs, 0)),
+    clock: Math.max(0, num(raw.clock, CLOCK_START)),
+    durability: numberRecord(raw.durability, (k) => !!content.items[k]?.durability),
+    documents: stringArray(raw.documents).filter((d) => !!content.documents[d]),
+    diary: Array.isArray(raw.diary)
+      ? (raw.diary as unknown[]).filter((d): d is { chapter: string; text: string } => isObj(d) && typeof d.chapter === 'string' && typeof d.text === 'string')
+      : [],
     lastCheck: null,
   };
   // Le combat restera cohérent avec la scène courante.

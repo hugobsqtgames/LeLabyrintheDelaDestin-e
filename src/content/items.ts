@@ -15,6 +15,7 @@ const list: ItemDef[] = [
     staminaCost: 1,
     accuracy: 0.08,
     finesse: true,
+    durability: 40,
     icon: 'knife',
   },
   {
@@ -28,6 +29,7 @@ const list: ItemDef[] = [
     rarity: 'commun',
     damage: [3, 5],
     staminaCost: 2,
+    durability: 90,
     icon: 'crowbar',
   },
   {
@@ -41,6 +43,7 @@ const list: ItemDef[] = [
     rarity: 'commun',
     damage: [3, 6],
     staminaCost: 2,
+    durability: 80,
     icon: 'bar',
   },
   {
@@ -54,6 +57,7 @@ const list: ItemDef[] = [
     rarity: 'commun',
     damage: [4, 7],
     staminaCost: 2,
+    durability: 55,
     icon: 'axe',
   },
   {
@@ -68,6 +72,7 @@ const list: ItemDef[] = [
     damage: [5, 8],
     staminaCost: 2,
     accuracy: 0.04,
+    durability: 50,
     icon: 'machete',
   },
   {
@@ -82,6 +87,7 @@ const list: ItemDef[] = [
     damage: [7, 12],
     staminaCost: 4,
     accuracy: -0.1,
+    durability: 40,
     icon: 'hammer',
   },
   // --- Armes à distance ----------------------------------------------------
@@ -98,6 +104,7 @@ const list: ItemDef[] = [
     staminaCost: 1,
     ammo: 'carreau',
     accuracy: 0.05,
+    durability: 60,
     icon: 'crossbow',
   },
   {
@@ -112,6 +119,7 @@ const list: ItemDef[] = [
     damage: [6, 10],
     staminaCost: 2,
     ammo: 'carreau',
+    durability: 55,
     icon: 'crossbow',
   },
   {
@@ -127,6 +135,7 @@ const list: ItemDef[] = [
     staminaCost: 1,
     ammo: 'balle_9mm',
     loud: true,
+    durability: 45,
     icon: 'pistol',
   },
   {
@@ -143,6 +152,7 @@ const list: ItemDef[] = [
     ammo: 'cartouche',
     accuracy: -0.05,
     loud: true,
+    durability: 40,
     icon: 'shotgun',
   },
   {
@@ -158,6 +168,7 @@ const list: ItemDef[] = [
     staminaCost: 1,
     ammo: 'clou',
     accuracy: 0.05,
+    durability: 50,
     icon: 'nailgun',
   },
   // --- Munitions -----------------------------------------------------------
@@ -404,6 +415,36 @@ const list: ItemDef[] = [
     description: 'Condensateurs, fils, un transistor de puissance. Récupérés sur des appareils morts.',
     weight: 0.3,
     maxStack: 6,
+    rarity: 'commun',
+    icon: 'chip',
+  },
+  {
+    id: 'chiffons',
+    name: 'Chiffons propres',
+    category: 'material',
+    description: 'Des draps découpés en bandes, bouillis puis séchés. Sert aux pansements comme aux cocktails incendiaires.',
+    weight: 0.2,
+    maxStack: 8,
+    rarity: 'commun',
+    icon: 'bandage',
+  },
+  {
+    id: 'alcool',
+    name: 'Alcool à brûler',
+    category: 'material',
+    description: 'Une bouteille d’alcool à 90°. Désinfecte, s’enflamme, et ne se boit pas.',
+    weight: 0.5,
+    maxStack: 6,
+    rarity: 'commun',
+    icon: 'bottle',
+  },
+  {
+    id: 'ferraille',
+    name: 'Ferraille utile',
+    category: 'material',
+    description: 'Vis, ressorts, tiges de métal et bouts de tôle triés. Répare une arme ou se transforme en munitions.',
+    weight: 0.5,
+    maxStack: 8,
     rarity: 'commun',
     icon: 'chip',
   },

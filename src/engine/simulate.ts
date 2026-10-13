@@ -6,7 +6,7 @@
 import { choosePerk, maxHp, spendStatPoint } from './character';
 import { canPerform, describeIntent, dodgeChance, livingEnemies, performAction } from './combat';
 import { choiceViews, choose, newGame, resolveCombat } from './narrative';
-import { applyConsumable, canUseOutOfCombat, equip } from './inventory';
+import { applyConsumable, canCraft, canUseOutOfCombat, craft, equip } from './inventory';
 import { nextFloat } from './rng';
 import type { CharacterDraft, ChoiceKind, CombatAction, GameContent, GameState, PerkId, StatId } from './types';
 
@@ -20,6 +20,8 @@ export interface SimulationResult {
   path: string[];
   combats: number;
   error?: string;
+  /** Heure de la première entrée dans chaque scène (équilibrage de l'horloge). */
+  clockAt: Record<string, number>;
 }
 
 const KIND_PREFS: Record<Policy, ChoiceKind[]> = {
@@ -69,6 +71,8 @@ function combatAction(content: GameContent, s: GameState, rng: { seed: number },
     const a: CombatAction = { type: 'item', item: it, target };
     if (livingEnemies(c).some((e) => content.enemies[e.def].boss) && canPerform(content, s, a).ok) return a;
   }
+  const skill2: CombatAction = { type: 'skill2', target };
+  if (canPerform(content, s, skill2).ok && (heavy || livingEnemies(c).length > 1)) return skill2;
   const skill: CombatAction = { type: 'skill', target };
   if (canPerform(content, s, skill).ok) return skill;
   const ranged: CombatAction = { type: 'attack', weapon: 'ranged', target };
@@ -115,6 +119,10 @@ function maintenance(content: GameContent, s: GameState): GameState {
   if (state.player.infection > 0 && canUseOutOfCombat(content, state, 'antibiotiques').ok && state.player.infection >= 2) {
     state = applyConsumable(content, state, 'antibiotiques');
   }
+  // Atelier : réparer les armes abîmées, transformer les matériaux.
+  for (const r of ['reparation', 'bandages', 'carreaux', 'clous']) {
+    if (canCraft(content, state, r).ok) state = craft(content, state, r);
+  }
   if (state.player.hp / maxHp(content, state) < 0.5) {
     for (const it of ['bandage', 'trousse']) {
       if (canUseOutOfCombat(content, state, it).ok) state = applyConsumable(content, state, it);
@@ -134,12 +142,21 @@ export function simulate(
   const rng = { seed: seed ^ 0x9e3779b9 };
   let state = newGame(content, options.draft ?? draftFor(policy, seed), { seed, id: `sim-${seed}`, now: 0 });
   const path: string[] = [state.currentScene];
+  const clockAt: Record<string, number> = {};
+  let lastScene = '';
+  const mark = (st: GameState) => {
+    if (st.currentScene !== lastScene) {
+      lastScene = st.currentScene;
+      if (clockAt[st.currentScene] === undefined) clockAt[st.currentScene] = st.clock;
+    }
+  };
   const maxSteps = options.maxSteps ?? 2500;
   let steps = 0;
   let combats = 0;
   try {
     while (!state.ending && steps < maxSteps) {
       steps += 1;
+      mark(state);
       state = levelUp(content, state, policy);
       if (state.combat) {
         if (state.combat.outcome === 'ongoing') {
@@ -155,7 +172,7 @@ export function simulate(
       }
       state = maintenance(content, state);
       const views = choiceViews(content, state).filter((v) => v.available);
-      if (!views.length) return { state, steps, ending: null, stuck: true, path, combats };
+      if (!views.length) return { state, steps, ending: null, stuck: true, path, combats, clockAt };
       let pick = views[Math.floor(rand(rng) * views.length)];
       if (policy !== 'aleatoire' && rand(rng) < 0.75) {
         const prefs = KIND_PREFS[policy];
@@ -169,12 +186,12 @@ export function simulate(
         pick = fresh ?? sorted[0];
       }
       const res = choose(content, state, state.currentScene, pick.choice.id);
-      if (!res.ok) return { state, steps, ending: null, stuck: true, path, combats, error: res.error };
+      if (!res.ok) return { state, steps, ending: null, stuck: true, path, combats, error: res.error, clockAt };
       state = res.state;
       if (path[path.length - 1] !== state.currentScene) path.push(state.currentScene);
     }
   } catch (e) {
-    return { state, steps, ending: null, stuck: true, path, combats, error: (e as Error).message };
+    return { state, steps, ending: null, stuck: true, path, combats, error: (e as Error).message, clockAt };
   }
-  return { state, steps, ending: state.ending?.id ?? null, stuck: !state.ending, path, combats };
+  return { state, steps, ending: state.ending?.id ?? null, stuck: !state.ending, path, combats, clockAt };
 }

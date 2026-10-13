@@ -36,6 +36,9 @@ import {
   withUs,
   world,
   xp,
+  doc,
+  waitUntil,
+  diary,
 } from '../helpers';
 
 const C = 'c2';
@@ -64,7 +67,7 @@ export const chapter2: Scene[] = [
       {
         id: 'codes',
         text: '[Cataphile] Lui répondre en traçant à la craie le signe des anciens : « Je connais le chemin, je cherche une compagne. »',
-        kind: 'talk',
+        kind: 'talk', time: 0.5,
         requires: [background('cataphile')],
         effects: [rel('ines', 3), xp(15)],
         next: 'c2_ines_accord',
@@ -72,7 +75,7 @@ export const chapter2: Scene[] = [
       {
         id: 'payer',
         text: 'Payer deux rations.',
-        kind: 'negotiate',
+        kind: 'negotiate', time: 0.5,
         requires: [has('ration', 2)],
         effects: [take('ration', 2), rel('ines', 1)],
         next: 'c2_ines_accord',
@@ -80,14 +83,14 @@ export const chapter2: Scene[] = [
       {
         id: 'malik',
         text: 'Promettre de l’aider à retrouver son frère.',
-        kind: 'talk',
+        kind: 'talk', time: 0.5,
         effects: [questFx('q_malik', 'active', 'chercher'), rel('ines', 2)],
         next: 'c2_ines_accord',
       },
       {
         id: 'menacer',
         text: 'Lui faire comprendre que vous passerez avec ou sans son accord.',
-        kind: 'fight',
+        kind: 'fight', time: 0.5,
         requires: [any(stat('force', 5), background('detenu'))],
         effects: [rel('ines', -5), companion('ines', 'away')],
         next: 'c2_sans_guide',
@@ -144,16 +147,24 @@ export const chapter2: Scene[] = [
     ],
     choices: [
       {
+        id: 'craie',
+        text: 'Relever les inscriptions des murs dans votre carnet.',
+        kind: 'explore',
+        once: true,
+        time: 0.5,
+        effects: [doc('doc_craie')],
+      },
+      {
         id: 'malik',
         text: 'Suivre les flèches marquées d’un M.',
-        kind: 'explore',
+        kind: 'explore', time: 13,
         visibleIf: [quest('q_malik', 'active'), withUs('ines')],
         next: 'c2_malik',
       },
       {
         id: 'anciens',
         text: '[Cataphile] Prendre le passage des Anciens, une chatière que vous seul connaissez.',
-        kind: 'move',
+        kind: 'move', time: 14,
         visibleIf: [background('cataphile')],
         effects: [xp(15)],
         next: 'c2_anciens',
@@ -161,20 +172,20 @@ export const chapter2: Scene[] = [
       {
         id: 'boyau',
         text: 'Ramper par le boyau étroit.',
-        kind: 'stealth',
+        kind: 'stealth', time: 17,
         requires: [stat('discretion', 3)],
         next: 'c2_boyau',
       },
       {
         id: 'puits',
         text: 'Traverser le Puits noyé.',
-        kind: 'explore',
+        kind: 'explore', time: 18,
         check: { stat: 'survie', difficulty: 9, success: 'c2_puits_ok', failure: 'c2_puits_ko' },
       },
       {
         id: 'eboulis',
         text: 'Dégager l’éboulis et passer en force.',
-        kind: 'fight',
+        kind: 'fight', time: 17,
         requires: [any(stat('force', 5), has('pied_de_biche'))],
         next: 'c2_eboulis',
       },
@@ -220,7 +231,7 @@ export const chapter2: Scene[] = [
       p('Au centre de la salle, une vieille pompe électrique rouillée est boulonnée au rocher, câbles arrachés. Quelqu’un a tenté de la réparer, puis a abandonné.'),
       p('Sous l’eau, votre pied heurte une caisse étanche coincée contre un pilier. À l’intérieur, des carreaux d’arbalète enveloppés de graisse.'),
     ],
-    onEnter: [discover('puits_noye'), give('carreau', 5), xp(10)],
+    onEnter: [give('ferraille', 1), discover('puits_noye'), give('carreau', 5), xp(10)],
     choices: [{ id: 'suite', text: 'Sortir de l’eau et continuer.', kind: 'move', next: 'c2_ossuaire_porte' }],
   },
   {
@@ -264,7 +275,7 @@ export const chapter2: Scene[] = [
     text: [
       p('Derrière l’éboulis, la galerie est intacte. Sur le sol, le squelette d’un carrier du siècle dernier, sa lampe à carbure encore accrochée au ceinturon, et une gourde de métal pleine de… caféine en comprimés, dans une boîte de pastilles. Quelqu’un est passé par ici plus récemment.'),
     ],
-    onEnter: [give('cafeine', 1), give('bandage', 1)],
+    onEnter: [give('ferraille', 2), give('cafeine', 1), give('bandage', 1)],
     choices: [{ id: 'suite', text: 'Continuer vers l’ossuaire.', kind: 'move', next: 'c2_ossuaire_porte' }],
   },
   {
@@ -324,7 +335,7 @@ export const chapter2: Scene[] = [
       p('Elle détache de ses propres chaussures deux semelles de feutre cousues main et vous les tend.'),
       say('ines', '« Elles étaient à lui. Il marchait sans bruit, mieux que moi. Prends-les. »'),
     ],
-    onEnter: [
+    onEnter: [doc('doc_malik'), 
       questFx('q_malik', 'completed'),
       give('carnet_malik'),
       give('semelles'),
@@ -358,7 +369,7 @@ export const chapter2: Scene[] = [
       {
         id: 'soigner_theo',
         text: 'Donner vos antibiotiques à Théo, devant eux, et attendre que la fièvre tombe.',
-        kind: 'item',
+        kind: 'item', time: 4,
         visibleIf: [THEO_FIEVRE],
         requires: [has('antibiotiques')],
         effects: [take('antibiotiques', 1), set('theo_malade', false), set('theo_soigne'), rel('theo', 2), rel('maelle', 2), rel('helene', 1), xp(20)],
@@ -367,7 +378,7 @@ export const chapter2: Scene[] = [
       {
         id: 'negocier_theo',
         text: 'Négocier pour que Théo soit mis en quarantaine à l’intérieur, avec sa mère.',
-        kind: 'negotiate',
+        kind: 'negotiate', time: 1,
         visibleIf: [THEO_FIEVRE],
         check: {
           stat: 'astuce',
@@ -379,7 +390,7 @@ export const chapter2: Scene[] = [
       {
         id: 'soigner_maelle',
         text: 'Donner vos antibiotiques à Maëlle, tant qu’il est encore temps.',
-        kind: 'item',
+        kind: 'item', time: 12,
         visibleIf: [MAELLE_BLESSEE],
         requires: [has('antibiotiques')],
         effects: [take('antibiotiques', 1), set('maelle_soignee'), rel('maelle', 4), xp(20), journal('Vous avez sauvé Maëlle avec vos derniers antibiotiques.')],
@@ -466,6 +477,7 @@ export const chapter2: Scene[] = [
       set('veilleurs_savent'),
       rel('theo', 2),
       when(lacks('lettre_maelle'), [give('lettre_maelle')]),
+      doc('doc_lettre'),
       journal('Maëlle est partie mourir seule dans les galeries. Théo est porteur : mordu, jamais transformé.'),
     ],
     choices: [
@@ -501,18 +513,18 @@ export const chapter2: Scene[] = [
       {
         id: 'helene',
         text: 'Parler à Hélène Vasseur.',
-        kind: 'talk',
+        kind: 'talk', time: 1,
         visibleIf: [notFlag('parle_helene')],
         next: 'c2_helene',
       },
       {
         id: 'pompe',
         text: 'Retourner au Puits noyé réparer la pompe.',
-        kind: 'explore',
+        kind: 'explore', time: 1,
         visibleIf: [quest('q_veilleurs', 'active')],
         next: 'c2_pompe',
       },
-      { id: 'troc', text: 'Passer au comptoir de troc de Sœur Prudence.', kind: 'negotiate', next: 'c2_troc' },
+      { id: 'troc', text: 'Passer au comptoir de troc de Sœur Prudence.', kind: 'negotiate', time: 0.5, next: 'c2_troc' },
       {
         id: 'nuit',
         text: 'Passer la nuit à l’ossuaire.',
@@ -520,11 +532,11 @@ export const chapter2: Scene[] = [
         visibleIf: [notFlag('nuit_ossuaire')],
         next: 'c2_nuit',
       },
-      { id: 'salle', text: 'Se rendre à l’entrée de la Grande Salle.', kind: 'move', next: 'c2_grande_salle' },
+      { id: 'salle', text: 'Se rendre à l’entrée de la Grande Salle.', kind: 'move', time: 1, next: 'c2_grande_salle' },
       {
         id: 'aqueduc',
         text: 'Contourner la Grande Salle par l’aqueduc du carnet de Malik.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1,
         visibleIf: [any(has('carnet_malik'), relMin('ines', 5))],
         next: 'c2_aqueduc',
       },
@@ -543,7 +555,7 @@ export const chapter2: Scene[] = [
       say('helene', '« Un Muet énorme, avec une cloche de vache au cou. Je ne sais pas qui la lui a attachée. Quand il bouge, la cloche sonne, et tous les Muets des Carrières le suivent comme des moutons. Nous les éloignons avec nos propres cloches, depuis des mois. C’est épuisant. »'),
       say('helene', '« Je vous propose un marché. Notre pompe à eau, au Puits noyé, est en panne depuis l’hiver. Nos enfants boivent l’eau des flaques. Réparez-la, et le jour où vous attaquerez le Berger, nous sonnerons toutes nos cloches dans les galeries du nord pour attirer son troupeau loin de lui. Vous l’aurez seul. »'),
     ],
-    onEnter: [set('parle_helene'), questFx('q_veilleurs', 'active', 'demande'), discover('puits_noye')],
+    onEnter: [doc('doc_registre'), set('parle_helene'), questFx('q_veilleurs', 'active', 'demande'), discover('puits_noye')],
     choices: [{ id: 'retour', text: 'Accepter, et retourner dans l’ossuaire.', kind: 'talk', next: 'c2_ossuaire' }],
   },
   {
@@ -559,7 +571,7 @@ export const chapter2: Scene[] = [
       {
         id: 'reparer',
         text: 'Remplacer le condensateur et refaire les connexions.',
-        kind: 'explore',
+        kind: 'explore', time: 4,
         requires: [any(has('outils'), profile('technicien')), has('composants')],
         check: {
           stat: 'astuce',
@@ -572,7 +584,7 @@ export const chapter2: Scene[] = [
       {
         id: 'bricoler',
         text: 'Tenter de la relancer en court-circuitant le démarreur.',
-        kind: 'explore',
+        kind: 'explore', time: 4,
         check: { stat: 'astuce', difficulty: 11, success: 'c2_pompe_ok', failure: 'c2_pompe_ko' },
       },
       { id: 'retour', text: 'Remonter à l’ossuaire.', kind: 'move', next: 'c2_ossuaire' },
@@ -616,7 +628,7 @@ export const chapter2: Scene[] = [
       {
         id: 'reessayer',
         text: 'Recommencer, plus prudemment.',
-        kind: 'explore',
+        kind: 'explore', time: 1,
         effects: [hurt(2, 'une décharge électrique')],
         next: 'c2_pompe',
       },
@@ -682,6 +694,14 @@ export const chapter2: Scene[] = [
         requires: [has('carreau', 6)],
         effects: [take('carreau', 6), give('ration', 3)],
       },
+      {
+        id: 'materiaux',
+        text: 'Échanger 1 ration contre 2 chiffons propres et 1 bouteille d’alcool.',
+        kind: 'negotiate',
+        once: true,
+        requires: [has('ration', 1)],
+        effects: [take('ration', 1), give('chiffons', 2), give('alcool', 1)],
+      },
       { id: 'retour', text: 'Retourner dans l’ossuaire.', kind: 'move', next: 'c2_ossuaire' },
     ],
   },
@@ -700,7 +720,7 @@ export const chapter2: Scene[] = [
       say('theo', '« Tu dors ? »', all(withUs('theo'), relMin('theo', 3), notFlag('theo_verite'))),
       say('maelle', '« Il faut qu’on parle. »', all(withUs('maelle'), has('lettre_maelle'), notFlag('theo_verite'))),
     ],
-    onEnter: [set('nuit_ossuaire'), rest(10)],
+    onEnter: [waitUntil(6), set('nuit_ossuaire'), rest(10)],
     choices: [
       {
         id: 'lettre',
@@ -790,6 +810,7 @@ export const chapter2: Scene[] = [
     title: 'La Grande Salle',
     kind: 'story',
     checkpoint: true,
+    illustration: 'berger',
     text: [
       p('La Grande Salle est une cathédrale de calcaire creusée par quatre siècles de carriers. Les piliers de soutènement montent dans l’obscurité comme des troncs d’arbres pétrifiés. Et entre les piliers, debout, immobiles, il y a les Muets. Des dizaines. Une centaine, peut-être. Ils dorment debout, tête basse, comme un troupeau dans un pré.'),
       p('Au centre, plus grand que tous les autres, le Berger. Deux mètres vingt, des bras qui descendent sous les genoux, une veste de berger en peau de mouton pourrie. À son cou, une cloche de bronze. Chaque fois qu’il respire, elle tinte faiblement, et tout le troupeau frémit.'),
@@ -896,7 +917,7 @@ export const chapter2: Scene[] = [
       set('berger_tue'),
       journal('Vous avez abattu le Berger dans la Grande Salle et pris sa cloche.'),
     ],
-    choices: [{ id: 'sortie', text: 'Traverser la Grande Salle vers le fleuve.', kind: 'move', next: 'c2_sortie' }],
+    choices: [{ id: 'sortie', text: 'Traverser la Grande Salle vers le fleuve.', kind: 'move', time: 4, next: 'c2_sortie' }],
   },
   {
     id: 'c2_aqueduc',
@@ -912,7 +933,7 @@ export const chapter2: Scene[] = [
       {
         id: 'avancer',
         text: 'Avancer, un pas après l’autre.',
-        kind: 'stealth',
+        kind: 'stealth', time: 9,
         check: { stat: 'discretion', difficulty: 9, success: 'c2_aqueduc_ok', failure: 'c2_aqueduc_ko' },
       },
       { id: 'reculer', text: 'Faire demi-tour vers l’ossuaire.', kind: 'flee', next: 'c2_ossuaire' },
@@ -929,7 +950,7 @@ export const chapter2: Scene[] = [
       p('Le Berger vit toujours, en bas, dans le noir. C’est un problème pour les Veilleurs. Ce n’est plus le vôtre.'),
     ],
     onEnter: [questFx('q_berger', 'completed'), set('berger_evite'), xp(50), journal('Vous avez contourné le Berger par l’aqueduc romain.')],
-    choices: [{ id: 'sortie', text: 'Sortir sur la berge.', kind: 'move', next: 'c2_sortie' }],
+    choices: [{ id: 'sortie', text: 'Sortir sur la berge.', kind: 'move', time: 3, next: 'c2_sortie' }],
   },
   {
     id: 'c2_aqueduc_ko',
@@ -1012,13 +1033,14 @@ export const chapter2: Scene[] = [
     location: 'aqueduc',
     title: 'Fin du chapitre 2',
     kind: 'chapterEnd',
+    illustration: 'berge',
     text: [
       p('Hélène repart vers l’ossuaire avec Théo et Maëlle. Théo se retourne une seule fois. Il lève la main. Vous levez la vôtre.', flag('theo_veilleurs')),
       p('Vous mangez à l’abri d’une pile de l’aqueduc, en regardant le port. Quelque part là-bas, il y a les Ferrailleurs, Gaspard Lenoir et le Pont de Fer. Et au-delà, l’écluse.'),
-      p('Il reste trois jours avant l’aube du septième.'),
+      p('Il reste {reste} avant l’aube du septième.'),
     ],
-    onEnter: [meal(), step('q_destinee', 'port'), journal('Le groupe est sorti du Labyrinthe.')],
-    choices: [{ id: 'suite', text: 'Chapitre 3 : La Ferraille et l’Eau', kind: 'move', next: 'c3_quai' }],
+    onEnter: [meal(), diary('c2'), step('q_destinee', 'port'), journal('Le groupe est sorti du Labyrinthe.')],
+    choices: [{ id: 'suite', text: 'Chapitre 3 : La Ferraille et l’Eau', kind: 'move', time: 3, next: 'c3_quai' }],
   },
 ];
 

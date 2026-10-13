@@ -125,6 +125,14 @@ export function validateContent(content: GameContent): ValidationIssue[] {
       if (!ch.next && !ch.check && !ch.once) warn(`choix « ${ch.id} » sans destination ni usage unique (boucle sur place)`, sid);
     }
 
+    // Choix chronométrés : le repli doit exister et être toujours disponible.
+    if (scene.timed) {
+      const fb = scene.choices.find((c) => c.id === scene.timed!.fallback);
+      if (!fb) err(`choix de repli « ${scene.timed.fallback} » introuvable`, sid);
+      else if (fb.requires?.length || fb.visibleIf?.length || fb.once) err(`le choix de repli « ${fb.id} » doit être toujours disponible`, sid);
+      if (scene.timed.seconds < 5) err('délai de choix chronométré trop court (minimum 5 s)', sid);
+    }
+
     // Types de scènes.
     if (scene.kind === 'ending' || scene.kind === 'death') {
       if (!scene.ending || !content.endings[scene.ending]) err('fin sans identifiant de fin valide', sid);
@@ -152,7 +160,9 @@ export function validateContent(content: GameContent): ValidationIssue[] {
       }
       if ((e.type === 'discover' || e.type === 'world') && !content.locations[e.location]) err(`lieu inconnu ${e.location}`, sid);
       if (e.type === 'world' && !content.locations[e.location]?.changes?.[e.change]) err(`changement « ${e.change} » non décrit pour ${e.location}`, sid);
-      if (e.type === 'chapter' && !content.chapters.some((c) => c.id === e.chapter)) err(`chapitre inconnu ${e.chapter}`, sid);
+      if ((e.type === 'chapter' || e.type === 'diary') && !content.chapters.some((c) => c.id === e.chapter)) err(`chapitre inconnu ${e.chapter}`, sid);
+      if (e.type === 'document' && !content.documents[e.doc]) err(`document inconnu ${e.doc}`, sid);
+      if (e.type === 'repair' && e.item && !content.items[e.item]?.durability) err(`réparation d’un objet sans solidité ${e.item}`, sid);
       if (e.type === 'setFlag') setFlags.add(e.flag);
       if (e.type === 'addCounter') counters.add(e.counter);
     }
@@ -167,9 +177,22 @@ export function validateContent(content: GameContent): ValidationIssue[] {
           if (!q || !q.steps.some((st) => st.id === c.step)) err(`condition : étape inconnue ${c.quest}/${c.step}`, sid);
         }
         if (c.type === 'visited' && !content.scenes[c.scene]) err(`condition : scène inconnue ${c.scene}`, sid);
+        if (c.type === 'document' && !content.documents[c.doc]) err(`condition : document inconnu ${c.doc}`, sid);
         if (c.type === 'flag' && !readFlags.has(c.flag)) readFlags.set(c.flag, sid);
       });
     }
+  }
+  for (const rule of content.diaryRules) {
+    if (!content.chapters.some((c) => c.id === rule.chapter)) err(`journal : chapitre inconnu ${rule.chapter}`);
+    if (rule.if)
+      walkConditions(rule.if, (c) => {
+        if (c.type === 'flag' && !readFlags.has(c.flag)) readFlags.set(c.flag, 'journal');
+      });
+  }
+  for (const r of Object.values(content.recipes)) {
+    for (const id of Object.keys(r.inputs)) if (!content.items[id]) err(`recette ${r.id} : objet inconnu ${id}`);
+    if (r.output && !content.items[r.output.item]) err(`recette ${r.id} : produit inconnu ${r.output.item}`);
+    if (!r.output && !r.repair) err(`recette ${r.id} : ne produit rien`);
   }
   for (const rule of content.summaryRules) {
     walkConditions(rule.if, (c) => {

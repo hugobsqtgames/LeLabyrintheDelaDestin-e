@@ -33,6 +33,9 @@ import {
   world,
   when,
   xp,
+  doc,
+  timeAtLeast,
+  diary,
 } from '../helpers';
 
 const C = 'c1';
@@ -57,12 +60,12 @@ export const chapter1: Scene[] = [
       say('sorel', '« … ici la Destinée, barge médicale de l’Institut Ferrand. Nous embarquerons des survivants à l’écluse de Morvan, à l’aube du septième jour à compter de ce message. Je répète : écluse de Morvan, aube du septième jour… »'),
       p('La voix est calme, épuisée, humaine. Puis le signal se met à flotter.'),
     ],
-    onEnter: [questFx('q_destinee', 'active', 'message'), discover('rue_tanneurs')],
+    onEnter: [doc('doc_radio'), questFx('q_destinee', 'active', 'message'), discover('rue_tanneurs')],
     choices: [
       {
         id: 'regler',
         text: 'Régler la fréquence, doucement, pour capter la suite.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         check: { stat: 'astuce', difficulty: 8, success: 'c1_radio_clair', failure: 'c1_radio_brouille' },
       },
       {
@@ -312,18 +315,19 @@ export const chapter1: Scene[] = [
       p('Par la lucarne de la réserve, on aperçoit le clocher de Saint-Clair. Chaque soir depuis des mois, ses cloches sonnent à la tombée de la nuit. Personne au refuge ne sait qui les fait sonner.'),
       p('Kaz cloue des planches sur la porte arrière avec une énergie de forçat. Le bruit vous agace autant qu’il vous rassure.', flag('kaz_garde_refuge')),
     ],
+    onEnter: [timeAtLeast(30)],
     choices: [
       {
         id: 'reserve',
         text: 'Fouiller une dernière fois l’arrière-boutique.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         once: true,
-        effects: [give('bandage', 1), give('ration', 1)],
+        effects: [give('bandage', 1), give('ration', 1), give('chiffons', 1)],
       },
       {
         id: 'theo',
         text: 'Passer voir Théo avant de partir.',
-        kind: 'talk',
+        kind: 'talk', time: 0.5,
         once: true,
         effects: [rel('theo', 1), set('parle_theo_c1')],
         next: 'c1_theo_chevet',
@@ -343,7 +347,7 @@ export const chapter1: Scene[] = [
       say('moi', '« Tu es sorti seul jusqu’au clocher ? »'),
       say('theo', '« Je sors seul partout. Elle croit que non. » Un sourire fatigué. « Ramène-moi des cachets, d’accord ? Je n’ai pas fini ma carte. »'),
     ],
-    onEnter: [discover('clocher'), discover('supermarche'), set('connait_carillonneur')],
+    onEnter: [doc('doc_carte_theo'), discover('clocher'), discover('supermarche'), set('connait_carillonneur')],
     choices: [{ id: 'partir', text: 'Lui ébouriffer les cheveux et partir.', kind: 'move', next: 'c1_preparatifs' }],
   },
 
@@ -366,29 +370,36 @@ export const chapter1: Scene[] = [
       {
         id: 'hopital',
         text: 'Monter vers l’hôpital Delorme.',
-        kind: 'move',
+        kind: 'move', time: 1,
         visibleIf: [notFlag('hopital_fait')],
         next: 'c1_hopital',
       },
       {
         id: 'veto',
         text: 'Aller à la clinique vétérinaire des Saules.',
-        kind: 'move',
+        kind: 'move', time: 1,
         visibleIf: [notFlag('veto_fait')],
         next: 'c1_veto',
       },
       {
         id: 'super',
         text: 'Fouiller le supermarché Prixdoux.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         visibleIf: [notFlag('super_fini')],
         next: 'c1_super',
       },
-      { id: 'clocher', text: 'Grimper au clocher de Saint-Clair.', kind: 'move', next: 'c1_clocher' },
+      { id: 'clocher', text: 'Grimper au clocher de Saint-Clair.', kind: 'move', time: 1, next: 'c1_clocher' },
+      {
+        id: 'affiche',
+        text: 'Lire l’affiche délavée de l’abribus.',
+        kind: 'explore',
+        once: true,
+        effects: [doc('doc_affiche')],
+      },
       {
         id: 'rentrer',
         text: 'Rentrer à la pharmacie.',
-        kind: 'move',
+        kind: 'move', time: 0.5,
         next: 'c1_retour',
       },
     ],
@@ -411,7 +422,7 @@ export const chapter1: Scene[] = [
       {
         id: 'fouiller',
         text: 'Fouiller les rayons en silence.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1.5,
         visibleIf: [notFlag('super_fouille')],
         check: {
           stat: 'discretion',
@@ -423,14 +434,14 @@ export const chapter1: Scene[] = [
       {
         id: 'attaquer',
         text: 'Les attirer un par un dans l’allée et les abattre.',
-        kind: 'fight',
+        kind: 'fight', time: 0.5,
         visibleIf: [notFlag('super_fouille')],
         next: 'c1_super_combat',
       },
       {
         id: 'reserve_force',
         text: 'Faire sauter la chaîne de la réserve avec le pied-de-biche.',
-        kind: 'item',
+        kind: 'item', time: 0.5,
         visibleIf: [notFlag('super_reserve')],
         requires: [has('pied_de_biche')],
         next: 'c1_super_reserve',
@@ -438,7 +449,7 @@ export const chapter1: Scene[] = [
       {
         id: 'reserve_crochet',
         text: '[Rossignols] Crocheter le cadenas.',
-        kind: 'item',
+        kind: 'item', time: 0.5,
         visibleIf: [notFlag('super_reserve'), has('rossignol')],
         effects: [xp(5)],
         next: 'c1_super_reserve',
@@ -446,7 +457,7 @@ export const chapter1: Scene[] = [
       {
         id: 'reserve_bras',
         text: 'Tordre la poignée à mains nues.',
-        kind: 'fight',
+        kind: 'fight', time: 0.5,
         visibleIf: [notFlag('super_reserve')],
         requires: [stat('force', 5)],
         next: 'c1_super_reserve',
@@ -482,7 +493,7 @@ export const chapter1: Scene[] = [
     text: [
       p('Vous fouillez méthodiquement, à quatre pattes, sous les étagères. Ceux qui sont passés avant vous ont pris ce qui se voyait. Vous prenez ce qui ne se voit pas : une boîte de cassoulet roulée sous un frigo, des biscuits de mer derrière une plinthe, un tube de comprimés de caféine dans un casier d’employé.'),
     ],
-    onEnter: [set('super_fouille'), world('supermarche', 'fouille'), give('ration', 2), give('cafeine', 1), xp(10)],
+    onEnter: [give('chiffons', 1), set('super_fouille'), world('supermarche', 'fouille'), give('ration', 2), give('cafeine', 1), xp(10)],
     choices: [{ id: 'retour', text: 'Revenir à l’entrée du magasin.', kind: 'move', next: 'c1_super' }],
   },
   {
@@ -497,7 +508,7 @@ export const chapter1: Scene[] = [
       p('Un sac de randonnée neuf, encore étiqueté. Une bouteille d’alcool à brûler et des chiffons, qu’il suffit d’assembler. Et, rangée sous une veste d’uniforme, une boîte de bandages stériles.'),
       p('Sur la porte du casier, une photo d’une petite fille et un mot : « Papa revient ce soir ». Vous refermez la porte doucement.'),
     ],
-    onEnter: [set('super_reserve'), world('supermarche', 'reserve'), give('sac_rando', 1), give('molotov', 1), give('bandage', 2), xp(10)],
+    onEnter: [doc('doc_casier'), give('alcool', 1), set('super_reserve'), world('supermarche', 'reserve'), give('sac_rando', 1), give('molotov', 1), give('bandage', 2), xp(10)],
     choices: [{ id: 'retour', text: 'Revenir dans le magasin.', kind: 'move', next: 'c1_super_fin' }],
   },
   {
@@ -552,20 +563,20 @@ export const chapter1: Scene[] = [
       {
         id: 'morgue',
         text: 'Suivre Kaz par la morgue.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1.5,
         visibleIf: [withUs('kaz')],
         next: 'c1_hopital_morgue',
       },
       {
         id: 'cuisines',
         text: 'Passer par les cuisines, à pas de loup.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1,
         check: { stat: 'discretion', difficulty: 9, success: 'c1_hopital_pharma', failure: 'c1_hopital_combat' },
       },
       {
         id: 'service',
         text: 'Forcer la porte de service, vite et fort.',
-        kind: 'fight',
+        kind: 'fight', time: 0.5,
         requires: [any(stat('force', 4), has('pied_de_biche'))],
         warning: 'Le bruit risque d’attirer quelque chose.',
         next: 'c1_hopital_coureur',
@@ -632,7 +643,7 @@ export const chapter1: Scene[] = [
       p('Vous trouvez l’amoxicilline au rayon A. Deux boîtes, pas une de plus — quelqu’un est venu ici avant vous, mais a laissé le reste par précipitation ou par décence. Des compresses, des bandes, une trousse de suture.'),
       p('Dans le bureau du pharmacien, un classeur ouvert sur le bureau porte le logo d’un hélice d’ADN entouré d’une couronne : Institut Ferrand.'),
     ],
-    onEnter: [
+    onEnter: [give('alcool', 1), 
       set('hopital_fait'),
       world('hopital', 'pharmacie_vide'),
       give('antibiotiques', 2),
@@ -645,9 +656,9 @@ export const chapter1: Scene[] = [
       {
         id: 'lire',
         text: 'Lire le classeur de l’Institut Ferrand.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         once: true,
-        effects: [give('dossier_ferrand'), set('lu_ferrand'), journal('À l’hôpital, un dossier de l’Institut Ferrand parle de « transfert prioritaire des porteurs asymptomatiques ».')],
+        effects: [give('dossier_ferrand'), doc('doc_ferrand'), set('lu_ferrand'), journal('À l’hôpital, un dossier de l’Institut Ferrand parle de « transfert prioritaire des porteurs asymptomatiques ».')],
       },
       { id: 'partir', text: 'Ressortir avant que les Muets du hall ne se réveillent.', kind: 'move', next: 'c1_rue' },
     ],
@@ -681,20 +692,20 @@ export const chapter1: Scene[] = [
       {
         id: 'boitier',
         text: 'Bricoler le boîtier électronique du rideau.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         check: { stat: 'astuce', difficulty: 9, success: 'c1_veto_interieur', failure: 'c1_veto_combat_alerte' },
       },
       {
         id: 'forcer',
         text: 'Soulever le rideau au pied-de-biche.',
-        kind: 'item',
+        kind: 'item', time: 0.5,
         requires: [has('pied_de_biche')],
         next: 'c1_veto_interieur',
       },
       {
         id: 'lucarne',
         text: 'Grimper par la gouttière jusqu’à la lucarne.',
-        kind: 'stealth',
+        kind: 'stealth', time: 0.5,
         requires: [stat('discretion', 4)],
         next: 'c1_veto_interieur',
       },
@@ -722,13 +733,13 @@ export const chapter1: Scene[] = [
       {
         id: 'contourner',
         text: 'Le contourner sans un bruit pour atteindre l’armoire.',
-        kind: 'stealth',
+        kind: 'stealth', time: 0.5,
         check: { stat: 'discretion', difficulty: 10, success: 'c1_veto_armoire', failure: 'c1_veto_combat_alerte' },
       },
       {
         id: 'leurre',
         text: '[Survivant technique] Remonter le vieux réveil de la salle d’attente et le lancer dans le chenil.',
-        kind: 'item',
+        kind: 'item', time: 0.5,
         requires: [profile('technicien')],
         effects: [xp(10)],
         next: 'c1_veto_armoire',
@@ -782,7 +793,7 @@ export const chapter1: Scene[] = [
       p('Une seule boîte. Vous la glissez contre votre poitrine, sous votre veste, là où vous la sentirez battre.'),
       p('Sur le comptoir, un carnet de rendez-vous ouvert au dernier jour. Le Dr Varenne avait noté en marge : « Les chiens sentent les malades avant nous. Ils hurlent. Je les ai tous gardés. » Vous ne voulez pas savoir ce qu’il y a dans le chenil.'),
     ],
-    onEnter: [set('veto_fait'), world('clinique_veto', 'videe'), give('antibiotiques', 1), give('bandage', 1), step('q_fievre', 'rapporter'), xp(20)],
+    onEnter: [doc('doc_varenne'), set('veto_fait'), world('clinique_veto', 'videe'), give('antibiotiques', 1), give('bandage', 1), step('q_fievre', 'rapporter'), xp(20)],
     choices: [{ id: 'partir', text: 'Ressortir dans la rue.', kind: 'move', next: 'c1_rue' }],
   },
   {
@@ -821,7 +832,7 @@ export const chapter1: Scene[] = [
       {
         id: 'donner',
         text: 'Lui donner deux rations.',
-        kind: 'talk',
+        kind: 'talk', time: 1,
         visibleIf: [quest('q_carillon', 'active')],
         requires: [has('ration', 2)],
         effects: [take('ration', 2), questFx('q_carillon', 'completed'), set('odilon_aide'), world('clocher', 'aide'), rel('odilon', 3), give('fusee', 2), xp(25)],
@@ -890,7 +901,7 @@ export const chapter1: Scene[] = [
       {
         id: 'donner',
         text: 'Donner les antibiotiques à Théo.',
-        kind: 'item',
+        kind: 'item', time: 2,
         visibleIf: [has('antibiotiques')],
         effects: [take('antibiotiques', 1), questFx('q_fievre', 'completed'), set('theo_soigne'), rel('theo', 2), rel('maelle', 2), xp(30)],
         next: 'c1_nuit_theo',
@@ -914,7 +925,7 @@ export const chapter1: Scene[] = [
       {
         id: 'abandonner',
         text: 'Avouer qu’il n’y a plus rien à trouver. Théo devra tenir sans.',
-        kind: 'talk',
+        kind: 'talk', time: 1,
         warning: 'Théo restera malade.',
         effects: [questFx('q_fievre', 'failed'), set('theo_malade'), rel('maelle', -1)],
         next: 'c1_soir',
@@ -960,7 +971,7 @@ export const chapter1: Scene[] = [
     id: 'c1_soir',
     chapter: C,
     location: 'pharmacie',
-    title: 'Le soir du deuxième jour',
+    title: 'Le soir',
     kind: 'story',
     checkpoint: true,
     text: [
@@ -973,6 +984,7 @@ export const chapter1: Scene[] = [
       p('À sept heures, les cloches de Saint-Clair sonnent, faiblement, avec des pauses, comme si celui qui tirait la corde devait reprendre son souffle entre chaque coup.', all(notFlag('odilon_aide'), notFlag('odilon_vole'))),
       p('Puis, vers minuit, un cri déchire le quartier. Un vrai cri. Un hurlement humain, interminable, qui monte et descend comme une sirène. Les Muets ne crient pas. Sauf un.'),
     ],
+    onEnter: [timeAtLeast(42)],
     choices: [{ id: 'monter', text: 'Monter sur le toit voir ce qui se passe.', kind: 'move', next: 'c1_assaut' }],
   },
   {
@@ -981,6 +993,8 @@ export const chapter1: Scene[] = [
     location: 'pharmacie',
     title: 'Le Hurleur',
     kind: 'story',
+    timed: { seconds: 12, fallback: 'charger' },
+    illustration: 'hurleur',
     text: [
       p('Sur le toit de l’immeuble d’en face, une silhouette se découpe contre les nuages. Immense, voûtée, la poitrine ouverte sur des côtes noires. Elle renverse la tête en arrière et hurle encore, et dans toutes les rues du quartier, des portes battent, des vitres cèdent, des pas se mettent en marche.'),
       p('Le Hurleur. Les survivants en parlent à voix basse. Il appelle. Et ils viennent.'),
@@ -990,6 +1004,7 @@ export const chapter1: Scene[] = [
       say('kaz', '« La barricade tiendra ! J’ai mis des madriers partout ! Occupez-vous de ce salopard sur le toit ! »', flag('kaz_garde_refuge')),
       p('Le Hurleur saute sur le toit de la pharmacie. Il est à quinze mètres de vous, entre vous et la trappe.'),
     ],
+    onEnter: [timeAtLeast(47)],
     choices: [
       {
         id: 'fusee',
@@ -1116,7 +1131,7 @@ export const chapter1: Scene[] = [
         id: 'garder',
         text: 'Glisser la lettre dans votre poche. Vous la lirez plus tard.',
         kind: 'explore',
-        effects: [give('lettre_maelle'), set('lettre_volee'), journal('Vous avez gardé une lettre de l’Institut Ferrand adressée à Maëlle.')],
+        effects: [give('lettre_maelle'), doc('doc_lettre'), set('lettre_volee'), journal('Vous avez gardé une lettre de l’Institut Ferrand adressée à Maëlle.')],
         next: 'c1_fuite',
       },
       {
@@ -1163,13 +1178,14 @@ export const chapter1: Scene[] = [
     location: 'brasserie',
     title: 'Fin du chapitre 1',
     kind: 'chapterEnd',
+    illustration: 'brasserie',
     text: [
       p('Vous descendez l’escalier de la cave à la lueur d’une lampe. Derrière vous, Valombre brûle un peu plus. Devant vous, il fait noir.'),
       p('Vous partagez un repas froid, assis sur des fûts vides, en écoutant le grondement lointain de la ville. Personne ne parle de ce qu’on a laissé derrière.'),
-      p('Il reste cinq jours avant l’aube du septième.'),
+      p('Il reste {reste} avant l’aube du septième.'),
     ],
-    onEnter: [meal(), journal('La pharmacie Saint-Clair a brûlé. Le groupe s’enfonce sous la ville.')],
-    choices: [{ id: 'suite', text: 'Chapitre 2 : Le Labyrinthe', kind: 'move', next: 'c2_brasserie' }],
+    onEnter: [meal(), diary('c1'), journal('La pharmacie Saint-Clair a brûlé. Le groupe s’enfonce sous la ville.')],
+    choices: [{ id: 'suite', text: 'Chapitre 2 : Le Labyrinthe', kind: 'move', time: 2, next: 'c2_brasserie' }],
   },
 ];
 

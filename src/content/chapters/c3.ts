@@ -36,6 +36,9 @@ import {
   withUs,
   world,
   xp,
+  doc,
+  waitUntil,
+  diary,
 } from '../helpers';
 
 const C = 'c3';
@@ -50,6 +53,8 @@ export const chapter3: Scene[] = [
     title: 'Quai des Tonneliers',
     kind: 'story',
     checkpoint: true,
+    timed: { seconds: 10, fallback: 'cacher' },
+    illustration: 'port',
     text: [
       p('Le port fluvial de Valombre est un cimetière de métal. Des péniches couchées sur le flanc dans la vase, des grues figées dans des gestes interrompus, des conteneurs empilés comme des briques d’enfant. Le fleuve passe au milieu, indifférent, et emporte vers l’aval des choses qu’on préfère ne pas regarder.'),
       p('Une patrouille remonte le quai dans votre direction : un homme au visage peint de cambouis, un fusil en bandoulière, et un molosse au bout d’une chaîne. Les Ferrailleurs.'),
@@ -60,14 +65,14 @@ export const chapter3: Scene[] = [
       {
         id: 'kaz',
         text: 'Appeler Kaz par son nom.',
-        kind: 'talk',
+        kind: 'talk', time: 0.5,
         visibleIf: [flag('kaz_refuse')],
         next: 'c3_kaz_ferrailleur',
       },
       {
         id: 'detenu',
         text: '[Ancien détenu] Marcher droit vers eux, mains dans les poches, comme si le port vous appartenait.',
-        kind: 'negotiate',
+        kind: 'negotiate', time: 0.5,
         requires: [background('detenu')],
         effects: [xp(20), set('respect_ferrailleurs')],
         next: 'c3_detenu',
@@ -75,7 +80,7 @@ export const chapter3: Scene[] = [
       {
         id: 'cacher',
         text: 'Se cacher dans la cale d’une péniche échouée.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1,
         check: { stat: 'discretion', difficulty: 9, success: 'c3_planque_arrivee', failure: 'c3_patrouille' },
       },
       {
@@ -161,7 +166,7 @@ export const chapter3: Scene[] = [
       p('Le Ferrailleur avait un fusil à pompe dont la crosse est rafistolée au fil de fer, quatre cartouches, et dans la poche intérieure de son blouson, une photo d’enfant pliée en quatre. Vous la laissez où elle est.'),
       p('Vous tirez les corps dans l’eau. Le fleuve les emporte sans faire d’histoires.'),
     ],
-    onEnter: [give('fusil'), give('cartouche', 4), set('patrouille_tuee')],
+    onEnter: [give('ferraille', 1), give('fusil'), give('cartouche', 4), set('patrouille_tuee')],
     choices: [{ id: 'planque', text: 'Gagner la capitainerie avant la relève.', kind: 'move', next: 'c3_planque_arrivee' }],
   },
 
@@ -189,7 +194,7 @@ export const chapter3: Scene[] = [
     kind: 'story',
     checkpoint: true,
     text: [
-      p('Le groupe s’est installé dans le bureau du capitaine de port. Il reste une journée avant de devoir franchir le Pont de Fer pour atteindre l’écluse à temps.'),
+      p('Le groupe s’est installé dans le bureau du capitaine de port. Il reste {reste} avant l’aube du septième, et le Pont de Fer est la dernière porte.'),
       p('Théo est collé aux jumelles, à dessiner le port sur une page arrachée.', withUs('theo')),
       p('Kaz ne quitte pas la fenêtre des yeux. Il regarde la casse Lenoir. Il a l’air de quelqu’un qui fait des calculs.', withUs('kaz')),
     ],
@@ -197,29 +202,29 @@ export const chapter3: Scene[] = [
       {
         id: 'radio',
         text: 'Examiner l’émetteur radio.',
-        kind: 'explore',
+        kind: 'explore', time: 0.5,
         visibleIf: [notFlag('radio_reparee')],
         next: 'c3_radio',
       },
       {
         id: 'grue',
         text: 'Monter dans la cabine de la grue pour observer la casse.',
-        kind: 'stealth',
+        kind: 'stealth', time: 2,
         visibleIf: [notFlag('casse_reperee')],
         next: 'c3_grue',
       },
-      { id: 'mouette', text: 'Rejoindre en barque La Mouette pour commercer.', kind: 'negotiate', next: 'c3_mouette' },
+      { id: 'mouette', text: 'Rejoindre en barque La Mouette pour commercer.', kind: 'negotiate', time: 3, next: 'c3_mouette' },
       {
         id: 'kaz',
         text: 'Prendre Kaz à part et lui demander ce qu’il calcule.',
-        kind: 'talk',
+        kind: 'talk', time: 1,
         visibleIf: [withUs('kaz'), relMin('kaz', 3), notFlag('kaz_aveu')],
         next: 'c3_kaz_aveu',
       },
       {
         id: 'repos',
         text: 'Soigner ses blessures et manger un morceau.',
-        kind: 'rest',
+        kind: 'rest', time: 4,
         once: true,
         effects: [rest(8)],
       },
@@ -240,7 +245,7 @@ export const chapter3: Scene[] = [
       {
         id: 'reparer',
         text: 'Remplacer la lampe grillée par vos composants et refaire la terre.',
-        kind: 'explore',
+        kind: 'explore', time: 2,
         requires: [has('composants'), any(has('outils'), profile('technicien'))],
         check: {
           stat: 'astuce',
@@ -253,7 +258,7 @@ export const chapter3: Scene[] = [
       {
         id: 'antenne',
         text: 'Grimper à la tour pour rebrancher l’antenne, et espérer que ça suffise.',
-        kind: 'explore',
+        kind: 'explore', time: 2,
         check: { stat: 'survie', difficulty: 10, success: 'c3_radio_ok', failure: 'c3_radio_ko' },
       },
       { id: 'retour', text: 'Laisser tomber pour l’instant.', kind: 'move', next: 'c3_planque' },
@@ -270,7 +275,7 @@ export const chapter3: Scene[] = [
     ],
     onEnter: [],
     choices: [
-      { id: 'reessayer', text: 'Recommencer.', kind: 'explore', effects: [hurt(1, 'une brûlure électrique')], next: 'c3_radio' },
+      { id: 'reessayer', text: 'Recommencer.', kind: 'explore', time: 1, effects: [hurt(1, 'une brûlure électrique')], next: 'c3_radio' },
       { id: 'retour', text: 'Abandonner la radio.', kind: 'move', effects: [set('radio_abandonnee'), set('radio_reparee')], next: 'c3_planque' },
     ],
   },
@@ -291,6 +296,7 @@ export const chapter3: Scene[] = [
       set('radio_reparee'),
       set('verite_ferrand'),
       give('enregistrement'),
+      doc('doc_rousset'),
       questFx('q_radio', 'completed'),
       world('capitainerie', 'radio'),
       xp(40),
@@ -300,7 +306,7 @@ export const chapter3: Scene[] = [
       {
         id: 'appeler',
         text: 'Prendre le micro et appeler la docteure Sorel sur sa fréquence.',
-        kind: 'talk',
+        kind: 'talk', time: 0.5,
         next: 'c3_radio_sorel',
       },
       { id: 'couper', text: 'Couper l’émetteur. Inutile qu’ils sachent que vous écoutez.', kind: 'stealth', next: 'c3_planque' },
@@ -335,7 +341,7 @@ export const chapter3: Scene[] = [
       p('Et au fond, contre le grillage qui longe le fleuve, une rangée de cages à chiens. Dedans, il y a des gens. Six. Des enfants, pour la plupart. Une fillette aux cheveux tressés est assise contre les barreaux, les genoux sous le menton, et fixe le ciel.'),
       p('La relève de la garde se fait à trois heures du matin. Pendant dix minutes, le grillage du fleuve n’est surveillé que par un chien.'),
     ],
-    onEnter: [set('casse_reperee'), questFx('q_cages', 'active', 'reperer'), xp(15)],
+    onEnter: [doc('doc_bon'), set('casse_reperee'), questFx('q_cages', 'active', 'reperer'), xp(15)],
     choices: [{ id: 'descendre', text: 'Redescendre à la capitainerie.', kind: 'move', next: 'c3_planque' }],
   },
   {
@@ -412,7 +418,15 @@ export const chapter3: Scene[] = [
         text: 'Lui demander ce qu’elle sait de l’écluse de Morvan.',
         kind: 'talk',
         once: true,
-        effects: [set('sait_vanne'), journal('Selon Mère Cazal, les portes amont de l’écluse se manœuvrent à la main depuis la maison de l’éclusier.', false)],
+        effects: [set('sait_vanne'), doc('doc_cazal'), journal('Selon Mère Cazal, les portes amont de l’écluse se manœuvrent à la main depuis la maison de l’éclusier.', false)],
+      },
+      {
+        id: 'ferraille',
+        text: '2 ferrailles utiles et 1 bouteille d’alcool contre 2 rations.',
+        kind: 'negotiate',
+        once: true,
+        requires: [has('ration', 2)],
+        effects: [take('ration', 2), give('ferraille', 2), give('alcool', 1)],
       },
       { id: 'retour', text: 'Remonter dans la barque.', kind: 'move', next: 'c3_planque' },
     ],
@@ -469,7 +483,7 @@ export const chapter3: Scene[] = [
       p('La nuit tombe sur le port. Vous dormez par tours, deux heures chacun, une main sur votre arme. Le fleuve clapote contre les piles du quai. Au loin, les chiens de la casse aboient par vagues.'),
       p('Rien ne se passe. C’est presque une surprise.'),
     ],
-    onEnter: [],
+    onEnter: [waitUntil(5), ],
     choices: [{ id: 'aube', text: 'Se préparer à l’aube.', kind: 'move', next: 'c3_aube' }],
   },
   {
@@ -483,7 +497,7 @@ export const chapter3: Scene[] = [
       p('Sur la table de cartes, griffonné au dos d’un formulaire de douane : « Pardon. J’ai pas le choix. K. »'),
       p('Maëlle ne crie pas. Elle prend sa barre de fer et elle marche vers la porte, et il faut vous mettre devant elle pour l’empêcher d’aller seule dans la casse.', withUs('maelle')),
     ],
-    onEnter: [
+    onEnter: [waitUntil(5), 
       companion('theo', 'captured'),
       companion('kaz', 'away'),
       set('kaz_traitre'),
@@ -509,29 +523,29 @@ export const chapter3: Scene[] = [
       {
         id: 'ruse',
         text: 'Lancer la ruse : Kaz entre dans la casse en « livrant » Théo.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1,
         visibleIf: [flag('ruse_kaz'), withUs('kaz'), withUs('theo')],
         next: 'c3_ruse',
       },
       {
         id: 'infiltrer',
         text: 'S’infiltrer par le grillage du fleuve pendant la relève de trois heures.',
-        kind: 'stealth',
+        kind: 'stealth', time: 2,
         visibleIf: [flag('casse_reperee')],
         check: { stat: 'discretion', difficulty: 7, success: 'c3_infiltration', failure: 'c3_alerte' },
       },
       {
         id: 'infiltrer_aveugle',
         text: 'S’infiltrer dans la casse au hasard, de nuit.',
-        kind: 'stealth',
+        kind: 'stealth', time: 3,
         visibleIf: [notFlag('casse_reperee')],
         check: { stat: 'discretion', difficulty: 10, success: 'c3_infiltration', failure: 'c3_alerte' },
       },
-      { id: 'parlementer', text: 'Se présenter à l’entrée et demander à parler à Gaspard.', kind: 'negotiate', next: 'c3_gaspard' },
+      { id: 'parlementer', text: 'Se présenter à l’entrée et demander à parler à Gaspard.', kind: 'negotiate', time: 1, next: 'c3_gaspard' },
       {
         id: 'abandonner',
         text: 'Contourner la casse et passer le pont à la nage, en laissant Théo derrière.',
-        kind: 'flee',
+        kind: 'flee', time: 3,
         visibleIf: [THEO_PRISONNIER],
         warning: 'Théo restera prisonnier des Ferrailleurs.',
         effects: [set('theo_abandonne'), rel('theo', -5), when(withUs('maelle'), [companion('maelle', 'away'), journal('Maëlle est partie seule chercher son fils dans la casse.')]), journal('Vous avez abandonné Théo aux Ferrailleurs.')],
@@ -540,7 +554,7 @@ export const chapter3: Scene[] = [
       {
         id: 'assaut',
         text: 'Attaquer la porte principale.',
-        kind: 'fight',
+        kind: 'fight', time: 0.5,
         next: 'c3_assaut',
       },
     ],
@@ -723,7 +737,7 @@ export const chapter3: Scene[] = [
       {
         id: 'pont',
         text: 'Filer vers le Pont de Fer sans un bruit.',
-        kind: 'stealth',
+        kind: 'stealth', time: 1,
         check: { stat: 'discretion', difficulty: 8, success: 'c3_pont', failure: 'c3_pont_alerte' },
         },
       {
@@ -773,14 +787,14 @@ export const chapter3: Scene[] = [
       {
         id: 'cassette',
         text: 'Lui faire écouter l’enregistrement radio : la barge ne paiera pas ce qu’elle promet.',
-        kind: 'negotiate',
+        kind: 'negotiate', time: 1,
         requires: [has('enregistrement')],
         check: { stat: 'astuce', difficulty: 7, success: 'c3_gaspard_convaincu', failure: 'c3_gaspard_furieux' },
       },
       {
         id: 'racheter',
         text: 'Racheter Théo : 5 rations.',
-        kind: 'negotiate',
+        kind: 'negotiate', time: 1,
         visibleIf: [THEO_PRISONNIER],
         requires: [has('ration', 5)],
         effects: [take('ration', 5), companion('theo', 'companion'), rel('theo', 1), journal('Vous avez racheté Théo à Gaspard Lenoir.')],
@@ -789,7 +803,7 @@ export const chapter3: Scene[] = [
       {
         id: 'payer',
         text: 'Payer le péage pour le groupe.',
-        kind: 'negotiate',
+        kind: 'negotiate', time: 1,
         visibleIf: [not(THEO_PRISONNIER)],
         requires: [has('ration', 4)],
         warning: 'Les prisonniers des cages resteront aux mains de Gaspard.',
@@ -799,7 +813,7 @@ export const chapter3: Scene[] = [
       {
         id: 'vendre',
         text: 'Lui laisser Théo contre le passage et une place sur la barge.',
-        kind: 'sacrifice',
+        kind: 'sacrifice', time: 1,
         visibleIf: [withUs('theo')],
         warning: 'Théo ne vous le pardonnera jamais.',
         effects: [
@@ -927,6 +941,8 @@ export const chapter3: Scene[] = [
       give('masse'),
       give('cartouche', 4),
       give('ration', 3),
+      give('ferraille', 2),
+      give('alcool', 1),
     ],
     choices: [
       {
@@ -1104,10 +1120,10 @@ export const chapter3: Scene[] = [
     text: [
       p('Vous campez sous une arche du pont, de l’autre côté du fleuve, sans feu. Vous mangez en silence. Le port de Valombre brille de quelques lampes derrière vous, et pour la première fois depuis une semaine, la ville est derrière vous et non autour.'),
       p('Nour s’est endormie contre l’épaule de Théo. Ils ont le même âge, à peu près, et la même façon de dormir en serrant les poings.', all(withUs('nour'), withUs('theo'))),
-      p('Il reste un jour avant l’aube du septième.'),
+      p('Il reste {reste} avant l’aube du septième.'),
     ],
-    onEnter: [meal()],
-    choices: [{ id: 'suite', text: 'Chapitre 4 : La Destinée', kind: 'move', next: 'c4_halage' }],
+    onEnter: [meal(), diary('c3')],
+    choices: [{ id: 'suite', text: 'Chapitre 4 : La Destinée', kind: 'move', time: 14, next: 'c4_halage' }],
   },
 ];
 

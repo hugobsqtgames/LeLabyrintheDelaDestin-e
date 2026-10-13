@@ -48,6 +48,10 @@ export function evaluate(content: GameContent, state: GameState, c: Condition): 
         (c.min === undefined || state.player.infection >= c.min) &&
         (c.max === undefined || state.player.infection <= c.max)
       );
+    case 'clock':
+      return (c.min === undefined || state.clock >= c.min) && (c.max === undefined || state.clock <= c.max);
+    case 'document':
+      return state.documents.includes(c.doc);
     case 'all':
       return c.conditions.every((sub) => evaluate(content, state, sub));
     case 'any':
@@ -100,7 +104,10 @@ export function explain(content: GameContent, state: GameState, c: Condition): s
     case 'perk':
       return `Compétence requise : ${content.perks[c.perk]?.name ?? c.perk}`;
     case 'infection':
-      if (c.max !== undefined) return 'Vous êtes trop fiévreux pour cela';
+      if (c.max !== undefined) return 'La fièvre vous en empêche';
+      return null;
+    case 'clock':
+      if (c.max !== undefined) return 'Il est trop tard pour cela';
       return null;
     case 'all': {
       const parts = c.conditions

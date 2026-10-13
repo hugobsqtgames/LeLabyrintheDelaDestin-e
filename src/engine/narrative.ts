@@ -7,7 +7,7 @@ import { evaluate, evaluateAll, missingRequirements } from './conditions';
 import { startCombat } from './combat';
 import { applyEffects } from './effects';
 import { addItem, EQUIP_SLOTS } from './inventory';
-import { checkProbability, CHECK_DICE, CHECK_SIDES, STAT_LABELS } from './rules';
+import { checkProbability, CHECK_DICE, CHECK_SIDES, CLOCK_START, STAT_LABELS } from './rules';
 import { rollDice } from './rng';
 import type {
   CharacterDraft,
@@ -80,6 +80,10 @@ export function newGame(
     noticeCounter: 0,
     ending: null,
     playtimeMs: 0,
+    clock: CLOCK_START,
+    durability: {},
+    documents: [],
+    diary: [],
     lastCheck: null,
   };
   const starting: Record<string, number> = { ...profile.startingItems };
@@ -244,6 +248,7 @@ export function choose(content: GameContent, state: GameState, sceneId: SceneId,
   let s: GameState = { ...state, turn: state.turn + 1, lastCheck: null, notices: [] };
   if (choice.once) s = { ...s, consumed: [...s.consumed, key] };
   s = addChronicle(content, s, interpolate(choice.text, s), false);
+  if (choice.time) s = { ...s, clock: s.clock + choice.time };
   s = applyEffects(content, s, choice.effects);
   if (s.ending) return { state: s, ok: true };
 
