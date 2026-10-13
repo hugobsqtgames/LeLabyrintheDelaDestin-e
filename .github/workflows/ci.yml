@@ -1,0 +1,44 @@
+# Vérifications automatiques à chaque push et pull request :
+# types, lint, tests, validation narrative, équilibrage et export web.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Types
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx expo lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Validation du contenu narratif
+        run: npm run validate
+
+      - name: Équilibrage (parties simulées)
+        run: npm run balance
+
+      - name: Export web (le bundle se construit)
+        run: npx expo export --platform web --output-dir dist
