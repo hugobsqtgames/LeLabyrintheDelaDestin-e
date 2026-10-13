@@ -7,22 +7,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPlaytime } from '../engine/summary';
 import type { SlotInfo } from '../persistence/saves';
+import { useT } from '../i18n';
 import { useStore } from '../store/GameStore';
+import { PlayerPortrait } from '../ui/art/Portraits';
 import { EmblemBadge } from '../ui/art/Emblems';
 import { ConfirmDialog } from '../ui/components/Sheet';
 import { Badge, Button, IconButton, Label, Panel, Screen } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
-import { colors, space, type } from '../ui/theme';
+import { colors, fonts, radius, space, type } from '../ui/theme';
 import type { EmblemId } from '../engine/types';
 
 type Pending = { kind: 'overwrite-new' | 'overwrite-copy' | 'delete'; slot: number } | null;
 
-const TITLES = { new: 'Choisir un emplacement', load: 'Charger une partie', copy: 'Copier la partie' };
-const HINTS = {
-  new: 'La nouvelle partie se sauvegardera automatiquement dans l’emplacement choisi.',
-  load: 'Chaque partie est sauvegardée automatiquement après chaque décision.',
-  copy: 'Créez une copie de la partie en cours, pour revenir plus tard à ce moment précis. Vous continuerez dans votre emplacement actuel.',
-};
 
 function formatDate(ts?: number): string {
   if (!ts) return '';
@@ -33,6 +29,7 @@ function formatDate(ts?: number): string {
 
 export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
   const { saves, model, back, go, loadGame, setPendingSlot, feedback } = useStore();
+  const t = useT();
   const mode = model.savesMode;
   const [slots, setSlots] = useState<SlotInfo[] | null>(initialSlots ?? null);
   const [pending, setPending] = useState<Pending>(null);
@@ -68,10 +65,10 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
       await saves.save(slot, model.game);
       await saves.flush();
       feedback('success');
-      setMessage(`Copie enregistrée dans l’emplacement ${slot}.`);
+      setMessage(t('saves.copied', { slot }));
       await refresh();
     } catch (e) {
-      setMessage(`Échec de la copie : ${(e as Error).message}`);
+      setMessage(t('saves.copyFailed', { error: (e as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -90,7 +87,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
       setBusy(true);
       const res = await loadGame(s.slot);
       setBusy(false);
-      if (!res.ok) setMessage(res.error ?? 'Chargement impossible.');
+      if (!res.ok) setMessage(res.error ?? t('saves.loadFailed'));
     }
   };
 
@@ -100,7 +97,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
     setPending(null);
     if (p.kind === 'delete') {
       await saves.remove(p.slot);
-      setMessage(`Emplacement ${p.slot} effacé.`);
+      setMessage(t('saves.deleted', { slot: p.slot }));
       await refresh();
     } else if (p.kind === 'overwrite-new') {
       chooseNew(p.slot);
@@ -110,31 +107,42 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
   };
 
   return (
-    <Screen>
+    <Screen aura="neutral">
       <View style={styles.header}>
-        <IconButton icon="back" label="Retour" onPress={back} />
+        <IconButton icon="back" label={t('common.back')} onPress={back} />
         <Text style={[type.h1, { flex: 1 }]} accessibilityRole="header">
-          {TITLES[mode]}
+          {t(`saves.title.${mode}`)}
         </Text>
       </View>
-      <Text style={[type.bodySmall, { marginBottom: space.lg }]}>{HINTS[mode]}</Text>
+      <Text style={[type.bodySmall, { marginBottom: space.lg }]}>{t(`saves.hint.${mode}`)}</Text>
       <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xl }}>
-        {!slots && <Text style={type.bodySmall}>Lecture des sauvegardes…</Text>}
+        {!slots && <Text style={type.bodySmall}>{t('saves.reading')}</Text>}
         {slots?.map((s) => {
           const current = model.game && s.slot === model.slot;
           const sum = s.summary;
           return (
             <Panel key={s.slot} tone={s.status === 'corrupt' ? 'danger' : current ? 'raised' : 'default'} style={{ gap: space.sm }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                {sum ? <EmblemBadge id={sum.emblem as EmblemId} size={48} /> : <View style={styles.emptyBadge}><Icon name={s.status === 'corrupt' ? 'warning' : 'plus'} size={20} color={colors.textFaint} /></View>}
+                {sum ? (
+                  <View>
+                    <PlayerPortrait profile={sum.profileId ?? 'guerrier'} size={56} shape="squircle" />
+                    <View style={styles.emblem}>
+                      <EmblemBadge id={sum.emblem as EmblemId} size={22} />
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.emptyBadge}>
+                    <Icon name={s.status === 'corrupt' ? 'warning' : 'plus'} size={20} color={colors.textFaint} />
+                  </View>
+                )}
                 <View style={{ flex: 1 }}>
-                  <Label>Emplacement {s.slot}</Label>
-                  {s.status === 'empty' && <Text style={[type.ui, { color: colors.textFaint }]}>Vide</Text>}
-                  {s.status === 'corrupt' && <Text style={[type.ui, { color: colors.rustBright }]}>Sauvegarde illisible</Text>}
+                  <Label>{t('saves.slot', { slot: s.slot })}</Label>
+                  {s.status === 'empty' && <Text style={[type.ui, { color: colors.textFaint }]}>{t('saves.empty')}</Text>}
+                  {s.status === 'corrupt' && <Text style={[type.ui, { color: colors.rustBright }]}>{t('saves.corrupt')}</Text>}
                   {sum && (
                     <>
-                      <Text style={type.ui}>
-                        {sum.name} · {sum.profile} · niv. {sum.level}
+                      <Text style={[type.ui, { fontFamily: fonts.uiBold }]}>
+                        {sum.name} · {sum.profile} · {t('hud.level', { n: sum.level })}
                       </Text>
                       <Text style={type.uiSmall} numberOfLines={1}>
                         {sum.chapterTitle}
@@ -145,43 +153,37 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                     </>
                   )}
                 </View>
-                {current && <Badge label="En cours" color={colors.mossBright} />}
-                {sum?.ended && <Badge label={sum.ended === 'death' ? 'Mort' : 'Terminée'} color={sum.ended === 'death' ? colors.blood : colors.amber} />}
+                {current && <Badge label={t('saves.current')} color={colors.mossBright} />}
+                {sum?.ended && <Badge label={sum.ended === 'death' ? t('saves.dead') : t('saves.ended')} color={sum.ended === 'death' ? colors.blood : colors.amber} />}
               </View>
               {s.error && <Text style={[type.uiSmall, { color: colors.amber }]}>{s.error}</Text>}
               <View style={{ flexDirection: 'row', gap: space.sm }}>
                 {mode === 'load' && s.status !== 'empty' && (
-                  <Button label={s.status === 'corrupt' ? 'Tenter' : 'Charger'} compact style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
+                  <Button label={s.status === 'corrupt' ? t('saves.try') : t('saves.load')} compact style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
                 )}
                 {mode === 'new' && (
-                  <Button label={s.status === 'empty' ? 'Commencer ici' : 'Remplacer'} compact variant={s.status === 'empty' ? 'primary' : 'secondary'} style={{ flex: 1 }} onPress={() => onSlot(s)} />
+                  <Button label={s.status === 'empty' ? t('saves.startHere') : t('saves.replace')} compact variant={s.status === 'empty' ? 'primary' : 'secondary'} style={{ flex: 1 }} onPress={() => onSlot(s)} />
                 )}
                 {mode === 'copy' && !current && (
-                  <Button label={s.status === 'empty' ? 'Copier ici' : 'Écraser'} compact variant="secondary" style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
+                  <Button label={s.status === 'empty' ? t('saves.copyHere') : t('saves.overwrite')} compact variant="secondary" style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
                 )}
                 {s.status !== 'empty' && !current && (
-                  <Button label="Supprimer" compact variant="ghost" icon="trash" onPress={() => setPending({ kind: 'delete', slot: s.slot })} />
+                  <Button label={t('saves.delete')} compact variant="ghost" icon="trash" onPress={() => setPending({ kind: 'delete', slot: s.slot })} />
                 )}
               </View>
             </Panel>
           );
         })}
         {message && <Text style={[type.ui, { color: colors.ice, textAlign: 'center' }]}>{message}</Text>}
-        {!saves && <Text style={type.bodySmall}>Mode maquette : la persistance est désactivée.</Text>}
+        {!saves && <Text style={type.bodySmall}>{t('saves.mock')}</Text>}
       </ScrollView>
 
       <ConfirmDialog
         visible={!!pending}
         danger
-        title={pending?.kind === 'delete' ? 'Supprimer cette partie ?' : 'Écraser cette sauvegarde ?'}
-        message={
-          pending?.kind === 'delete'
-            ? `La partie de l’emplacement ${pending.slot} et sa copie de secours seront définitivement effacées.`
-            : pending?.kind === 'overwrite-new'
-              ? `La partie de l’emplacement ${pending?.slot} sera remplacée dès que la nouvelle partie commencera. Cette action est irréversible.`
-              : `La partie de l’emplacement ${pending?.slot} sera remplacée par une copie de la partie en cours.`
-        }
-        confirmLabel={pending?.kind === 'delete' ? 'Supprimer définitivement' : 'Écraser'}
+        title={pending?.kind === 'delete' ? t('saves.confirmDelete') : t('saves.confirmOverwrite')}
+        message={t(`saves.confirm.${pending?.kind ?? 'delete'}`, { slot: pending?.slot ?? '' })}
+        confirmLabel={pending?.kind === 'delete' ? t('saves.deleteForever') : t('saves.overwrite')}
         onConfirm={confirm}
         onCancel={() => setPending(null)}
       />
@@ -191,5 +193,6 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.sm },
-  emptyBadge: { width: 48, height: 48, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
+  emptyBadge: { width: 56, height: 56, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
+  emblem: { position: 'absolute', right: -6, bottom: -6 },
 });

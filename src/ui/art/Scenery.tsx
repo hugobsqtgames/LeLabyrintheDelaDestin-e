@@ -6,13 +6,6 @@ import React, { useId } from 'react';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { colors } from '../theme';
 
-const REGION_SKY: Record<string, [string, string]> = {
-  'Quartier des Tanneurs': ['#3B4A47', '#121816'],
-  'Les Carrières': ['#2A2620', '#0B0A08'],
-  'Port fluvial': ['#3E4B52', '#11171A'],
-  'Écluse de Morvan': ['#5A5547', '#15140F'],
-};
-
 const ink = colors.bgDeep;
 
 function Motif({ id }: { id: string }) {
@@ -142,31 +135,43 @@ function Motif({ id }: { id: string }) {
   }
 }
 
-export function SceneryBanner({ location, region, height = 120 }: { location: string; region: string; height?: number }) {
-  const [top, bottom] = REGION_SKY[region] ?? REGION_SKY['Quartier des Tanneurs'];
-  const underground = region === 'Les Carrières';
+const REGION_ORDER_SKY: [string, string][] = [
+  ['#3B4A47', '#121816'],
+  ['#2A2620', '#0B0A08'],
+  ['#3E4B52', '#11171A'],
+  ['#5A5547', '#15140F'],
+];
+
+/**
+ * Bandeau de lieu. `regionIndex` : rang de la région dans le voyage (0 à 3),
+ * indépendant de la langue. Si le cadre est plus haut que le bandeau
+ * d'origine (4:1), le ciel (ou la voûte) s'étend vers le haut.
+ */
+export function SceneryBanner({ location, regionIndex, height = 120, width = 400 }: { location: string; regionIndex: number; height?: number; width?: number }) {
+  const [top, bottom] = REGION_ORDER_SKY[regionIndex] ?? REGION_ORDER_SKY[0];
+  const underground = regionIndex === 1;
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const extra = Math.max(0, (400 * height) / Math.max(1, width) - 100);
+  const y0 = -extra;
+  const stars = Array.from({ length: 26 }, (_, i) => ({ x: (i * 97) % 400, y: y0 + ((i * 53) % Math.max(1, extra + 30)), r: i % 5 === 0 ? 1.1 : 0.6 }));
   return (
-    <Svg width="100%" height={height} viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice">
+    <Svg width="100%" height={height} viewBox={`0 ${y0} 400 ${100 + extra}`} preserveAspectRatio="xMidYMax slice">
       <Defs>
         <LinearGradient id={`bannerSky${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={top} />
+          <Stop offset="0" stopColor={underground ? '#050403' : '#07090B'} />
+          <Stop offset="0.6" stopColor={top} />
           <Stop offset="1" stopColor={bottom} />
         </LinearGradient>
-        <LinearGradient id={`bannerFade${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0.55" stopColor={colors.bg} stopOpacity={0} />
-          <Stop offset="1" stopColor={colors.bg} stopOpacity={1} />
-        </LinearGradient>
       </Defs>
-      <Rect x={0} y={0} width={400} height={100} fill={`url(#bannerSky${uid})`} />
+      <Rect x={0} y={y0} width={400} height={100 + extra} fill={`url(#bannerSky${uid})`} />
+      {!underground && stars.map((st, i) => <Circle key={i} cx={st.x} cy={st.y} r={st.r} fill={colors.paper} opacity={0.35} />)}
       {underground ? (
-        <Path d="M0 0 h400 v18 q-40 14 -80 6 t-90 8 t-110 -4 t-120 10 Z" fill={ink} />
+        <Path d={`M0 ${y0} h400 v${extra + 18} q-40 14 -80 6 t-90 8 t-110 -4 t-120 10 Z`} fill={ink} />
       ) : (
         <Path d="M0 100 h30 v-24 h20 v10 h24 v-30 h14 v30 h26 v-12 h30 v26 h330 Z" fill={ink} opacity={0.6} />
       )}
       <Motif id={location} />
-      {!underground && <Path d="M330 12 a10 10 0 1 0 0.1 0" fill={colors.paper} opacity={0.15} />}
-      <Rect x={0} y={0} width={400} height={100} fill={`url(#bannerFade${uid})`} />
+      {!underground && <Circle cx={330} cy={y0 + Math.max(14, extra * 0.35)} r={12} fill={colors.paper} opacity={0.18} />}
     </Svg>
   );
 }

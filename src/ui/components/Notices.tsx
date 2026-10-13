@@ -1,19 +1,19 @@
 /**
- * Journal des conséquences de la dernière action (objets, relations, quêtes).
- * Affiché en ligne dans le récit : jamais bloquant.
+ * Conséquences de la dernière action (objets, relations, quêtes), en pastilles
+ * empilées dans le récit : jamais bloquant.
  */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Notice } from '../../engine/types';
 import { Icon, type IconName } from '../icons';
-import { colors, fonts, radius, space } from '../theme';
-import { FadeIn } from './primitives';
+import { colors, fonts, MAX_SCALE_READING, radius, space } from '../theme';
+import { FadeIn, withAlpha } from './primitives';
 
 const TONES: Record<Notice['tone'], { color: string; icon: IconName }> = {
   good: { color: colors.mossBright, icon: 'plus' },
   bad: { color: colors.rustBright, icon: 'minus' },
-  info: { color: colors.ice, icon: 'quest' },
-  level: { color: colors.amber, icon: 'star' },
+  info: { color: colors.ice, icon: 'sparkle' },
+  level: { color: colors.violet, icon: 'star' },
 };
 
 export function NoticeList({ notices }: { notices: Notice[] }) {
@@ -24,9 +24,13 @@ export function NoticeList({ notices }: { notices: Notice[] }) {
         const tone = TONES[n.tone];
         return (
           <FadeIn key={n.id} delay={i * 60}>
-            <View style={[styles.row, { borderLeftColor: tone.color }]}>
-              <Icon name={tone.icon} size={14} color={tone.color} />
-              <Text style={[styles.text, { color: tone.color }]}>{n.text}</Text>
+            <View style={[styles.row, { backgroundColor: withAlpha(tone.color, 0.09) }]}>
+              <View style={[styles.icon, { backgroundColor: withAlpha(tone.color, 0.18) }]}>
+                <Icon name={tone.icon} size={11} color={tone.color} strokeWidth={2.4} />
+              </View>
+              <Text style={[styles.text, { color: tone.color }]} maxFontSizeMultiplier={MAX_SCALE_READING}>
+                {n.text}
+              </Text>
             </View>
           </FadeIn>
         );
@@ -36,16 +40,8 @@ export function NoticeList({ notices }: { notices: Notice[] }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 4, marginBottom: space.lg },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderLeftWidth: 2,
-    paddingLeft: space.sm,
-    paddingVertical: 3,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: radius.sm,
-  },
-  text: { fontFamily: fonts.ui, fontSize: 15, flex: 1 },
+  wrap: { gap: 6, marginBottom: space.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 7, borderRadius: radius.md },
+  icon: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  text: { fontFamily: fonts.ui, fontSize: 14.5, lineHeight: 19, flex: 1 },
 });

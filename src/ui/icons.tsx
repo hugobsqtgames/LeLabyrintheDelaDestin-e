@@ -2,6 +2,7 @@
  * Jeu d'icônes au trait, dessiné en SVG (grille 24×24).
  */
 import React from 'react';
+import { View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from './theme';
 
@@ -41,7 +42,16 @@ export type IconName =
   | 'back'
   | 'biohazard'
   | 'weight'
-  | 'grid';
+  | 'grid'
+  | 'clock'
+  | 'archive'
+  | 'wrench'
+  | 'volume'
+  | 'globe'
+  | 'expand'
+  | 'info'
+  | 'sparkle'
+  | 'journal';
 
 const PATHS: Record<IconName, (c: string) => React.ReactNode> = {
   heart: (c) => <Path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" stroke={c} />,
@@ -181,13 +191,55 @@ const PATHS: Record<IconName, (c: string) => React.ReactNode> = {
     </>
   ),
   grid: (c) => <Path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" stroke={c} />,
+  clock: (c) => (
+    <>
+      <Circle cx={12} cy={12} r={8.5} stroke={c} />
+      <Path d="M12 7.5V12l3 2" stroke={c} />
+    </>
+  ),
+  archive: (c) => (
+    <>
+      <Path d="M4 5h16v4H4z" stroke={c} />
+      <Path d="M5.5 9v10h13V9M10 13h4" stroke={c} />
+    </>
+  ),
+  wrench: (c) => <Path d="M14.5 4.5a4.5 4.5 0 0 0-4.2 6.1L4 16.9 7.1 20l6.3-6.3a4.5 4.5 0 0 0 6.1-4.2l-2.7 2.7-2.6-.6-.6-2.6 2.7-2.7a4.5 4.5 0 0 0-1.8-.3z" stroke={c} />,
+  volume: (c) => (
+    <>
+      <Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" stroke={c} />
+      <Path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke={c} />
+    </>
+  ),
+  globe: (c) => (
+    <>
+      <Circle cx={12} cy={12} r={8.5} stroke={c} />
+      <Path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.5 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.5-3.5-8.5s1-6 3.5-8.5z" stroke={c} />
+    </>
+  ),
+  expand: (c) => <Path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" stroke={c} />,
+  info: (c) => (
+    <>
+      <Circle cx={12} cy={12} r={8.5} stroke={c} />
+      <Path d="M12 11v5.5M12 7.6v.2" stroke={c} />
+    </>
+  ),
+  sparkle: (c) => <Path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7zM19 16c.2 1.5.8 2.1 2.3 2.3-1.5.2-2.1.8-2.3 2.3-.2-1.5-.8-2.1-2.3-2.3 1.5-.2 2.1-.8 2.3-2.3z" stroke={c} />,
+  journal: (c) => (
+    <>
+      <Path d="M6 3.5h11a1.5 1.5 0 0 1 1.5 1.5v14.5a1.5 1.5 0 0 1-1.5 1.5H6z" stroke={c} />
+      <Path d="M6 3.5v17M9.5 8h5.5M9.5 11.5h5.5" stroke={c} />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 20, color = colors.text, strokeWidth = 1.8 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
+  // Enveloppé dans une vue : sur le web, il reste ainsi au-dessus des calques de verre.
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      {PATHS[name](color)}
-    </Svg>
+    <View style={{ width: size, height: size }} pointerEvents="none">
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+        {PATHS[name](color)}
+      </Svg>
+    </View>
   );
 }
 

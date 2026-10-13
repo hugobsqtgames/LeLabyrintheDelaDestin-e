@@ -16,6 +16,8 @@ export const SAVE_SCHEMA_VERSION = 3;
 export interface SaveSummary {
   name: string;
   profile: string;
+  /** Identifiant du profil (portrait) ; absent des sauvegardes anciennes. */
+  profileId?: string;
   emblem: string;
   level: number;
   chapter: string;
@@ -48,6 +50,7 @@ export function buildSummary(content: GameContent, state: GameState): SaveSummar
   return {
     name: state.player.name,
     profile: content.profiles[state.player.profile]?.name ?? state.player.profile,
+    profileId: state.player.profile,
     emblem: state.player.emblem,
     level: state.player.level,
     chapter: state.chapter,

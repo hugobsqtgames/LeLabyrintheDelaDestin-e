@@ -139,6 +139,31 @@ export function buildMockups(): Mockup[] {
     return enterScene(C, s, 'c4_fin_accord');
   })();
 
+  const assault = (() => {
+    const s = enterScene(C, pick(start, 'noter'), 'c1_assaut');
+    return { ...s, notices: [] };
+  })();
+  const archives = (() => {
+    let s = midGame();
+    s = applyEffects(C, s, [
+      { type: 'document', doc: 'doc_carte_theo' },
+      { type: 'document', doc: 'doc_affiche' },
+      { type: 'document', doc: 'doc_lettre' },
+      { type: 'setFlag', flag: 'theo_soigne' },
+      { type: 'diary', chapter: 'c1' },
+    ]);
+    return { ...s, notices: [] };
+  })();
+  const worn = (() => {
+    let s = midGame();
+    s = addItem(C, s, 'chiffons', 2, false).state;
+    s = addItem(C, s, 'alcool', 1, false).state;
+    s = addItem(C, s, 'ferraille', 2, false).state;
+    s = addItem(C, s, 'machette', 1, false).state;
+    const melee = s.equipment.melee;
+    return { ...s, durability: melee ? { ...s.durability, [melee]: 9 } : s.durability, clock: 58 };
+  })();
+
   const slots = () => {
     const mid = midGame();
     return [
@@ -156,22 +181,27 @@ export function buildMockups(): Mockup[] {
     { id: 'create-profile', title: 'Création · profil', caption: 'Trois profils, leurs bonus et leur compétence de combat. État sélectionné.', model: { route: 'create' }, screenProps: { create: { initialDraft: { ...DEMO_DRAFT, background: null, allocated: { force: 0, discretion: 0, survie: 0, astuce: 0 } }, initialStep: 1 } } },
     { id: 'create-stats', title: 'Création · aptitudes', caption: 'Budget de points, plafonds, conséquences calculées par le moteur.', model: { route: 'create' }, screenProps: { create: { initialDraft: { ...DEMO_DRAFT, allocated: { force: 0, discretion: 2, survie: 1, astuce: 0 } }, initialStep: 3 } } },
     { id: 'create-summary', title: 'Création · récapitulatif', caption: 'Dernière vérification avant de prendre la garde.', model: { route: 'create', pendingSlot: 1 }, screenProps: { create: { initialDraft: DEMO_DRAFT, initialStep: 4 } } },
-    { id: 'story', title: 'Récit · ouverture', caption: 'Vignette du lieu, narration, dialogue radio, choix avec probabilité.', model: game(start) },
-    { id: 'story-locked', title: 'Récit · dialogue et choix verrouillé', caption: 'Répliques des personnages ; un choix réservé à un passé, avec sa raison.', model: game(kazDoor) },
-    { id: 'story-check', title: 'Récit · jet et conséquences', caption: 'Résultat du jet 2d6, journal des effets appliqués.', model: game(checkResult) },
-    { id: 'combat', title: 'Combat', caption: 'Intentions annoncées, ciblage, actions avec chances, journal.', model: game(combat) },
-    { id: 'boss', title: 'Combat · boss', caption: 'Le Berger : faiblesses, statuts, phases.', model: game(boss) },
-    { id: 'character', title: 'Fiche · progression', caption: 'Points et compétence à attribuer, relations.', model: game(levelUp, 'character') },
-    { id: 'inventory', title: 'Sac · plein', caption: 'Charge, équipement, objet trop lourd laissé au sol.', model: game(fullBag, 'inventory') },
-    { id: 'inventory-empty', title: 'Sac · vide', caption: 'État vide explicite.', model: game(emptyBag, 'inventory') },
-    { id: 'map', title: 'Carte', caption: 'Lieux révélés progressivement, notes des changements du monde.', model: game(midGame(), 'map') },
-    { id: 'quests', title: 'Quêtes', caption: 'Principales et secondaires, étapes franchies.', model: game(midGame(), 'quests') },
-    { id: 'chronicle', title: 'Chronique', caption: 'Toutes les décisions, longue liste virtualisée.', model: game(midGame(), 'chronicle') },
-    { id: 'chapter-end', title: 'Fin de chapitre', caption: 'Bilan des événements marquants du chapitre.', model: game(chapterEnd) },
+    { id: 'transition', title: 'Transition de chapitre', caption: 'Carton plein écran à chaque nouveau chapitre, teinté par l’ambiance du chapitre.', model: game(midGame()), screenProps: { game: { intro: true } } },
+    { id: 'story', title: 'Récit · ouverture', caption: 'Bandeau du lieu, narration, dialogue radio, choix numérotés avec probabilité.', model: game(start), screenProps: { game: { intro: false } } },
+    { id: 'story-art', title: 'Récit · illustration et choix chronométré', caption: 'Illustration plein cadre aux moments clés, compte à rebours avec choix de repli (désactivable).', model: game(assault), screenProps: { game: { intro: false } } },
+    { id: 'story-locked', title: 'Récit · dialogue et choix verrouillé', caption: 'Répliques des personnages ; un choix réservé à un passé, avec sa raison.', model: game(kazDoor), screenProps: { game: { intro: false } } },
+    { id: 'story-check', title: 'Récit · jet et conséquences', caption: 'Résultat du jet 2d6, journal des effets appliqués.', model: game(checkResult), screenProps: { game: { intro: false } } },
+    { id: 'combat', title: 'Combat', caption: 'Intentions annoncées, ciblage, actions avec chances, journal.', model: game(combat), screenProps: { game: { intro: false } } },
+    { id: 'boss', title: 'Combat · boss', caption: 'Le Berger : faiblesses, statuts, phases.', model: game(boss), screenProps: { game: { intro: false } } },
+    { id: 'recap', title: 'Reprise · que s’est-il passé ?', caption: 'Résumé affiché au chargement : lieu, heure, objectif, derniers faits, journal.', model: game(midGame(), 'story', { recap: true }), screenProps: { game: { intro: false } } },
+    { id: 'archives', title: 'Carnet · archives', caption: 'Documents trouvés (à lire sur papier) et pages du journal intime.', model: game(archives, 'archives'), screenProps: { game: { intro: false } } },
+    { id: 'workshop', title: 'Sac · usure et comparaison', caption: 'Solidité des armes, matériaux pour l’atelier, horloge des sept jours.', model: game(worn, 'inventory'), screenProps: { game: { intro: false } } },
+    { id: 'character', title: 'Fiche · progression', caption: 'Points et compétence à attribuer, relations.', model: game(levelUp, 'character'), screenProps: { game: { intro: false } } },
+    { id: 'inventory', title: 'Sac · plein', caption: 'Charge, équipement, objet trop lourd laissé au sol.', model: game(fullBag, 'inventory'), screenProps: { game: { intro: false } } },
+    { id: 'inventory-empty', title: 'Sac · vide', caption: 'État vide explicite.', model: game(emptyBag, 'inventory'), screenProps: { game: { intro: false } } },
+    { id: 'map', title: 'Carte', caption: 'Lieux révélés progressivement, notes des changements du monde.', model: game(midGame(), 'map'), screenProps: { game: { intro: false } } },
+    { id: 'quests', title: 'Quêtes', caption: 'Principales et secondaires, étapes franchies.', model: game(midGame(), 'quests'), screenProps: { game: { intro: false } } },
+    { id: 'chronicle', title: 'Chronique', caption: 'Toutes les décisions, longue liste virtualisée.', model: game(midGame(), 'chronicle'), screenProps: { game: { intro: false } } },
+    { id: 'chapter-end', title: 'Fin de chapitre', caption: 'Bilan des événements marquants du chapitre.', model: game(chapterEnd), screenProps: { game: { intro: false } } },
     { id: 'pause', title: 'Pause', caption: 'Autosauvegarde, copie vers un emplacement, paramètres.', model: game(midGame()), screenProps: { game: { initialPaused: true } } },
-    { id: 'settings', title: 'Paramètres', caption: 'Animations réduites, vibrations, taille du texte.', model: { route: 'settings' } },
+    { id: 'settings', title: 'Paramètres', caption: 'Langue, ambiance sonore, choix chronométrés, animations, taille du texte.', model: { route: 'settings' } },
     { id: 'saves', title: 'Sauvegardes', caption: 'Emplacements, sauvegarde corrompue, suppression confirmée.', model: savesModel('load'), screenProps: { saves: { initialSlots: slots() } } },
-    { id: 'death', title: 'Mort définitive', caption: 'Épitaphe, récapitulatif, recommencer sans écraser.', model: game(death) },
-    { id: 'ending', title: 'Fin · L’Accord', caption: 'Épilogue conditionné par les choix, alliés, bilan.', model: game(ending) },
+    { id: 'death', title: 'Mort définitive', caption: 'Épitaphe, récapitulatif, recommencer sans écraser.', model: game(death), screenProps: { game: { intro: false } } },
+    { id: 'ending', title: 'Fin · L’Accord', caption: 'Épilogue conditionné par les choix, alliés, bilan.', model: game(ending), screenProps: { game: { intro: false } } },
   ];
 }

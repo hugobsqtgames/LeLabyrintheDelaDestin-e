@@ -477,6 +477,30 @@ const locations: LocationDef[] = [
 
 export const LOCATIONS: Record<string, LocationDef> = Object.fromEntries(locations.map((l) => [l.id, l]));
 
+/** Chemins praticables entre lieux d'une même région (dessinés sur la carte). */
+export const MAP_LINKS: [string, string][] = [
+  ['pharmacie', 'rue_tanneurs'],
+  ['rue_tanneurs', 'supermarche'],
+  ['rue_tanneurs', 'hopital'],
+  ['hopital', 'clinique_veto'],
+  ['pharmacie', 'clinique_veto'],
+  ['pharmacie', 'clocher'],
+  ['brasserie', 'galerie_craie'],
+  ['galerie_craie', 'puits_noye'],
+  ['galerie_craie', 'ossuaire'],
+  ['puits_noye', 'ossuaire'],
+  ['galerie_craie', 'grande_salle'],
+  ['ossuaire', 'grande_salle'],
+  ['grande_salle', 'aqueduc'],
+  ['quai', 'capitainerie'],
+  ['quai', 'mouette'],
+  ['capitainerie', 'casse'],
+  ['mouette', 'casse'],
+  ['casse', 'pont_fer'],
+  ['halage', 'ecluse'],
+  ['ecluse', 'destinee'],
+];
+
 export const REGIONS = ['Quartier des Tanneurs', 'Les Carrières', 'Port fluvial', 'Écluse de Morvan'];
 
 // ---------------------------------------------------------------------------

@@ -1,27 +1,33 @@
 /**
- * Fin de partie : conclusion ou mort définitive, avec récapitulatif.
+ * Fin de partie : conclusion ou mort définitive, avec récapitulatif,
+ * portraits des compagnons et bilan en tuiles.
  */
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { visibleText } from '../../engine/narrative';
 import { formatPlaytime, summarize } from '../../engine/summary';
 import type { GameState } from '../../engine/types';
+import { useT } from '../../i18n';
 import { useStore } from '../../store/GameStore';
 import { Emblem } from '../../ui/art/Logo';
-import { Badge, Button, FadeIn, Label, Panel, SectionTitle } from '../../ui/components/primitives';
+import { Portrait, PORTRAITS } from '../../ui/art/Portraits';
+import { useChrome } from '../../ui/components/Hud';
+import { Badge, Button, FadeIn, Label, Panel, SectionTitle, Tile } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
-import { colors, fonts, space, type } from '../../ui/theme';
+import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, space, type } from '../../ui/theme';
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  companion: { label: 'À vos côtés', color: colors.mossBright },
-  met: { label: 'Croisé·e', color: colors.textDim },
-  away: { label: 'Séparés', color: colors.steel },
-  captured: { label: 'Prisonnier·e', color: colors.amber },
-  dead: { label: 'Mort·e', color: colors.blood },
+const STATUS_COLOR: Record<string, string> = {
+  companion: colors.mossBright,
+  met: colors.textDim,
+  away: colors.steel,
+  captured: colors.amber,
+  dead: colors.blood,
 };
 
 export function EndingView({ game }: { game: GameState }) {
   const { content, openSaves, closeGame, setTab } = useStore();
+  const t = useT();
+  const chrome = useChrome();
   const summary = summarize(content, game);
   const death = game.ending?.kind === 'death';
   const scene = content.scenes[game.currentScene];
@@ -29,16 +35,16 @@ export function EndingView({ game }: { game: GameState }) {
   const accent = death ? colors.blood : colors.amber;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl }}>
+    <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg + 4, paddingTop: chrome.top + space.lg, paddingBottom: chrome.bottom }}>
       <FadeIn>
-        <View style={{ alignItems: 'center', marginTop: space.lg, gap: space.sm }}>
-          {death ? <Icon name="skull" size={64} color={colors.blood} strokeWidth={1.4} /> : <Emblem size={110} />}
-          <Label color={accent}>{death ? 'Mort définitive' : 'Fin de la campagne'}</Label>
-          <Text style={[type.display, { textAlign: 'center' }]} accessibilityRole="header">
-            {summary.ending?.title ?? 'Fin'}
+        <View style={{ alignItems: 'center', gap: space.sm }}>
+          {death ? <Icon name="skull" size={64} color={colors.blood} strokeWidth={1.3} /> : <Emblem size={110} />}
+          <Label color={accent}>{death ? t('end.death') : t('end.ending')}</Label>
+          <Text style={[type.display, { textAlign: 'center', fontSize: 52, lineHeight: 54 }]} accessibilityRole="header" maxFontSizeMultiplier={MAX_SCALE_UI}>
+            {summary.ending?.title ?? t('end.fallback')}
           </Text>
           {summary.ending && <Text style={[styles.epitaph, { color: accent }]}>« {summary.ending.epitaph} »</Text>}
-          {death && summary.cause && <Text style={type.uiSmall}>Cause : {summary.cause}</Text>}
+          {death && summary.cause && <Text style={type.uiSmall}>{t('end.cause', { cause: summary.cause })}</Text>}
         </View>
       </FadeIn>
 
@@ -46,60 +52,55 @@ export function EndingView({ game }: { game: GameState }) {
         <View style={{ marginTop: space.xl }}>
           {blocks.map((b, i) => (
             <FadeIn key={i} delay={200 + i * 120}>
-              <Text style={[type.body, { marginBottom: space.md }]}>{b.text}</Text>
+              <Text style={[type.body, { marginBottom: space.lg }]} maxFontSizeMultiplier={MAX_SCALE_READING}>
+                {b.text}
+              </Text>
             </FadeIn>
           ))}
         </View>
       )}
 
-      <SectionTitle>Ce que vous avez fait</SectionTitle>
-      <View style={{ gap: 6 }}>
+      <SectionTitle>{t('end.stats')}</SectionTitle>
+      <View style={styles.bento}>
+        <Tile style={styles.tile} label={t('end.decisions')} value={summary.decisions} icon="chevron" />
+        <Tile style={styles.tile} label={t('hud.levelLabel')} value={summary.level} icon="star" color={colors.violet} />
+        <Tile style={styles.tile} label={t('tab.quests')} value={`${summary.questsCompleted.length}`} sub={summary.questsFailed.length ? t('end.failed', { n: summary.questsFailed.length }) : undefined} icon="quest" color={colors.mossBright} />
+        <Tile style={styles.tile} label={t('end.time')} value={formatPlaytime(summary.playtimeMs)} icon="clock" />
+      </View>
+
+      <SectionTitle>{t('end.what')}</SectionTitle>
+      <Panel style={{ gap: 8 }}>
         {summary.lines.map((l) => (
           <View key={l.text} style={styles.line}>
-            <Icon name={l.tone === 'good' ? 'check' : l.tone === 'bad' ? 'close' : 'chevron'} size={14} color={l.tone === 'good' ? colors.mossBright : l.tone === 'bad' ? colors.rustBright : colors.textDim} />
+            <Icon name={l.tone === 'good' ? 'check' : l.tone === 'bad' ? 'close' : 'chevron'} size={14} color={l.tone === 'good' ? colors.mossBright : l.tone === 'bad' ? colors.rustBright : colors.textDim} strokeWidth={2.2} />
             <Text style={[type.bodySmall, { flex: 1, color: colors.text }]}>{l.text}</Text>
           </View>
         ))}
-        {summary.lines.length === 0 && <Text style={type.bodySmall}>Votre route a été courte.</Text>}
-      </View>
+        {summary.lines.length === 0 && <Text style={type.bodySmall}>{t('end.short')}</Text>}
+      </Panel>
 
       {summary.allies.length > 0 && (
         <>
-          <SectionTitle>Ceux qui ont croisé votre route</SectionTitle>
-          <View style={{ gap: 6 }}>
-            {summary.allies.map((a) => {
-              const st = STATUS_LABEL[a.status] ?? STATUS_LABEL.met;
-              return (
-                <View key={a.id} style={styles.ally}>
-                  <Text style={[type.ui, { flex: 1 }]}>{a.name}</Text>
-                  <Badge label={st.label} color={st.color} />
-                </View>
-              );
-            })}
+          <SectionTitle>{t('end.allies')}</SectionTitle>
+          <View style={styles.allies}>
+            {summary.allies.map((a) => (
+              <View key={a.id} style={styles.ally}>
+                <View style={a.status === 'dead' ? { opacity: 0.4 } : undefined}>{PORTRAITS[a.id] ? <Portrait id={a.id} size={64} /> : <View style={styles.blank} />}</View>
+                <Text style={styles.allyName} numberOfLines={2}>
+                  {a.name}
+                </Text>
+                <Badge label={t(`status.${a.status}`)} color={STATUS_COLOR[a.status] ?? colors.textDim} />
+              </View>
+            ))}
           </View>
         </>
       )}
 
-      <SectionTitle>Bilan</SectionTitle>
-      <Panel style={styles.stats}>
-        {[
-          { label: 'Décisions', value: String(summary.decisions) },
-          { label: 'Niveau', value: String(summary.level) },
-          { label: 'Quêtes', value: `${summary.questsCompleted.length} ✓ · ${summary.questsFailed.length} ✗` },
-          { label: 'Temps', value: formatPlaytime(summary.playtimeMs) },
-        ].map((s) => (
-          <View key={s.label} style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={styles.statValue}>{s.value}</Text>
-            <Text style={type.label}>{s.label}</Text>
-          </View>
-        ))}
-      </Panel>
-
       {summary.majorEvents.length > 0 && (
         <>
-          <SectionTitle>Moments marquants</SectionTitle>
+          <SectionTitle>{t('chronicle.major')}</SectionTitle>
           {summary.majorEvents.slice(-10).map((e, i) => (
-            <Text key={i} style={[type.bodySmall, { marginBottom: 4 }]}>
+            <Text key={i} style={[type.bodySmall, { marginBottom: 6 }]}>
               — {e}
             </Text>
           ))}
@@ -107,19 +108,22 @@ export function EndingView({ game }: { game: GameState }) {
       )}
 
       <View style={{ gap: space.sm, marginTop: space.xxl }}>
-        <Button label="Nouvelle partie" icon="plus" onPress={() => openSaves('new')} />
-        <Button label="Charger une sauvegarde" icon="save" variant="secondary" onPress={() => openSaves('load')} />
-        <Button label="Relire la chronique" icon="grid" variant="secondary" onPress={() => setTab('chronicle')} />
-        <Button label="Menu principal" variant="ghost" onPress={() => closeGame()} />
+        <Button label={t('title.new')} icon="plus" onPress={() => openSaves('new')} />
+        <Button label={t('end.load')} icon="save" variant="secondary" onPress={() => openSaves('load')} />
+        <Button label={t('end.chronicle')} icon="journal" variant="secondary" onPress={() => setTab('chronicle')} />
+        <Button label={t('end.menu')} variant="ghost" onPress={() => closeGame()} />
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  epitaph: { fontFamily: fonts.bodyItalic, fontSize: 17, textAlign: 'center' },
+  epitaph: { fontFamily: fonts.titleItalic, fontSize: 22, lineHeight: 28, textAlign: 'center' },
   line: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
-  ally: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line },
-  stats: { flexDirection: 'row', paddingVertical: space.md },
-  statValue: { fontFamily: fonts.title, fontSize: 18, color: colors.paper },
+  bento: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  tile: { flexBasis: '46%', flexGrow: 1, margin: 4 },
+  allies: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  ally: { width: 92, alignItems: 'center', gap: 6 },
+  allyName: { fontFamily: fonts.uiBold, fontSize: 12.5, color: colors.text, textAlign: 'center' },
+  blank: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.panelRaised },
 });

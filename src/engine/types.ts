@@ -597,6 +597,13 @@ export interface PerkDef {
 
 export interface GameContent {
   scenes: Record<SceneId, Scene>;
+  /** Chemins entre lieux d'une même région. */
+  mapLinks: [LocationId, LocationId][];
+  /** Noms des régions, dans l'ordre du voyage. */
+  regions: string[];
+  /** Noms des caractéristiques, dans la langue du contenu. */
+  statLabels: Record<StatId, string>;
+  statDescriptions: Record<StatId, string>;
   items: Record<ItemId, ItemDef>;
   enemies: Record<EnemyId, EnemyDef>;
   quests: Record<QuestId, QuestDef>;

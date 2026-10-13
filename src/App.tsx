@@ -2,13 +2,16 @@
  * Racine de l'application : polices locales, zones de sécurité, persistance
  * AsyncStorage et garde-fou en cas d'erreur d'affichage.
  */
-// Import par graisse : seules les six polices utilisées sont embarquées.
-import { BarlowCondensed_500Medium } from '@expo-google-fonts/barlow-condensed/500Medium';
-import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700Bold';
-import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite/400Regular';
-import { Spectral_400Regular } from '@expo-google-fonts/spectral/400Regular';
-import { Spectral_400Regular_Italic } from '@expo-google-fonts/spectral/400Regular_Italic';
-import { Spectral_600SemiBold } from '@expo-google-fonts/spectral/600SemiBold';
+// Import par graisse : seules les polices utilisées sont embarquées.
+import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif/400Regular';
+import { InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif/400Regular_Italic';
+import { InterTight_500Medium } from '@expo-google-fonts/inter-tight/500Medium';
+import { InterTight_600SemiBold } from '@expo-google-fonts/inter-tight/600SemiBold';
+import { InterTight_700Bold } from '@expo-google-fonts/inter-tight/700Bold';
+import { JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono/500Medium';
+import { Newsreader_400Regular } from '@expo-google-fonts/newsreader/400Regular';
+import { Newsreader_400Regular_Italic } from '@expo-google-fonts/newsreader/400Regular_Italic';
+import { Newsreader_600SemiBold } from '@expo-google-fonts/newsreader/600SemiBold';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo } from 'react';
@@ -63,12 +66,15 @@ function Shell() {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    SpecialElite_400Regular,
-    Spectral_400Regular,
-    Spectral_400Regular_Italic,
-    Spectral_600SemiBold,
-    BarlowCondensed_500Medium,
-    BarlowCondensed_700Bold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+    InterTight_500Medium,
+    InterTight_600SemiBold,
+    InterTight_700Bold,
+    JetBrainsMono_500Medium,
+    Newsreader_400Regular,
+    Newsreader_400Regular_Italic,
+    Newsreader_600SemiBold,
   });
   const saves = useMemo(() => new SaveManager(asyncStorageAdapter, CONTENT), []);
 

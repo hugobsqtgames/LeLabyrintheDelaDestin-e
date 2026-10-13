@@ -14,6 +14,7 @@ import { MemoryStorage } from '../persistence/storage';
 import { GameProvider, useStore } from '../store/GameStore';
 import { ModalModeContext } from '../ui/components/Sheet';
 import { Button, IconButton, Label, Screen } from '../ui/components/primitives';
+import { useT } from '../i18n';
 import { colors, fonts, radius, space, type } from '../ui/theme';
 import { buildMockups, midGame, type Mockup } from './fixtures';
 
@@ -60,6 +61,7 @@ function MockupPreview({ mockup }: { mockup: Mockup }) {
 
 export function GalleryScreen() {
   const { back } = useStore();
+  const t = useT();
   const mockups = useMemo(() => buildMockups(), []);
   const [index, setIndex] = useState(0);
   const { width, height } = useWindowDimensions();
@@ -68,12 +70,12 @@ export function GalleryScreen() {
   // Stockage en mémoire : chaque maquette dispose de ses propres sauvegardes jetables.
 
   return (
-    <Screen>
+    <Screen aura="neutral">
       <View style={styles.header}>
-        <IconButton icon="back" label="Retour" onPress={back} />
+        <IconButton icon="back" label={t('common.back')} onPress={back} />
         <View style={{ flex: 1 }}>
           <Label color={colors.rustBright}>
-            Maquette {index + 1}/{mockups.length}
+            {t('gallery.count', { n: index + 1, total: mockups.length })}
           </Label>
           <Text style={type.h2} numberOfLines={1}>
             {m.title}
@@ -91,8 +93,8 @@ export function GalleryScreen() {
         </PhoneFrame>
       </View>
       <View style={styles.nav}>
-        <Button label="Précédente" compact variant="secondary" disabled={index === 0} onPress={() => setIndex(index - 1)} style={{ flex: 1 }} />
-        <Button label="Suivante" compact disabled={index === mockups.length - 1} onPress={() => setIndex(index + 1)} style={{ flex: 1 }} />
+        <Button label={t('gallery.prev')} compact variant="secondary" disabled={index === 0} onPress={() => setIndex(index - 1)} style={{ flex: 1 }} />
+        <Button label={t('gallery.next')} compact disabled={index === mockups.length - 1} onPress={() => setIndex(index + 1)} style={{ flex: 1 }} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: space.sm }}>
         {mockups.map((mk, i) => (
@@ -103,7 +105,7 @@ export function GalleryScreen() {
             onPress={() => setIndex(i)}
             style={[styles.chip, i === index && styles.chipActive]}
           >
-            <Text style={[styles.chipText, i === index && { color: colors.paper }]}>
+            <Text style={[styles.chipText, i === index && { color: colors.bg }]}>
               {i + 1}. {mk.title}
             </Text>
           </Pressable>
@@ -115,10 +117,10 @@ export function GalleryScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
-  frame: { padding: 6, borderRadius: 44, backgroundColor: '#050606', borderWidth: 1, borderColor: colors.lineStrong },
+  frame: { padding: 6, borderRadius: 44, backgroundColor: '#050505', borderWidth: 1, borderColor: colors.lineStrong },
   island: { position: 'absolute', top: 11, left: PHONE.w / 2 - 62, width: 124, height: 36, borderRadius: 18, backgroundColor: '#000' },
   nav: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
-  chip: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: 6 },
-  chipActive: { backgroundColor: colors.rustDeep, borderColor: colors.rust },
-  chipText: { fontFamily: fonts.uiBold, fontSize: 12, color: colors.textDim, letterSpacing: 0.4 },
+  chip: { borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: 7, backgroundColor: 'rgba(255,248,240,0.06)' },
+  chipActive: { backgroundColor: colors.text },
+  chipText: { fontFamily: fonts.uiBold, fontSize: 12.5, color: colors.textDim },
 });

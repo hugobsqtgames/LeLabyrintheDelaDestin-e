@@ -5,7 +5,9 @@ import React, { createContext, useContext } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../store/GameStore';
-import { colors, radius, space, type } from '../theme';
+import { useT } from '../../i18n';
+import { colors, CONTINUOUS, radius, space, type } from '../theme';
+import { Glass } from './Glass';
 import { Button, IconButton } from './primitives';
 
 /**
@@ -14,7 +16,7 @@ import { Button, IconButton } from './primitives';
  */
 export const ModalModeContext = createContext<'modal' | 'inline'>('modal');
 
-function Layer({ visible, children, onRequestClose, animation }: { visible: boolean; children: React.ReactNode; onRequestClose: () => void; animation: 'none' | 'slide' | 'fade' }) {
+export function Layer({ visible, children, onRequestClose, animation }: { visible: boolean; children: React.ReactNode; onRequestClose: () => void; animation: 'none' | 'slide' | 'fade' }) {
   const mode = useContext(ModalModeContext);
   if (mode === 'inline') return visible ? <View style={[StyleSheet.absoluteFill, { zIndex: 50 }]}>{children}</View> : null;
   return (
@@ -39,22 +41,25 @@ export function Sheet({
 }) {
   const insets = useSafeAreaInsets();
   const { reduceMotion } = useStore();
+  const t = useT();
   return (
     <Layer visible={visible} animation={reduceMotion ? 'none' : 'slide'} onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fermer" />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]}>
-          <View style={styles.grip} />
-          <View style={styles.header}>
-            <Text style={[type.h2, { flex: 1 }]} accessibilityRole="header">
-              {title}
-            </Text>
-            <IconButton icon="close" label="Fermer" onPress={onClose} />
-          </View>
-          <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ paddingBottom: space.md }}>
-            {children}
-          </ScrollView>
-          {footer}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
+        <View style={[styles.sheetWrap, { paddingBottom: insets.bottom + space.sm }]}>
+          <Glass radius={radius.xl} tone="strong" blur={60} style={styles.sheet}>
+            <View style={styles.grip} />
+            <View style={styles.header}>
+              <Text style={[type.h2, { flex: 1 }]} accessibilityRole="header">
+                {title}
+              </Text>
+              <IconButton icon="close" label={t('common.close')} onPress={onClose} size={18} />
+            </View>
+            <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ paddingBottom: space.md }}>
+              {children}
+            </ScrollView>
+            {footer}
+          </Glass>
         </View>
       </View>
     </Layer>
@@ -66,7 +71,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
-  cancelLabel = 'Annuler',
+  cancelLabel,
   danger,
   onConfirm,
   onCancel,
@@ -80,19 +85,22 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   return (
     <Layer visible={visible} animation="fade" onRequestClose={onCancel}>
       <View style={[styles.backdrop, { justifyContent: 'center', padding: space.xl }]}>
-        <View style={styles.dialog} accessibilityViewIsModal>
-          <Text style={type.h2} accessibilityRole="header">
-            {title}
-          </Text>
-          <Text style={[type.bodySmall, { marginTop: space.sm, color: colors.text }]}>{message}</Text>
-          <View style={{ gap: space.sm, marginTop: space.xl }}>
-            <Button label={confirmLabel} variant={danger ? 'danger' : 'primary'} onPress={onConfirm} />
-            <Button label={cancelLabel} variant="secondary" onPress={onCancel} />
+        <Glass radius={radius.xl} tone="strong" blur={60} style={styles.dialog}>
+          <View accessibilityViewIsModal>
+            <Text style={type.h2} accessibilityRole="header">
+              {title}
+            </Text>
+            <Text style={[type.bodySmall, { marginTop: space.sm, color: colors.text }]}>{message}</Text>
+            <View style={{ gap: space.sm, marginTop: space.xl }}>
+              <Button label={confirmLabel} variant={danger ? 'danger' : 'primary'} onPress={onConfirm} />
+              <Button label={cancelLabel ?? t('common.cancel')} variant="secondary" onPress={onCancel} />
+            </View>
           </View>
-        </View>
+        </Glass>
       </View>
     </Layer>
   );
@@ -100,28 +108,9 @@ export function ConfirmDialog({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    borderTopWidth: 1,
-    borderColor: colors.lineStrong,
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
-    width: '100%',
-    maxWidth: 640,
-    alignSelf: 'center',
-  },
-  grip: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.lineStrong, marginBottom: space.sm },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
-  dialog: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    padding: space.xl,
-    width: '100%',
-    maxWidth: 420,
-    alignSelf: 'center',
-  },
+  sheetWrap: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: space.sm },
+  sheet: { paddingHorizontal: space.lg + 2, paddingTop: space.sm, ...CONTINUOUS },
+  grip: { alignSelf: 'center', width: 38, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,248,240,0.25)', marginBottom: space.sm },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm, gap: space.sm },
+  dialog: { padding: space.xl, width: '100%', maxWidth: 420, alignSelf: 'center' },
 });

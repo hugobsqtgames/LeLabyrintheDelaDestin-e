@@ -179,6 +179,27 @@ export function checkBonus(content: GameContent, state: GameState, stat: StatId)
   return effectiveStat(content, state, stat) + (hasPerk(state, 'sang_froid') ? 1 : 0) + (bg?.checkModifiers?.[stat] ?? 0);
 }
 
+/** Détail d'un bonus de jet, pour l'expliquer au joueur. */
+export interface CheckBreakdown {
+  base: number;
+  equipment: number;
+  /** Plafond des caractéristiques effectives (négatif si l'équipement dépasse le maximum). */
+  cap: number;
+  perk: number;
+  background: number;
+  total: number;
+}
+
+export function checkBreakdown(content: GameContent, state: GameState, stat: StatId): CheckBreakdown {
+  const base = state.player.stats[stat];
+  const equipment = equipmentBonuses(content, state)[stat];
+  const effective = effectiveStat(content, state, stat);
+  const cap = effective - (base + equipment);
+  const perk = hasPerk(state, 'sang_froid') ? 1 : 0;
+  const background = content.backgrounds[state.player.background]?.checkModifiers?.[stat] ?? 0;
+  return { base, equipment, cap, perk, background, total: effective + perk + background };
+}
+
 export function healingMultiplier(content: GameContent, state: GameState): number {
   const bg = content.backgrounds[state.player.background];
   let m = bg?.healingMultiplier ?? 1;

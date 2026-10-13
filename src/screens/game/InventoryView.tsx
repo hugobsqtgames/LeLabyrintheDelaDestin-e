@@ -1,74 +1,161 @@
 /**
- * Sac : charge, emplacements d'équipement, objets, objets au sol.
+ * Sac et atelier.
+ * - Sac : charge, équipement (avec usure), objets, objets au sol, et
+ *   comparaison avec l'objet porté avant d'équiper.
+ * - Atelier : recettes de fabrication et de réparation, chacune coûte du temps.
  */
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { weaponDurability } from '../../engine/combat';
 import {
   abandonGround,
+  canCraft,
   canDrop,
   canEquip,
   canUseOutOfCombat,
   capacity,
+  compareWithEquipped,
+  consumeItemOutOfCombat,
+  craft,
   currentWeight,
   dropItem,
   EQUIP_SLOTS,
   equip,
+  itemCount,
   pickUp,
-  SLOT_LABELS,
   unequip,
-  consumeItemOutOfCombat,
 } from '../../engine/inventory';
-import { STAT_LABELS } from '../../engine/rules';
-import type { GameState, ItemCategory, ItemDef, StatId } from '../../engine/types';
+import type { GameContent, GameState, ItemCategory, ItemDef, StatId } from '../../engine/types';
+import { type T, useT } from '../../i18n';
 import { useStore } from '../../store/GameStore';
 import { ItemIcon } from '../../ui/art/ItemIcon';
+import { Glass } from '../../ui/components/Glass';
+import { ClockChip, useChrome } from '../../ui/components/Hud';
 import { Sheet } from '../../ui/components/Sheet';
-import { Badge, Bar, Button, Label, Panel, SectionTitle } from '../../ui/components/primitives';
+import { Badge, Bar, Button, Label, Panel, PressableCard, SectionTitle, Segmented } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
-import { colors, fonts, radius, space, type } from '../../ui/theme';
+import { colors, fonts, MAX_SCALE_UI, radius, space, type } from '../../ui/theme';
 
-const FILTERS: { id: string; label: string; cats: ItemCategory[] }[] = [
-  { id: 'all', label: 'Tout', cats: [] },
-  { id: 'weapons', label: 'Armes', cats: ['melee', 'ranged', 'ammo'] },
-  { id: 'care', label: 'Soins & vivres', cats: ['consumable'] },
-  { id: 'gear', label: 'Protections', cats: ['armor', 'accessory'] },
-  { id: 'tools', label: 'Outils', cats: ['tool', 'material'] },
-  { id: 'quest', label: 'Quête', cats: ['quest'] },
+const FILTERS: { id: string; cats: ItemCategory[] }[] = [
+  { id: 'all', cats: [] },
+  { id: 'weapons', cats: ['melee', 'ranged', 'ammo'] },
+  { id: 'care', cats: ['consumable'] },
+  { id: 'gear', cats: ['armor', 'accessory'] },
+  { id: 'tools', cats: ['tool', 'material'] },
+  { id: 'quest', cats: ['quest'] },
 ];
 
-const CATEGORY_LABEL: Record<ItemCategory, string> = {
-  melee: 'Arme de mêlée',
-  ranged: 'Arme à distance',
-  ammo: 'Munitions',
-  consumable: 'Consommable',
-  armor: 'Protection',
-  accessory: 'Accessoire',
-  tool: 'Outil',
-  material: 'Matériau',
-  quest: 'Objet de quête',
-};
-
-function itemStats(def: ItemDef, content: ReturnType<typeof useStore>['content']): string[] {
+function itemStats(def: ItemDef, content: GameContent, t: T): string[] {
   const out: string[] = [];
-  if (def.damage) out.push(`Dégâts ${def.damage[0]}–${def.damage[1]}`);
-  if (def.staminaCost) out.push(`Endurance −${def.staminaCost}`);
-  if (def.ammo) out.push(`Munition : ${content.items[def.ammo]?.name}`);
-  if (def.accuracy) out.push(`Précision ${def.accuracy > 0 ? '+' : ''}${Math.round(def.accuracy * 100)} %`);
-  if (def.finesse) out.push('Finesse');
-  if (def.loud) out.push('Bruyant');
-  if (def.armor) out.push(`Armure +${def.armor}`);
-  if (def.capacityBonus) out.push(`Capacité +${def.capacityBonus} kg`);
-  for (const [s, v] of Object.entries(def.statBonus ?? {})) out.push(`${STAT_LABELS[s as StatId]} ${v! > 0 ? '+' : ''}${v}`);
-  if (def.use?.heal) out.push(`Soin +${def.use.heal}`);
-  if (def.use?.stamina) out.push(`Endurance +${def.use.stamina}`);
-  if (def.use?.cureInfection) out.push('Soigne l’infection');
-  if (def.use?.combatDamage) out.push(`Dégâts ${def.use.combatDamage[0]}–${def.use.combatDamage[1]}`);
+  if (def.damage) out.push(t('item.damage', { a: def.damage[0], b: def.damage[1] }));
+  if (def.staminaCost) out.push(t('item.stamina', { n: def.staminaCost }));
+  if (def.ammo) out.push(t('item.ammo', { name: content.items[def.ammo]?.name ?? def.ammo }));
+  if (def.accuracy) out.push(t('item.accuracy', { n: `${def.accuracy > 0 ? '+' : ''}${Math.round(def.accuracy * 100)}` }));
+  if (def.finesse) out.push(t('item.finesse'));
+  if (def.loud) out.push(t('item.loud'));
+  if (def.armor) out.push(t('item.armor', { n: def.armor }));
+  if (def.capacityBonus) out.push(t('item.capacity', { n: def.capacityBonus }));
+  for (const [s, v] of Object.entries(def.statBonus ?? {})) out.push(`${content.statLabels[s as StatId]} ${v! > 0 ? '+' : ''}${v}`);
+  if (def.use?.heal) out.push(t('item.heal', { n: def.use.heal }));
+  if (def.use?.stamina) out.push(t('item.restore', { n: def.use.stamina }));
+  if (def.use?.cureInfection) out.push(t('item.cure'));
+  if (def.use?.combatDamage) out.push(t('item.damage', { a: def.use.combatDamage[0], b: def.use.combatDamage[1] }));
   out.push(`${def.weight} kg`);
   return out;
 }
 
+function DurabilityBar({ content, game, id }: { content: GameContent; game: GameState; id: string }) {
+  const d = weaponDurability(content, game, id);
+  if (!d) return null;
+  const r = d.current / d.max;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View style={styles.duraTrack}>
+        <View style={[styles.duraFill, { width: `${r * 100}%`, backgroundColor: r <= 0 ? colors.blood : r < 0.3 ? colors.amber : colors.mossBright }]} />
+      </View>
+      <Text style={styles.duraText}>
+        {d.current}/{d.max}
+      </Text>
+    </View>
+  );
+}
+
+function Compare({ content, game, id, t }: { content: GameContent; game: GameState; id: string; t: T }) {
+  const cmp = compareWithEquipped(content, game, id);
+  if (!cmp || cmp.rows.length === 0) return null;
+  const label = (k: string) => (k in content.statLabels ? content.statLabels[k as StatId] : t(`compare.${k}`));
+  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+  return (
+    <Glass radius={radius.md} style={{ padding: space.md, gap: 8 }}>
+      <Label>{cmp.equipped ? t('compare.vs', { name: content.items[cmp.equipped]?.name ?? '' }) : t('compare.empty')}</Label>
+      {cmp.rows.map((r) => (
+        <View key={r.key} style={styles.cmpRow}>
+          <Text style={[type.uiSmall, { flex: 1, color: colors.text }]}>{label(r.key)}</Text>
+          <Text style={[styles.cmpNum, { color: colors.textFaint }]}>{fmt(r.current)}</Text>
+          <Icon name="chevron" size={12} color={colors.textFaint} />
+          <Text style={[styles.cmpNum, { color: r.delta > 0 ? colors.mossBright : r.delta < 0 ? colors.blood : colors.text }]}>{fmt(r.candidate)}</Text>
+          <Icon name={r.delta > 0 ? 'plus' : r.delta < 0 ? 'minus' : 'check'} size={12} color={r.delta > 0 ? colors.mossBright : r.delta < 0 ? colors.blood : colors.textFaint} strokeWidth={2.4} />
+        </View>
+      ))}
+    </Glass>
+  );
+}
+
+function Workshop({ game }: { game: GameState }) {
+  const { content, update, feedback } = useStore();
+  const t = useT();
+  const recipes = Object.values(content.recipes);
+  return (
+    <View style={{ gap: space.sm }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md }}>
+        <Text style={[type.bodySmall, { flex: 1 }]}>{t('craft.intro')}</Text>
+        <ClockChip clock={game.clock} compact />
+      </View>
+      {recipes.map((r) => {
+        const can = canCraft(content, game, r.id);
+        const out = r.output ? content.items[r.output.item] : null;
+        return (
+          <Panel key={r.id} style={{ gap: space.sm, padding: space.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+              {out ? <ItemIcon icon={out.icon} category={out.category} size={44} /> : <View style={styles.repairIcon}><Icon name="wrench" size={20} color={colors.amber} /></View>}
+              <View style={{ flex: 1 }}>
+                <Text style={[type.h3]}>
+                  {r.name}
+                  {r.output && r.output.qty > 1 ? <Text style={{ color: colors.textDim }}> ×{r.output.qty}</Text> : null}
+                </Text>
+                <Text style={type.uiSmall}>{r.description}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {Object.entries(r.inputs).map(([id, qty]) => {
+                const have = itemCount(game, id);
+                return <Badge key={id} label={`${content.items[id]?.name ?? id} ${have}/${qty}`} color={have >= qty ? colors.mossBright : colors.textFaint} />;
+              })}
+              <Badge icon="clock" label={t('choice.hours', { h: r.time })} color={colors.textDim} />
+            </View>
+            {!can.ok && <Text style={[type.uiSmall, { color: colors.textFaint }]}>{can.reason}</Text>}
+            <Button
+              label={r.repair ? t('craft.repair') : t('craft.make')}
+              compact
+              variant={can.ok ? 'primary' : 'secondary'}
+              disabled={!can.ok}
+              onPress={() => {
+                feedback('success');
+                update((g) => craft(content, g, r.id));
+              }}
+            />
+          </Panel>
+        );
+      })}
+    </View>
+  );
+}
+
 export function InventoryView({ game }: { game: GameState }) {
   const { content, update, feedback } = useStore();
+  const t = useT();
+  const chrome = useChrome();
+  const [mode, setMode] = useState<'bag' | 'craft'>('bag');
   const [filter, setFilter] = useState('all');
   const [openId, setOpenId] = useState<string | null>(null);
   const weight = currentWeight(content, game);
@@ -81,147 +168,166 @@ export function InventoryView({ game }: { game: GameState }) {
   const ground = Object.entries(game.ground);
   const open = openId ? content.items[openId] : null;
   const owned = openId ? game.inventory[openId] ?? 0 : 0;
+  const craftable = Object.values(content.recipes).filter((r) => canCraft(content, game, r.id).ok).length;
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl }}>
-        <Bar label="Charge" value={weight} max={cap} color={weight > cap * 0.85 ? colors.amber : colors.ice} showValue />
-        <Text style={[type.uiSmall, { marginTop: 4 }]}>
-          {Math.max(0, Math.round((cap - weight) * 10) / 10)} kg libres. Les objets de quête ne pèsent rien et ne peuvent pas être perdus.
-        </Text>
-
-        {ground.length > 0 && (
+      <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top + space.xs, paddingBottom: chrome.bottom }}>
+        <Segmented
+          value={mode}
+          onChange={setMode}
+          options={[
+            { id: 'bag', label: t('bag.title') },
+            { id: 'craft', label: t('craft.title'), badge: craftable || undefined },
+          ]}
+        />
+        {mode === 'craft' ? (
+          <Workshop game={game} />
+        ) : (
           <>
-            <SectionTitle>Au sol</SectionTitle>
-            <Panel tone="danger" style={{ gap: space.sm }}>
-              <Text style={[type.bodySmall, { color: colors.text }]}>
-                Trop lourd pour votre sac. Posez quelque chose pour faire de la place, ou abandonnez l’objet. Ils seront perdus en quittant la scène.
-              </Text>
-              {ground.map(([id, qty]) => {
-                const def = content.items[id];
+            <Glass radius={radius.lg} style={{ padding: space.md, marginTop: space.md, gap: 6 }}>
+              <Bar label={t('bag.load')} value={weight} max={cap} color={weight > cap * 0.85 ? colors.amber : colors.ice} showValue />
+              <Text style={[type.uiSmall, { fontSize: 12.5 }]}>{t('bag.free', { kg: Math.max(0, Math.round((cap - weight) * 10) / 10) })}</Text>
+            </Glass>
+
+            {ground.length > 0 && (
+              <>
+                <SectionTitle>{t('bag.ground')}</SectionTitle>
+                <Panel tone="danger" style={{ gap: space.sm }}>
+                  <Text style={[type.bodySmall, { color: colors.text }]}>{t('bag.groundHelp')}</Text>
+                  {ground.map(([id, qty]) => {
+                    const def = content.items[id];
+                    return (
+                      <View key={id} style={styles.row}>
+                        <ItemIcon icon={def.icon} category={def.category} size={40} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={type.ui}>
+                            {def.name} {qty > 1 ? `×${qty}` : ''}
+                          </Text>
+                          <Text style={type.uiSmall}>{def.weight * qty} kg</Text>
+                        </View>
+                        <Button label={t('bag.take')} compact onPress={() => update((g) => pickUp(content, g, id))} />
+                        <Button label={t('bag.leave')} compact variant="ghost" onPress={() => update((g) => abandonGround(g, id))} />
+                      </View>
+                    );
+                  })}
+                </Panel>
+              </>
+            )}
+
+            <SectionTitle>{t('bag.equipment')}</SectionTitle>
+            <View style={styles.slots}>
+              {EQUIP_SLOTS.map((slot) => {
+                const id = game.equipment[slot];
+                const def = id ? content.items[id] : null;
                 return (
-                  <View key={id} style={styles.row}>
-                    <ItemIcon icon={def.icon} category={def.category} size={38} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={type.ui}>
-                        {def.name} {qty > 1 ? `×${qty}` : ''}
+                  <Pressable
+                    key={slot}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t(`slot.${slot}`)} : ${def?.name ?? t('bag.emptySlot')}`}
+                    onPress={() => id && setOpenId(id)}
+                    style={({ pressed }) => [styles.slotCell, pressed && { transform: [{ scale: 0.97 }] }]}
+                  >
+                    <Glass radius={radius.lg} style={styles.slot}>
+                      {def ? <ItemIcon icon={def.icon} category={def.category} size={40} /> : <View style={styles.emptySlot} />}
+                      <Text style={[type.label, { fontSize: 10, marginTop: space.sm }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
+                        {t(`slot.${slot}`)}
                       </Text>
-                      <Text style={type.uiSmall}>{def.weight * qty} kg</Text>
-                    </View>
-                    <Button label="Prendre" compact onPress={() => update((g) => pickUp(content, g, id))} />
-                    <Button label="Laisser" compact variant="ghost" onPress={() => update((g) => abandonGround(g, id))} />
-                  </View>
+                      <Text style={[styles.slotName, !def && { color: colors.textFaint }]} numberOfLines={1} maxFontSizeMultiplier={MAX_SCALE_UI}>
+                        {def?.name ?? t('bag.emptySlot')}
+                      </Text>
+                      {id && <DurabilityBar content={content} game={game} id={id} />}
+                    </Glass>
+                  </Pressable>
                 );
               })}
-            </Panel>
+            </View>
+
+            <SectionTitle>{t('bag.items')}</SectionTitle>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: space.md }}>
+              {FILTERS.map((f) => (
+                <Pressable
+                  key={f.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: filter === f.id }}
+                  onPress={() => setFilter(f.id)}
+                  style={[styles.chip, filter === f.id && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, filter === f.id && { color: colors.bg }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
+                    {t(`filter.${f.id}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            {items.length === 0 && (
+              <Panel style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.xl }}>
+                <Icon name="bag" size={32} color={colors.textFaint} />
+                <Text style={[type.bodySmall, { textAlign: 'center' }]}>{filter === 'all' ? t('bag.empty') : t('bag.emptyFilter')}</Text>
+              </Panel>
+            )}
+            <View style={{ gap: 6 }}>
+              {items.map(([id, qty]) => {
+                const def = content.items[id];
+                return (
+                  <PressableCard
+                    key={id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${def.name}, ×${qty}${equipped.has(id) ? `, ${t('bag.equipped')}` : ''}`}
+                    onPress={() => setOpenId(id)}
+                    style={styles.itemRow}
+                  >
+                    <ItemIcon icon={def.icon} category={def.category} size={44} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[type.ui, { fontFamily: fonts.uiBold }]} numberOfLines={1}>
+                        {def.name}
+                      </Text>
+                      <Text style={[type.uiSmall, { fontSize: 12.5 }]}>{t(`cat.${def.category}`)}</Text>
+                      {def.durability && <DurabilityBar content={content} game={game} id={id} />}
+                    </View>
+                    {equipped.has(id) && <Badge label={t('bag.equipped')} color={colors.mossBright} />}
+                    {def.rarity !== 'commun' && <Badge label={t(`rarity.${def.rarity}`)} color={colors.violet} />}
+                    <Text style={styles.qty}>×{qty}</Text>
+                  </PressableCard>
+                );
+              })}
+            </View>
           </>
         )}
-
-        <SectionTitle>Équipement</SectionTitle>
-        <View style={styles.slots}>
-          {EQUIP_SLOTS.map((slot) => {
-            const id = game.equipment[slot];
-            const def = id ? content.items[id] : null;
-            return (
-              <Pressable
-                key={slot}
-                accessibilityRole="button"
-                accessibilityLabel={`${SLOT_LABELS[slot]} : ${def?.name ?? 'vide'}`}
-                onPress={() => id && setOpenId(id)}
-                style={({ pressed }) => [styles.slot, pressed && { backgroundColor: colors.panelPressed }]}
-              >
-                {def ? <ItemIcon icon={def.icon} category={def.category} size={36} /> : <View style={styles.emptySlot} />}
-                <View style={{ flex: 1 }}>
-                  <Text style={[type.label, { fontSize: 11 }]}>{SLOT_LABELS[slot]}</Text>
-                  <Text style={[type.ui, !def && { color: colors.textFaint }]} numberOfLines={1}>
-                    {def?.name ?? 'Vide'}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <SectionTitle>Objets</SectionTitle>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>
-          {FILTERS.map((f) => (
-            <Pressable
-              key={f.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: filter === f.id }}
-              onPress={() => setFilter(f.id)}
-              style={[styles.chip, filter === f.id && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, filter === f.id && { color: colors.paper }]}>{f.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        {items.length === 0 && (
-          <Panel style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.xl }}>
-            <Icon name="bag" size={32} color={colors.textFaint} />
-            <Text style={[type.bodySmall, { textAlign: 'center' }]}>
-              {filter === 'all' ? 'Votre sac est vide. Fouillez, troquez, survivez.' : 'Rien dans cette catégorie.'}
-            </Text>
-          </Panel>
-        )}
-        <View style={{ gap: space.xs }}>
-          {items.map(([id, qty]) => {
-            const def = content.items[id];
-            return (
-              <Pressable
-                key={id}
-                accessibilityRole="button"
-                accessibilityLabel={`${def.name}, quantité ${qty}${equipped.has(id) ? ', équipé' : ''}`}
-                onPress={() => setOpenId(id)}
-                style={({ pressed }) => [styles.itemRow, pressed && { backgroundColor: colors.panelPressed }]}
-              >
-                <ItemIcon icon={def.icon} category={def.category} size={42} />
-                <View style={{ flex: 1 }}>
-                  <Text style={type.ui} numberOfLines={1}>
-                    {def.name}
-                  </Text>
-                  <Text style={type.uiSmall}>{CATEGORY_LABEL[def.category]}</Text>
-                </View>
-                {equipped.has(id) && <Badge label="Équipé" color={colors.mossBright} />}
-                {def.rarity !== 'commun' && <Badge label={def.rarity} color={colors.amber} />}
-                <Text style={styles.qty}>×{qty}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
       </ScrollView>
 
       <Sheet visible={!!open} onClose={() => setOpenId(null)} title={open?.name ?? ''}>
         {open && openId && (
           <View style={{ gap: space.md }}>
             <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
-              <ItemIcon icon={open.icon} category={open.category} size={64} />
+              <ItemIcon icon={open.icon} category={open.category} size={72} />
               <View style={{ flex: 1, gap: 4 }}>
-                <Label>{CATEGORY_LABEL[open.category]}</Label>
-                <Text style={type.uiSmall}>Quantité : {owned}</Text>
+                <Label>{t(`cat.${open.category}`)}</Label>
+                <Text style={type.uiSmall}>{t('bag.quantity', { n: owned })}</Text>
+                {open.durability && <DurabilityBar content={content} game={game} id={openId} />}
               </View>
             </View>
             <Text style={type.body}>{open.description}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {itemStats(open, content).map((s) => (
+              {itemStats(open, content, t).map((s) => (
                 <Badge key={s} label={s} color={colors.textDim} />
               ))}
             </View>
+            {owned > 0 && <Compare content={content} game={game} id={openId} t={t} />}
             {owned > 0 && (
-              <View style={{ gap: space.sm, marginTop: space.sm }}>
+              <View style={{ gap: space.sm, marginTop: space.xs }}>
                 {open.slot &&
                   (game.equipment[open.slot] === openId ? (
-                    <Button label="Ranger" variant="secondary" icon="close" onPress={() => update((g) => unequip(content, g, open.slot!))} />
+                    <Button label={t('bag.unequip')} variant="secondary" icon="close" onPress={() => update((g) => unequip(content, g, open.slot!))} />
                   ) : (
                     <>
-                      <Button label="Équiper" icon="check" onPress={() => update((g) => equip(content, g, openId))} />
+                      <Button label={t('bag.equip')} icon="check" onPress={() => update((g) => equip(content, g, openId))} />
                       {canEquip(content, game, openId).reason && <Text style={[type.uiSmall, { color: colors.amber }]}>{canEquip(content, game, openId).reason}</Text>}
                     </>
                   ))}
                 {open.use?.outOfCombat && (
                   <>
                     <Button
-                      label="Utiliser"
+                      label={t('bag.use')}
                       icon="plus"
                       variant="secondary"
                       disabled={!canUseOutOfCombat(content, game, openId).ok}
@@ -234,7 +340,7 @@ export function InventoryView({ game }: { game: GameState }) {
                   </>
                 )}
                 {canDrop(content, game, openId).ok ? (
-                  <Button label="Poser au sol" icon="trash" variant="ghost" onPress={() => update((g) => dropItem(content, g, openId, 1))} />
+                  <Button label={t('bag.drop')} icon="trash" variant="ghost" onPress={() => update((g) => dropItem(content, g, openId, 1))} />
                 ) : (
                   <Text style={[type.uiSmall, { color: colors.textFaint }]}>{canDrop(content, game, openId).reason}</Text>
                 )}
@@ -250,12 +356,20 @@ export function InventoryView({ game }: { game: GameState }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  slot: { flexBasis: '48%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, minHeight: 56 },
-  emptySlot: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong },
-  chip: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: 8, minHeight: 36 },
-  chipActive: { backgroundColor: colors.rustDeep, borderColor: colors.rust },
-  chipText: { fontFamily: fonts.uiBold, fontSize: 13, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 0.8 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm, borderRadius: radius.md, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line },
-  qty: { fontFamily: fonts.uiBold, fontSize: 16, color: colors.textDim, minWidth: 30, textAlign: 'right' },
+  slots: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  slotCell: { width: '50%', padding: 4 },
+  slot: { padding: space.md, minHeight: 128, gap: 3 },
+  slotName: { fontFamily: fonts.uiBold, fontSize: 15, color: colors.text, letterSpacing: -0.2 },
+  emptySlot: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong },
+  chip: { borderRadius: radius.pill, paddingHorizontal: space.md + 2, paddingVertical: 8, minHeight: 36, backgroundColor: 'rgba(255,248,240,0.06)', justifyContent: 'center' },
+  chipActive: { backgroundColor: colors.text },
+  chipText: { fontFamily: fonts.uiBold, fontSize: 13.5, color: colors.textDim },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm + 2 },
+  qty: { fontFamily: fonts.mono, fontSize: 14, color: colors.textDim, minWidth: 30, textAlign: 'right' },
+  duraTrack: { flex: 1, maxWidth: 90, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,248,240,0.1)', overflow: 'hidden' },
+  duraFill: { height: '100%', borderRadius: 2 },
+  duraText: { fontFamily: fonts.mono, fontSize: 10, color: colors.textDim },
+  cmpRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cmpNum: { fontFamily: fonts.mono, fontSize: 13, minWidth: 30, textAlign: 'right' },
+  repairIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,196,107,0.12)', alignItems: 'center', justifyContent: 'center' },
 });

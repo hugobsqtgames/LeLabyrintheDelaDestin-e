@@ -11,7 +11,8 @@
 import * as Haptics from 'expo-haptics';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { AccessibilityInfo, AppState as RNAppState, Platform } from 'react-native';
-import { CONTENT } from '../content';
+import { contentFor } from '../content/localized';
+import { type Lang, resolveLanguage } from '../i18n/lang';
 import { addPlaytime, newGame } from '../engine/narrative';
 import { newSeed } from '../engine/rng';
 import type { CharacterDraft, GameContent, GameState } from '../engine/types';
@@ -19,16 +20,22 @@ import type { SaveManager } from '../persistence/saves';
 
 export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery';
 export type SavesMode = 'new' | 'load' | 'copy';
-export type Tab = 'story' | 'character' | 'inventory' | 'map' | 'quests' | 'chronicle';
+export type Tab = 'story' | 'character' | 'inventory' | 'map' | 'quests' | 'chronicle' | 'archives';
+export type LanguageSetting = 'auto' | Lang;
 
 export interface Settings {
   reduceMotion: boolean;
   haptics: boolean;
   textScale: number;
   lastSlot: number;
+  /** Choix chronométrés (désactivables : le temps n'est alors plus compté). */
+  timedChoices: boolean;
+  /** Volume de l'ambiance sonore, 0 à 1 (0 : coupé). */
+  volume: number;
+  language: LanguageSetting;
 }
 
-export const DEFAULT_SETTINGS: Settings = { reduceMotion: false, haptics: true, textScale: 1, lastSlot: 0 };
+export const DEFAULT_SETTINGS: Settings = { reduceMotion: false, haptics: true, textScale: 1, lastSlot: 0, timedChoices: true, volume: 0.5, language: 'auto' };
 
 export interface AppModel {
   route: Route;
@@ -43,6 +50,8 @@ export interface AppModel {
   saveCount: number;
   /** Emplacement choisi pour une nouvelle partie (après confirmation). */
   pendingSlot: number | null;
+  /** Afficher le résumé « Que s'est-il passé ? » (après un chargement). */
+  recap: boolean;
 }
 
 type Action =
@@ -55,7 +64,8 @@ type Action =
   | { type: 'systemReduceMotion'; value: boolean }
   | { type: 'saved' }
   | { type: 'saveError'; error: string | null }
-  | { type: 'pendingSlot'; slot: number | null };
+  | { type: 'pendingSlot'; slot: number | null }
+  | { type: 'recap'; value: boolean };
 
 function reducer(model: AppModel, action: Action): AppModel {
   switch (action.type) {
@@ -69,7 +79,7 @@ function reducer(model: AppModel, action: Action): AppModel {
       return game === model.game ? model : { ...model, game };
     }
     case 'start':
-      return { ...model, game: action.game, slot: action.slot, route: 'game', tab: 'story', saveError: null, pendingSlot: null };
+      return { ...model, game: action.game, slot: action.slot, route: 'game', tab: 'story', saveError: null, pendingSlot: null, recap: false };
     case 'close':
       return { ...model, game: null, slot: null, route: 'title', tab: 'story' };
     case 'settings':
@@ -82,6 +92,8 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, saveError: action.error };
     case 'pendingSlot':
       return { ...model, pendingSlot: action.slot };
+    case 'recap':
+      return { ...model, recap: action.value };
     default:
       return model;
   }
@@ -90,6 +102,7 @@ function reducer(model: AppModel, action: Action): AppModel {
 export interface Store {
   model: AppModel;
   content: GameContent;
+  lang: Lang;
   saves: SaveManager | null;
   reduceMotion: boolean;
   go: (route: Route) => void;
@@ -102,6 +115,7 @@ export interface Store {
   closeGame: () => Promise<void>;
   setSettings: (patch: Partial<Settings>) => void;
   setPendingSlot: (slot: number | null) => void;
+  dismissRecap: () => void;
   feedback: (kind: 'light' | 'heavy' | 'success' | 'error') => void;
 }
 
@@ -144,9 +158,14 @@ export function GameProvider({
     saveError: null,
     saveCount: 0,
     pendingSlot: null,
+    recap: false,
     ...initial,
   });
   const lastActivity = useRef(0);
+  const languageRef = useRef(model.settings.language);
+  useEffect(() => {
+    languageRef.current = model.settings.language;
+  }, [model.settings.language]);
   const settingsLoaded = useRef(!saves);
 
   useEffect(() => {
@@ -214,7 +233,7 @@ export function GameProvider({
 
   const startNewGame = useCallback(
     (draft: CharacterDraft, slot: number | null) => {
-      const game = newGame(CONTENT, draft, { seed: newSeed(), id: `partie-${Date.now()}`, now: Date.now() });
+      const game = newGame(contentFor(resolveLanguage(languageRef.current)), draft, { seed: newSeed(), id: `partie-${Date.now()}`, now: Date.now() });
       lastActivity.current = Date.now();
       // L'ancienne partie de cet emplacement (écrasement confirmé) disparaît avec sa copie de secours.
       if (slot !== null && saves) saves.remove(slot).catch(() => undefined);
@@ -233,6 +252,7 @@ export function GameProvider({
       lastActivity.current = Date.now();
       dispatch({ type: 'start', slot, game: res.state });
       dispatch({ type: 'settings', patch: { lastSlot: slot } });
+      if (res.state.turn > 0 && !res.state.ending) dispatch({ type: 'recap', value: true });
       const notes = [...(res.repairs ?? [])];
       if (res.fromBackup) notes.unshift('La sauvegarde principale était endommagée : la copie de secours a été restaurée.');
       if (res.migratedFrom) notes.unshift(`Sauvegarde mise à jour depuis le format v${res.migratedFrom}.`);
@@ -263,10 +283,14 @@ export function GameProvider({
     [hapticsOn],
   );
 
+  const lang = resolveLanguage(model.settings.language);
+  const content = contentFor(lang);
+
   const store = useMemo<Store>(
     () => ({
       model,
-      content: CONTENT,
+      content,
+      lang,
       saves,
       reduceMotion,
       go: (route) => dispatch({ type: 'route', route }),
@@ -279,9 +303,10 @@ export function GameProvider({
       closeGame,
       setSettings: (patch) => dispatch({ type: 'settings', patch }),
       setPendingSlot: (slot) => dispatch({ type: 'pendingSlot', slot }),
+      dismissRecap: () => dispatch({ type: 'recap', value: false }),
       feedback,
     }),
-    [model, saves, reduceMotion, update, startNewGame, loadGame, closeGame, feedback],
+    [model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, closeGame, feedback],
   );
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;

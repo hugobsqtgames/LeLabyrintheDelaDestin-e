@@ -290,3 +290,47 @@ export function craft(content: GameContent, state: GameState, recipeId: string):
   if (r.repair) s = repairWeapons(content, s, r.repair);
   return s;
 }
+
+// ---------------------------------------------------------------------------
+// Comparaison avec l'équipement porté
+// ---------------------------------------------------------------------------
+
+export interface ComparisonRow {
+  /** Clé de libellé : damage, accuracy, stamina, durability, armor, capacity, ou une caractéristique. */
+  key: string;
+  current: number;
+  candidate: number;
+  /** +1 : meilleur, −1 : moins bon, 0 : égal. */
+  delta: -1 | 0 | 1;
+}
+
+/**
+ * Compare un objet équipable à celui qui occupe le même emplacement.
+ * `null` si l'objet n'est pas équipable ou s'il est déjà porté.
+ */
+export function compareWithEquipped(content: GameContent, state: GameState, itemId: ItemId): { equipped: ItemId | null; rows: ComparisonRow[] } | null {
+  const cand = content.items[itemId];
+  if (!cand?.slot) return null;
+  const currentId = state.equipment[cand.slot];
+  if (currentId === itemId) return null;
+  const cur = currentId ? content.items[currentId] : null;
+  const rows: ComparisonRow[] = [];
+  const push = (key: string, a: number, b: number, lowerIsBetter = false) => {
+    if (a === 0 && b === 0) return;
+    const d = b === a ? 0 : (b > a) !== lowerIsBetter ? 1 : -1;
+    rows.push({ key, current: a, candidate: b, delta: d as -1 | 0 | 1 });
+  };
+  const avg = (d?: [number, number]) => (d ? (d[0] + d[1]) / 2 : 0);
+  const dura = (id: ItemId | null | undefined) => {
+    const max = id ? content.items[id]?.durability : undefined;
+    return max ? Math.min(max, state.durability[id!] ?? max) : 0;
+  };
+  push('damage', avg(cur?.damage), avg(cand.damage));
+  push('accuracy', Math.round((cur?.accuracy ?? 0) * 100), Math.round((cand.accuracy ?? 0) * 100));
+  push('stamina', cur?.staminaCost ?? 0, cand.staminaCost ?? 0, true);
+  push('durability', dura(currentId), dura(itemId));
+  push('armor', cur?.armor ?? 0, cand.armor ?? 0);
+  push('capacity', cur?.capacityBonus ?? 0, cand.capacityBonus ?? 0);
+  for (const s of ['force', 'discretion', 'survie', 'astuce'] as const) push(s, cur?.statBonus?.[s] ?? 0, cand.statBonus?.[s] ?? 0);
+  return { equipped: currentId, rows };
+}

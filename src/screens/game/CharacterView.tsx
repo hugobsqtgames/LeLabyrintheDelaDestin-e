@@ -1,136 +1,168 @@
 /**
- * Fiche du personnage : caractéristiques, progression, compétences, relations.
+ * Fiche du personnage : portrait, tuiles de vitalité (« bento »),
+ * caractéristiques, compétences de combat, atouts et relations.
  */
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { armorValue, choosePerk, effectiveStat, equipmentBonuses, maxHp, maxStamina, spendStatPoint } from '../../engine/character';
 import { capacity, currentWeight } from '../../engine/inventory';
-import { LEVEL_MAX, STAT_DESCRIPTIONS, STAT_IDS, STAT_LABELS, STAT_MAX, xpToNext } from '../../engine/rules';
+import { LEVEL_MAX, STAT_IDS, STAT_MAX, xpToNext } from '../../engine/rules';
 import type { CompanionStatus, GameState, PerkId } from '../../engine/types';
+import { useT } from '../../i18n';
 import { useStore } from '../../store/GameStore';
 import { EmblemBadge } from '../../ui/art/Emblems';
-import { ProfileArt } from '../../ui/art/Figures';
-import { Badge, Bar, Label, Panel, SectionTitle } from '../../ui/components/primitives';
+import { PlayerPortrait, Portrait, PORTRAITS } from '../../ui/art/Portraits';
+import { Glass } from '../../ui/components/Glass';
+import { useChrome } from '../../ui/components/Hud';
+import { Badge, Bar, Label, Panel, SectionTitle, Tile } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
-import { colors, fonts, radius, space, TOUCH, type } from '../../ui/theme';
+import { colors, fonts, MAX_SCALE_UI, radius, space, TOUCH, type } from '../../ui/theme';
 
-const STATUS_TEXT: Record<CompanionStatus, { label: string; color: string }> = {
-  unknown: { label: 'Inconnu', color: colors.textFaint },
-  met: { label: 'Rencontré', color: colors.textDim },
-  companion: { label: 'Avec vous', color: colors.mossBright },
-  away: { label: 'Séparés', color: colors.steel },
-  captured: { label: 'Prisonnier', color: colors.amber },
-  dead: { label: 'Mort', color: colors.blood },
+const STATUS_COLOR: Record<CompanionStatus, string> = {
+  unknown: colors.textFaint,
+  met: colors.textDim,
+  companion: colors.mossBright,
+  away: colors.steel,
+  captured: colors.amber,
+  dead: colors.blood,
 };
 
-function relationLabel(v: number): string {
-  if (v >= 7) return 'Loyauté totale';
-  if (v >= 4) return 'Confiance';
-  if (v >= 1) return 'Sympathie';
-  if (v === 0) return 'Neutre';
-  if (v >= -3) return 'Méfiance';
-  return 'Hostilité';
+function relationKey(v: number): string {
+  if (v >= 7) return 'rel.loyal';
+  if (v >= 4) return 'rel.trust';
+  if (v >= 1) return 'rel.liking';
+  if (v === 0) return 'rel.neutral';
+  if (v >= -3) return 'rel.wary';
+  return 'rel.hostile';
 }
 
 export function CharacterView({ game }: { game: GameState }) {
   const { content, update, feedback } = useStore();
+  const t = useT();
+  const chrome = useChrome();
   const p = game.player;
   const profile = content.profiles[p.profile];
   const bg = content.backgrounds[p.background];
   const bonus = equipmentBonuses(content, game);
   const people = Object.entries(game.companions).filter(([, s]) => s !== 'unknown');
   const atMax = p.level >= LEVEL_MAX;
+  const hpMax = maxHp(content, game);
+  const stMax = maxStamina(content, game);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl }}>
-      <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
-        <ProfileArt id={profile.art} width={96} />
+    <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top + space.xs, paddingBottom: chrome.bottom }}>
+      <Glass radius={radius.xl} style={styles.hero}>
+        <PlayerPortrait profile={p.profile} size={112} shape="tall" />
         <View style={{ flex: 1, gap: 4 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <EmblemBadge id={p.emblem} size={30} />
-            <Text style={type.h1} numberOfLines={1}>
-              {p.name}
+          <Label color={colors.rustBright}>{profile.name}</Label>
+          <Text style={[type.h1, { fontSize: 34 }]} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={MAX_SCALE_UI}>
+            {p.name}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <EmblemBadge id={p.emblem} size={20} />
+            <Text style={type.uiSmall} numberOfLines={1}>
+              {bg.name}
             </Text>
           </View>
-          <Text style={[type.ui, { color: colors.rustBright }]}>{profile.name}</Text>
-          <Text style={type.uiSmall}>{bg.name}</Text>
-          <Label style={{ marginTop: space.sm }}>Niveau {p.level}</Label>
-          <Bar value={atMax ? 1 : p.xp} max={atMax ? 1 : xpToNext(p.level)} color={colors.amber} height={6} />
-          <Text style={[type.uiSmall, { fontSize: 12 }]}>{atMax ? 'Niveau maximal' : `${p.xp} / ${xpToNext(p.level)} XP`}</Text>
-        </View>
-      </View>
-
-      <View style={styles.vitals}>
-        {[
-          { icon: 'heart' as const, label: 'Santé', value: `${p.hp}/${maxHp(content, game)}`, color: colors.rustBright },
-          { icon: 'bolt' as const, label: 'Endurance', value: `${p.stamina}/${maxStamina(content, game)}`, color: colors.amber },
-          { icon: 'shield' as const, label: 'Armure', value: `${armorValue(content, game)}`, color: colors.steel },
-          { icon: 'weight' as const, label: 'Charge', value: `${currentWeight(content, game)}/${capacity(content, game)} kg`, color: colors.ice },
-        ].map((v) => (
-          <View key={v.label} style={styles.vital}>
-            <Icon name={v.icon} size={16} color={v.color} />
-            <Text style={styles.vitalValue}>{v.value}</Text>
-            <Text style={styles.vitalLabel}>{v.label}</Text>
+          <View style={{ marginTop: space.sm, gap: 4 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={type.label}>{t('hud.level', { n: p.level })}</Text>
+              <Text style={[type.label, { color: colors.violet }]}>{atMax ? t('char.maxLevel') : `${p.xp}/${xpToNext(p.level)} XP`}</Text>
+            </View>
+            <Bar value={atMax ? 1 : p.xp} max={atMax ? 1 : xpToNext(p.level)} color={colors.violet} height={4} />
           </View>
-        ))}
+        </View>
+      </Glass>
+
+      <View style={styles.bento}>
+        <Tile style={styles.tileWide} label={t('stat.hp')} icon="heart" color={colors.rust} value={`${p.hp}`} sub={`/ ${hpMax}`}>
+          <Bar value={p.hp} max={hpMax} color={colors.rust} height={4} />
+        </Tile>
+        <Tile style={styles.tileWide} label={t('stat.stamina')} icon="bolt" color={colors.amber} value={`${p.stamina}`} sub={`/ ${stMax}`}>
+          <Bar value={p.stamina} max={stMax} color={colors.amber} height={4} />
+        </Tile>
+        <Tile style={styles.tileWide} label={t('stat.armor')} icon="shield" color={colors.steel} value={armorValue(content, game)} />
+        <Tile style={styles.tileWide} label={t('bag.load')} icon="weight" color={colors.ice} value={`${currentWeight(content, game)}`} sub={`/ ${capacity(content, game)} kg`} />
       </View>
 
       {p.infection > 0 && (
-        <Panel tone="danger" style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center', marginTop: space.md }}>
+        <Panel tone="danger" style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center', marginTop: space.sm }}>
           <Icon name="biohazard" size={20} color={colors.mossBright} />
-          <Text style={[type.bodySmall, { color: colors.text, flex: 1 }]}>
-            Infection stade {p.infection}/3 : santé maximale −{p.infection * 3}. Elle s’aggravera au prochain chapitre. Des antibiotiques la soignent.
-          </Text>
+          <Text style={[type.bodySmall, { color: colors.text, flex: 1 }]}>{t('char.infection', { n: p.infection, hp: p.infection * 3 })}</Text>
         </Panel>
       )}
 
-      <SectionTitle right={p.unspentStatPoints > 0 ? <Badge label={`${p.unspentStatPoints} point${p.unspentStatPoints > 1 ? 's' : ''}`} color={colors.amber} filled /> : undefined}>
-        Caractéristiques
-      </SectionTitle>
-      {STAT_IDS.map((s) => {
-        const eff = effectiveStat(content, game, s);
-        const canSpend = p.unspentStatPoints > 0 && p.stats[s] < STAT_MAX;
-        return (
-          <View key={s} style={styles.statRow}>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.sm }}>
-                <Text style={type.ui}>{STAT_LABELS[s]}</Text>
-                {bonus[s] !== 0 && (
-                  <Text style={[type.uiSmall, { color: bonus[s] > 0 ? colors.mossBright : colors.rustBright }]}>
-                    {bonus[s] > 0 ? `+${bonus[s]}` : bonus[s]} équipement
+      <SectionTitle right={p.unspentStatPoints > 0 ? <Badge label={t('char.points', { n: p.unspentStatPoints })} color={colors.amber} filled /> : undefined}>{t('char.stats')}</SectionTitle>
+      <View style={styles.statGrid}>
+        {STAT_IDS.map((s) => {
+          const eff = effectiveStat(content, game, s);
+          const canSpend = p.unspentStatPoints > 0 && p.stats[s] < STAT_MAX;
+          return (
+            <View key={s} style={styles.statCell}>
+              <Glass radius={radius.lg} style={styles.stat}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Text style={[type.label, { flex: 1 }]}>{content.statLabels[s]}</Text>
+                  {bonus[s] !== 0 && <Text style={[styles.bonus, { color: bonus[s] > 0 ? colors.mossBright : colors.rustBright }]}>{bonus[s] > 0 ? `+${bonus[s]}` : bonus[s]}</Text>}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
+                  <Text style={styles.statValue} maxFontSizeMultiplier={MAX_SCALE_UI}>
+                    {eff}
                   </Text>
+                  <View style={styles.pips}>
+                    {Array.from({ length: STAT_MAX }).map((_, i) => (
+                      <View key={i} style={[styles.pip, i < p.stats[s] && { backgroundColor: colors.text }]} />
+                    ))}
+                  </View>
+                </View>
+                <Text style={[type.uiSmall, { fontSize: 12, lineHeight: 16 }]} numberOfLines={3}>
+                  {content.statDescriptions[s]}
+                </Text>
+                {canSpend && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('char.raise', { stat: content.statLabels[s] })}
+                    onPress={() => {
+                      feedback('success');
+                      update((g) => spendStatPoint(content, g, s));
+                    }}
+                    style={({ pressed }) => [styles.plus, pressed && { transform: [{ scale: 0.94 }] }]}
+                  >
+                    <Icon name="plus" size={16} color={colors.bg} strokeWidth={2.4} />
+                    <Text style={styles.plusText}>{t('char.raiseShort')}</Text>
+                  </Pressable>
                 )}
-              </View>
-              <Text style={[type.uiSmall, { fontSize: 13 }]}>{STAT_DESCRIPTIONS[s]}</Text>
+              </Glass>
             </View>
-            <Text style={styles.statValue}>{eff}</Text>
-            {canSpend && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Augmenter ${STAT_LABELS[s]}`}
-                onPress={() => {
-                  feedback('success');
-                  update((g) => spendStatPoint(content, g, s));
-                }}
-                style={styles.plus}
-              >
-                <Icon name="plus" size={18} color={colors.paper} />
-              </Pressable>
-            )}
+          );
+        })}
+      </View>
+
+      <SectionTitle>{t('char.skills')}</SectionTitle>
+      <View style={{ gap: space.sm }}>
+        <Panel style={{ gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name="star" size={15} color={colors.amber} />
+            <Text style={[type.h3, { flex: 1 }]}>{profile.skill.name}</Text>
+            <Badge label={`−${profile.skill.staminaCost}`} icon="bolt" color={colors.amber} />
           </View>
-        );
-      })}
+          <Text style={type.bodySmall}>{profile.skill.description}</Text>
+        </Panel>
+        <Panel style={[{ gap: 4 }, p.level < profile.skill2.level && { opacity: 0.6 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name={p.level < profile.skill2.level ? 'lock' : 'sparkle'} size={15} color={colors.violet} />
+            <Text style={[type.h3, { flex: 1 }]}>{profile.skill2.name}</Text>
+            {p.level < profile.skill2.level ? <Badge label={t('char.unlockAt', { n: profile.skill2.level })} color={colors.violet} /> : <Badge label={`−${profile.skill2.staminaCost}`} icon="bolt" color={colors.amber} />}
+          </View>
+          <Text style={type.bodySmall}>{profile.skill2.description}</Text>
+        </Panel>
+        <Panel style={{ gap: 4 }}>
+          <Label color={colors.mossBright}>{bg.name}</Label>
+          <Text style={type.bodySmall}>+ {bg.advantage}</Text>
+          <Text style={[type.bodySmall, { color: colors.rustBright }]}>− {bg.drawback}</Text>
+        </Panel>
+      </View>
 
-      <SectionTitle>Profil et passé</SectionTitle>
-      <Panel>
-        <Label color={colors.amber}>Compétence de combat · {profile.skill.name}</Label>
-        <Text style={[type.bodySmall, { marginBottom: space.md }]}>{profile.skill.description}</Text>
-        <Label color={colors.mossBright}>{bg.name}</Label>
-        <Text style={type.bodySmall}>+ {bg.advantage}</Text>
-        <Text style={[type.bodySmall, { color: colors.rustBright }]}>− {bg.drawback}</Text>
-      </Panel>
-
-      <SectionTitle right={p.unspentPerks > 0 ? <Badge label="Compétence à choisir" color={colors.amber} filled /> : undefined}>Compétences</SectionTitle>
+      <SectionTitle right={p.unspentPerks > 0 ? <Badge label={t('char.perkToPick')} color={colors.amber} filled /> : undefined}>{t('char.perks')}</SectionTitle>
       <View style={{ gap: space.sm }}>
         {(Object.keys(content.perks) as PerkId[]).map((id) => {
           const perk = content.perks[id];
@@ -142,63 +174,58 @@ export function CharacterView({ game }: { game: GameState }) {
               key={id}
               disabled={!choosable}
               accessibilityRole="button"
-              accessibilityLabel={`${perk.name}. ${perk.description}${owned ? '. Acquise.' : ''}`}
+              accessibilityLabel={`${perk.name}. ${perk.description}${owned ? `. ${t('char.owned')}` : ''}`}
               onPress={() => {
                 feedback('success');
                 update((g) => choosePerk(content, g, id));
               }}
-              style={({ pressed }) => [styles.perk, owned && styles.perkOwned, pressed && { backgroundColor: colors.panelPressed }]}
+              style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }] }]}
             >
-              <Icon name={owned ? 'check' : 'plus'} size={18} color={owned ? colors.mossBright : colors.amber} />
-              <View style={{ flex: 1 }}>
-                <Text style={type.ui}>{perk.name}</Text>
-                <Text style={type.uiSmall}>{perk.description}</Text>
-              </View>
+              <Glass radius={radius.lg} tone={choosable ? 'accent' : 'default'} style={styles.perk}>
+                <Icon name={owned ? 'check' : 'plus'} size={18} color={owned ? colors.mossBright : colors.amber} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[type.ui, { fontFamily: fonts.uiBold }]}>{perk.name}</Text>
+                  <Text style={type.uiSmall}>{perk.description}</Text>
+                </View>
+              </Glass>
             </Pressable>
           );
         })}
-        {p.perks.length === 0 && p.unspentPerks === 0 && (
-          <Text style={type.bodySmall}>Aucune compétence pour l’instant. Les niveaux 2, 4 et 6 en accordent une.</Text>
-        )}
+        {p.perks.length === 0 && p.unspentPerks === 0 && <Text style={type.bodySmall}>{t('char.noPerks')}</Text>}
       </View>
 
-      <SectionTitle>Rencontres</SectionTitle>
-      {people.length === 0 && <Text style={type.bodySmall}>Vous n’avez encore croisé personne.</Text>}
+      <SectionTitle>{t('char.people')}</SectionTitle>
+      {people.length === 0 && <Text style={type.bodySmall}>{t('char.nobody')}</Text>}
       <View style={{ gap: space.sm }}>
         {people.map(([id, status]) => {
           const ch = content.characters[id];
           const rel = game.relations[id] ?? 0;
-          const st = STATUS_TEXT[status];
           return (
-            <Panel key={id} style={{ padding: space.md }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                <View style={[styles.initials, { backgroundColor: ch.color }]}>
-                  <Text style={styles.initialsText}>{ch.initials}</Text>
+            <Panel key={id} style={{ padding: space.md, gap: space.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                <View style={status === 'dead' ? { opacity: 0.45 } : undefined}>{PORTRAITS[id] ? <Portrait id={id} size={52} shape="squircle" /> : <View style={[styles.initials, { backgroundColor: ch.color }]} />}</View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[type.ui, { fontFamily: fonts.uiBold }]}>{ch.name}</Text>
+                  <Text style={[type.uiSmall, { fontSize: 12.5 }]}>{ch.role}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={type.ui}>{ch.name}</Text>
-                  <Text style={type.uiSmall}>{ch.role}</Text>
-                </View>
-                <Badge label={st.label} color={st.color} />
+                <Badge label={t(`status.${status}`)} color={STATUS_COLOR[status]} />
               </View>
               {status !== 'dead' && (
-                <View style={{ marginTop: space.sm }}>
+                <View>
                   <View style={styles.relTrack}>
                     <View style={styles.relCenter} />
                     <View
                       style={[
                         styles.relFill,
-                        rel >= 0 ? { left: '50%', width: `${rel * 5}%`, backgroundColor: colors.mossBright } : { right: '50%', width: `${-rel * 5}%`, backgroundColor: colors.rustBright },
+                        rel >= 0 ? { left: '50%', width: `${Math.min(10, rel) * 5}%`, backgroundColor: colors.mossBright } : { right: '50%', width: `${Math.min(10, -rel) * 5}%`, backgroundColor: colors.rustBright },
                       ]}
                     />
                   </View>
-                  <Text style={[type.uiSmall, { fontSize: 12, marginTop: 2 }]}>{relationLabel(rel)}</Text>
+                  <Text style={[type.label, { fontSize: 10, marginTop: 5 }]}>{t(relationKey(rel))}</Text>
                 </View>
               )}
               {status === 'companion' && ch.combatAssist && (
-                <Text style={[type.uiSmall, { fontSize: 12, color: colors.ice }]}>
-                  En combat : {ch.combatAssist.text} (tous les {ch.combatAssist.every} tours).
-                </Text>
+                <Text style={[type.uiSmall, { fontSize: 12.5, color: colors.ice }]}>{t('char.assist', { text: ch.combatAssist.text, n: ch.combatAssist.every })}</Text>
               )}
             </Panel>
           );
@@ -209,18 +236,21 @@ export function CharacterView({ game }: { game: GameState }) {
 }
 
 const styles = StyleSheet.create({
-  vitals: { flexDirection: 'row', gap: space.sm, marginTop: space.lg },
-  vital: { flex: 1, alignItems: 'center', backgroundColor: colors.panel, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space.sm, gap: 2 },
-  vitalValue: { fontFamily: fonts.uiBold, fontSize: 15, color: colors.text },
-  vitalLabel: { fontFamily: fonts.ui, fontSize: 11, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: 0.8 },
-  statRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
-  statValue: { fontFamily: fonts.title, fontSize: 26, color: colors.paper, minWidth: 28, textAlign: 'center' },
-  plus: { width: TOUCH, height: TOUCH, borderRadius: radius.md, backgroundColor: colors.rust, alignItems: 'center', justifyContent: 'center' },
-  perk: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.amberDim, backgroundColor: colors.panel },
-  perkOwned: { borderColor: colors.line },
-  initials: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  initialsText: { fontFamily: fonts.uiBold, color: colors.bgDeep, fontSize: 13 },
-  relTrack: { height: 6, backgroundColor: colors.bgDeep, borderRadius: 3, overflow: 'hidden' },
+  hero: { flexDirection: 'row', gap: space.lg, alignItems: 'center', padding: space.md },
+  bento: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginTop: space.sm },
+  tileWide: { flexBasis: '46%', flexGrow: 1, margin: 4 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  statCell: { width: '50%', padding: 4 },
+  stat: { padding: space.md, gap: 6, minHeight: 150 },
+  statValue: { fontFamily: fonts.title, fontSize: 46, lineHeight: 48, color: colors.text },
+  bonus: { fontFamily: fonts.mono, fontSize: 12 },
+  pips: { flexDirection: 'row', gap: 3, paddingBottom: 10, flexWrap: 'wrap', flex: 1 },
+  pip: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,248,240,0.15)' },
+  plus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: TOUCH - 8, borderRadius: radius.pill, backgroundColor: colors.text, marginTop: 4 },
+  plusText: { fontFamily: fonts.uiBold, fontSize: 14, color: colors.bg },
+  perk: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  initials: { width: 52, height: 52, borderRadius: 16 },
+  relTrack: { height: 4, backgroundColor: 'rgba(255,248,240,0.08)', borderRadius: 2, overflow: 'hidden' },
   relCenter: { position: 'absolute', left: '50%', width: 1, top: 0, bottom: 0, backgroundColor: colors.lineStrong },
   relFill: { position: 'absolute', top: 0, bottom: 0 },
 });

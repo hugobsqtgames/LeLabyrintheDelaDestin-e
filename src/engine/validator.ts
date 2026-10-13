@@ -101,6 +101,16 @@ export function validateContent(content: GameContent): ValidationIssue[] {
     if (!content.scenes[ch.start]) err(`Chapitre ${ch.id} : scène de départ inconnue ${ch.start}`);
   }
 
+  for (const [a, b] of content.mapLinks) {
+    const la = content.locations[a];
+    const lb = content.locations[b];
+    if (!la || !lb) err(`Carte : lien vers un lieu inconnu (${a} – ${b})`);
+    else if (la.region !== lb.region) err(`Carte : ${a} et ${b} ne sont pas dans la même région`);
+  }
+  for (const l of Object.values(content.locations)) {
+    if (!content.regions.includes(l.region)) err(`Lieu ${l.id} : région inconnue ${l.region}`);
+  }
+
   const setFlags = new Set<string>();
   const readFlags = new Map<string, string>();
   const counters = new Set<string>();
