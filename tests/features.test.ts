@@ -7,6 +7,7 @@ import { choose, enterScene, visibleText } from '../src/engine/narrative';
 import { CLOCK_START, DEPARTED_HOUR, DEPARTURE_HOUR, formatClock } from '../src/engine/rules';
 import { validateContent } from '../src/engine/validator';
 import { migrate, SAVE_SCHEMA_VERSION, validateState } from '../src/persistence/schema';
+import type { GameState } from '../src/engine/types';
 import { at, C, pick, start } from './helpers';
 
 describe('horloge des sept jours', () => {
@@ -134,7 +135,7 @@ describe('archives et journal intime', () => {
   });
 
   it('la page du journal reflète les choix du chapitre', () => {
-    let s = { ...at(start(), 'c1_apres'), flags: { theo_soigne: true, odilon_vole: true } };
+    let s: GameState = { ...at(start(), 'c1_apres'), flags: { theo_soigne: true, odilon_vole: true } };
     s = enterScene(C, s, 'c1_fin');
     const page = s.diary.find((d) => d.chapter === 'c1')!.text;
     expect(page).toMatch(/fièvre est tombée/);
