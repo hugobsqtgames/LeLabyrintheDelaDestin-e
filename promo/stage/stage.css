@@ -1,0 +1,86 @@
+/* Identité visuelle de l'application : mêmes polices, mêmes couleurs (src/ui/tokens.ts). */
+@font-face { font-family: 'Instrument Serif'; src: url('/gf/instrument-serif/400Regular/InstrumentSerif_400Regular.ttf'); }
+@font-face { font-family: 'Instrument Serif'; font-style: italic; src: url('/gf/instrument-serif/400Regular_Italic/InstrumentSerif_400Regular_Italic.ttf'); }
+@font-face { font-family: 'JetBrains Mono'; src: url('/gf/jetbrains-mono/500Medium/JetBrainsMono_500Medium.ttf'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 600; src: url('/gf/inter-tight/600SemiBold/InterTight_600SemiBold.ttf'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 500; src: url('/gf/inter-tight/500Medium/InterTight_500Medium.ttf'); }
+
+:root {
+  --bg: #0b0a0a;
+  --text: #f4f1ec;
+  --dim: #aba59c;
+  --ember: #ff6a3d;
+  --ember-soft: #ff8a5b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 886px; height: 1920px; background: var(--bg); overflow: hidden; }
+
+#frame { position: relative; width: 886px; height: 1920px; overflow: hidden; background: var(--bg); }
+#bg, #dust, #world, #grain, #vignette, #fade, #captions { position: absolute; inset: 0; }
+#bg { will-change: background; }
+#dust { pointer-events: none; }
+#dust i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #ffd9c4; }
+#world { perspective: 2600px; perspective-origin: 50% 46%; }
+#grain { background: url('/assets/textures/grain.png') repeat; opacity: 0.2; mix-blend-mode: overlay; }
+#vignette { background: radial-gradient(ellipse 85% 70% at 50% 48%, transparent 55%, rgba(0, 0, 0, 0.72) 100%); }
+#fade { background: #000; opacity: 0; }
+
+/* ---- Téléphone : iPhone 16 Pro, écran à l'échelle de capture (393 pt × 2,5) ---- */
+.phone {
+  position: absolute; left: 0; top: 0;
+  width: 1047px; height: 2194px;          /* écran 983 × 2130 + cadre 32 px */
+  margin-left: -523.5px; margin-top: -1097px;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+.phone .shadow {
+  position: absolute; left: 6%; right: 6%; top: 8%; bottom: -2%;
+  border-radius: 180px; background: rgba(0, 0, 0, 0.85); filter: blur(70px);
+  transform: translateZ(-40px) translateY(60px);
+}
+.phone .glow {
+  position: absolute; left: -10%; right: -10%; top: 10%; bottom: 0;
+  border-radius: 50%; filter: blur(120px); opacity: 0.0;
+  transform: translateZ(-60px);
+}
+.phone .body {
+  position: absolute; inset: 0; border-radius: 178px;
+  background: linear-gradient(145deg, #5a5650 0%, #26231f 18%, #141210 50%, #2b2824 82%, #6a655d 100%);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.08), inset 0 0 0 10px #0a0909;
+}
+.phone .btn { position: absolute; width: 10px; border-radius: 4px; background: linear-gradient(90deg, #3a3631, #1a1816); }
+.phone .screen {
+  position: absolute; left: 32px; top: 32px; width: 983px; height: 2130px;
+  border-radius: 148px; overflow: hidden; background: #000;
+}
+.phone .screen img.shot { position: absolute; inset: 0; width: 983px; height: 2130px; display: block; }
+.phone .screen img.shot.b { opacity: 0; }
+.phone .status { position: absolute; left: 0; right: 0; top: 0; height: 148px; }
+.phone .status .time { position: absolute; left: 118px; top: 58px; font: 600 44px 'Inter Tight'; color: #fff; letter-spacing: -0.5px; }
+.phone .status svg { position: absolute; top: 62px; }
+.phone .island { position: absolute; left: 50%; top: 28px; width: 312px; height: 92px; margin-left: -156px; border-radius: 46px; background: #000; }
+.phone .sweep { position: absolute; inset: -20%; opacity: 0; background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.22) 50%, transparent 62%); }
+.phone .glare { position: absolute; inset: 0; border-radius: 148px; pointer-events: none;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.0) 32%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.04) 100%); }
+.phone .tap { position: absolute; border-radius: 50%; pointer-events: none; opacity: 0; }
+.phone .tap.ring { border: 5px solid rgba(255, 255, 255, 0.85); }
+.phone .tap.dot { background: rgba(255, 255, 255, 0.55); }
+
+/* ---- Textes ---- */
+#copy { position: absolute; left: 0; right: 0; top: 150px; text-align: center; padding: 0 64px; }
+.kicker { font: 500 25px 'JetBrains Mono'; letter-spacing: 4px; text-transform: uppercase; color: var(--ember-soft); }
+.headline { margin-top: 26px; font: 400 104px/0.98 'Instrument Serif'; color: var(--text); letter-spacing: -2px; }
+.headline em { font-style: italic; color: var(--ember-soft); }
+.word { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
+
+#captions .cap { position: absolute; font: 500 21px 'JetBrains Mono'; letter-spacing: 4px; color: var(--dim); text-transform: uppercase; transform: translateX(-50%); white-space: nowrap; }
+#stats { position: absolute; left: 0; right: 0; bottom: 210px; text-align: center; color: var(--text); font-size: 27px; letter-spacing: 5px; opacity: 0; }
+
+#outro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
+#icon { width: 236px; height: 236px; border-radius: 54px; box-shadow: 0 30px 90px rgba(255, 106, 61, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.brand { margin-top: 64px; font: 400 112px/0.95 'Instrument Serif'; color: var(--text); text-align: center; letter-spacing: -2.5px; }
+.brand em { font-style: italic; color: var(--ember-soft); }
+#tagline { margin-top: 44px; color: var(--dim); font-size: 24px; letter-spacing: 5px; }
+.cta { margin-top: 120px; padding: 30px 64px; border-radius: 999px; background: var(--text); color: var(--bg); font: 600 40px 'Inter Tight'; letter-spacing: -0.5px; }
+#langs { margin-top: 36px; color: var(--dim); font-size: 21px; letter-spacing: 4px; }

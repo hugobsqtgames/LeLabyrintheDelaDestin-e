@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Vidéo de présentation : images filmées et rendus intermédiaires
+promo/.cache/
+promo/out/

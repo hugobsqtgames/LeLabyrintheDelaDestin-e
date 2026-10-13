@@ -14,7 +14,7 @@ import { Newsreader_400Regular_Italic } from '@expo-google-fonts/newsreader/400R
 import { Newsreader_600SemiBold } from '@expo-google-fonts/newsreader/600SemiBold';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppRouter } from './AppRouter';
@@ -23,6 +23,7 @@ import { CONTENT } from './content';
 import { asyncStorageAdapter } from './persistence/asyncStorage';
 import { SaveManager } from './persistence/saves';
 import { useT } from './i18n';
+import { promoParams, PromoRoot } from './promo/PromoRoot';
 import { GameProvider, useStore } from './store/GameStore';
 import { Emblem } from './ui/art/Logo';
 import { Button } from './ui/components/primitives';
@@ -80,11 +81,14 @@ export default function App() {
     Newsreader_600SemiBold,
   });
   const saves = useMemo(() => new SaveManager(asyncStorageAdapter, CONTENT), []);
+  const [promo] = useState(promoParams);
 
   return (
     <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
       <StatusBar style="light" />
-      {fontsLoaded || fontError ? (
+      {(fontsLoaded || fontError) && promo ? (
+        <PromoRoot id={promo.id} lang={promo.lang} />
+      ) : fontsLoaded || fontError ? (
         <GameProvider saves={saves}>
           <Ambience />
           <Shell />

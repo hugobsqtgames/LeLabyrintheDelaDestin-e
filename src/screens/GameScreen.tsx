@@ -4,7 +4,7 @@
  * chapitre. Consulter la fiche, le sac ou la carte ne modifie jamais la
  * position dans l'histoire.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { recap } from '../engine/summary';
@@ -38,15 +38,20 @@ function ChapterTransition({ chapter, onDone }: { chapter: ChapterDef; onDone: (
   const { reduceMotion } = useStore();
   const t = useT();
   const [v] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  // Rappel stable : un nouveau rendu de l'écran ne doit pas relancer le carton.
+  const done = useRef(onDone);
+  useEffect(() => {
+    done.current = onDone;
+  });
   useEffect(() => {
     const seq = Animated.sequence([
       Animated.timing(v, { toValue: 1, duration: reduceMotion ? 0 : 900, useNativeDriver: NATIVE_DRIVER }),
       Animated.delay(reduceMotion ? 2600 : 2200),
       Animated.timing(v, { toValue: 2, duration: reduceMotion ? 0 : 700, useNativeDriver: NATIVE_DRIVER }),
     ]);
-    seq.start(({ finished }) => finished && onDone());
+    seq.start(({ finished }) => finished && done.current());
     return () => seq.stop();
-  }, [v, reduceMotion, onDone]);
+  }, [v, reduceMotion]);
   const opacity = v.interpolate({ inputRange: [0, 1, 2], outputRange: [0, 1, 0] });
   const lift = v.interpolate({ inputRange: [0, 1, 2], outputRange: [24, 0, -12] });
   return (

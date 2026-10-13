@@ -1,12 +1,12 @@
 /**
  * Feuille modale et boîte de confirmation personnalisées.
  */
-import React, { createContext, useContext } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../store/GameStore';
 import { useT } from '../../i18n';
-import { colors, CONTINUOUS, radius, space, type } from '../theme';
+import { colors, CONTINUOUS, NATIVE_DRIVER, radius, space, type } from '../theme';
 import { Glass } from './Glass';
 import { Button, IconButton } from './primitives';
 
@@ -16,9 +16,29 @@ import { Button, IconButton } from './primitives';
  */
 export const ModalModeContext = createContext<'modal' | 'inline'>('modal');
 
+/** Apparition d'une couche en mode « inline » (animation pilotée en JavaScript). */
+function InlineLayer({ children, animation }: { children: React.ReactNode; animation: 'none' | 'slide' | 'fade' }) {
+  const { reduceMotion } = useStore();
+  const [v] = useState(() => new Animated.Value(animation === 'none' || reduceMotion ? 1 : 0));
+  useEffect(() => {
+    if (animation === 'none' || reduceMotion) return;
+    const a = Animated.timing(v, { toValue: 1, duration: animation === 'slide' ? 380 : 260, easing: Easing.out(Easing.cubic), useNativeDriver: NATIVE_DRIVER });
+    a.start();
+    return () => a.stop();
+  }, [v, animation, reduceMotion]);
+  const translateY = animation === 'slide' ? v.interpolate({ inputRange: [0, 1], outputRange: [420, 0] }) : 0;
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 50 }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: animation === 'slide' ? v.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }) : v }]}>
+        <Animated.View style={{ flex: 1, transform: [{ translateY }] }}>{children}</Animated.View>
+      </Animated.View>
+    </View>
+  );
+}
+
 export function Layer({ visible, children, onRequestClose, animation }: { visible: boolean; children: React.ReactNode; onRequestClose: () => void; animation: 'none' | 'slide' | 'fade' }) {
   const mode = useContext(ModalModeContext);
-  if (mode === 'inline') return visible ? <View style={[StyleSheet.absoluteFill, { zIndex: 50 }]}>{children}</View> : null;
+  if (mode === 'inline') return visible ? <InlineLayer animation={animation}>{children}</InlineLayer> : null;
   return (
     <Modal visible={visible} transparent animationType={animation} onRequestClose={onRequestClose} statusBarTranslucent>
       {children}

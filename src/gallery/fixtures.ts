@@ -9,12 +9,13 @@ import { performAction } from '../engine/combat';
 import { applyEffects } from '../engine/effects';
 import { addItem, equip } from '../engine/inventory';
 import { choose, enterScene, newGame } from '../engine/narrative';
-import type { CharacterDraft, GameState } from '../engine/types';
+import type { CharacterDraft, GameContent, GameState } from '../engine/types';
 import { serialize } from '../persistence/schema';
 import type { AppModel, SavesMode, Tab } from '../store/GameStore';
 import type { ScreenProps } from '../AppRouter';
 
-const C = CONTENT;
+/** Contenu utilisé pour construire les états (français par défaut, ou la langue demandée). */
+let C: GameContent = CONTENT;
 
 export const DEMO_DRAFT: CharacterDraft = {
   name: 'Lou Ardent',
@@ -70,7 +71,8 @@ function game(state: GameState, tab: Tab = 'story', extra: Partial<AppModel> = {
   return { route: 'game', game: state, tab, slot: 1, ...extra };
 }
 
-export function buildMockups(): Mockup[] {
+export function buildMockups(content: GameContent = CONTENT): Mockup[] {
+  C = content;
   const start = base();
   const kazDoor = (() => {
     let s = pick(pick(pick(start, 'noter'), 'dire'), 'porte');
