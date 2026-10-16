@@ -37,7 +37,6 @@ import {
   world,
   xp,
   doc,
-  waitUntil,
   diary,
 } from '../helpers';
 
@@ -157,14 +156,14 @@ export const chapter2: Scene[] = [
       {
         id: 'malik',
         text: 'Suivre les flèches marquées d’un M.',
-        kind: 'explore', time: 13,
+        kind: 'explore', time: 4,
         visibleIf: [quest('q_malik', 'active'), withUs('ines')],
         next: 'c2_malik',
       },
       {
         id: 'anciens',
         text: '[Cataphile] Prendre le passage des Anciens, une chatière que vous seul connaissez.',
-        kind: 'move', time: 14,
+        kind: 'move', time: 4,
         visibleIf: [background('cataphile')],
         effects: [xp(15)],
         next: 'c2_anciens',
@@ -172,20 +171,20 @@ export const chapter2: Scene[] = [
       {
         id: 'boyau',
         text: 'Ramper par le boyau étroit.',
-        kind: 'stealth', time: 17,
+        kind: 'stealth', time: 5,
         requires: [stat('discretion', 3)],
         next: 'c2_boyau',
       },
       {
         id: 'puits',
         text: 'Traverser le Puits noyé.',
-        kind: 'explore', time: 18,
+        kind: 'explore', time: 5,
         check: { stat: 'survie', difficulty: 9, success: 'c2_puits_ok', failure: 'c2_puits_ko' },
       },
       {
         id: 'eboulis',
         text: 'Dégager l’éboulis et passer en force.',
-        kind: 'fight', time: 17,
+        kind: 'fight', time: 5,
         requires: [any(stat('force', 5), has('pied_de_biche'))],
         next: 'c2_eboulis',
       },
@@ -390,7 +389,7 @@ export const chapter2: Scene[] = [
       {
         id: 'soigner_maelle',
         text: 'Donner vos antibiotiques à Maëlle, tant qu’il est encore temps.',
-        kind: 'item', time: 12,
+        kind: 'item', time: 2,
         visibleIf: [MAELLE_BLESSEE],
         requires: [has('antibiotiques')],
         effects: [take('antibiotiques', 1), set('maelle_soignee'), rel('maelle', 4), xp(20), journal('Vous avez sauvé Maëlle avec vos derniers antibiotiques.')],
@@ -597,7 +596,7 @@ export const chapter2: Scene[] = [
       {
         id: 'reparer',
         text: 'Remplacer le condensateur et refaire les connexions.',
-        kind: 'explore', time: 4,
+        kind: 'explore', time: 2,
         requires: [any(has('outils'), profile('technicien')), has('composants')],
         check: {
           stat: 'astuce',
@@ -610,7 +609,7 @@ export const chapter2: Scene[] = [
       {
         id: 'bricoler',
         text: 'Tenter de la relancer en court-circuitant le démarreur.',
-        kind: 'explore', time: 4,
+        kind: 'explore', time: 2,
         check: { stat: 'astuce', difficulty: 11, success: 'c2_pompe_ok', failure: 'c2_pompe_ko' },
       },
       { id: 'retour', text: 'Remonter à l’ossuaire.', kind: 'move', next: 'c2_ossuaire' },
@@ -746,7 +745,7 @@ export const chapter2: Scene[] = [
       say('theo', '« Tu dors ? »', all(withUs('theo'), relMin('theo', 3), notFlag('theo_verite'))),
       say('maelle', '« Il faut qu’on parle. »', all(withUs('maelle'), has('lettre_maelle'), notFlag('theo_verite'))),
     ],
-    onEnter: [waitUntil(6), set('nuit_ossuaire'), rest(10)],
+    onEnter: [{ type: 'time', hours: 6 }, set('nuit_ossuaire'), rest(10)],
     choices: [
       {
         id: 'lettre',
@@ -943,7 +942,7 @@ export const chapter2: Scene[] = [
       set('berger_tue'),
       journal('Vous avez abattu le Berger dans la Grande Salle et pris sa cloche.'),
     ],
-    choices: [{ id: 'sortie', text: 'Traverser la Grande Salle vers le fleuve.', kind: 'move', time: 4, next: 'c2_sortie' }],
+    choices: [{ id: 'sortie', text: 'Traverser la Grande Salle vers le fleuve.', kind: 'move', time: 2, next: 'c2_sortie' }],
   },
   {
     id: 'c2_aqueduc',
@@ -959,7 +958,7 @@ export const chapter2: Scene[] = [
       {
         id: 'avancer',
         text: 'Avancer, un pas après l’autre.',
-        kind: 'stealth', time: 9,
+        kind: 'stealth', time: 4,
         check: { stat: 'discretion', difficulty: 9, success: 'c2_aqueduc_ok', failure: 'c2_aqueduc_ko' },
       },
       { id: 'reculer', text: 'Faire demi-tour vers l’ossuaire.', kind: 'flee', next: 'c2_ossuaire' },
@@ -976,7 +975,7 @@ export const chapter2: Scene[] = [
       p('Le Berger vit toujours, en bas, dans le noir. C’est un problème pour les Veilleurs. Ce n’est plus le vôtre.'),
     ],
     onEnter: [questFx('q_berger', 'completed'), set('berger_evite'), xp(50), journal('Vous avez contourné le Berger par l’aqueduc romain.')],
-    choices: [{ id: 'sortie', text: 'Sortir sur la berge.', kind: 'move', time: 3, next: 'c2_sortie' }],
+    choices: [{ id: 'sortie', text: 'Sortir sur la berge.', kind: 'move', time: 2, next: 'c2_sortie' }],
   },
   {
     id: 'c2_aqueduc_ko',
@@ -1066,7 +1065,7 @@ export const chapter2: Scene[] = [
       p('Il reste {reste} avant l’aube du septième.'),
     ],
     onEnter: [meal(), diary('c2'), step('q_destinee', 'port'), journal('Le groupe est sorti du Labyrinthe.')],
-    choices: [{ id: 'suite', text: 'Chapitre 3 : La Ferraille et l’Eau', kind: 'move', time: 3, next: 'c3_quai' }],
+    choices: [{ id: 'suite', text: 'Chapitre 3 : Les Faubourgs', kind: 'move', time: 1, next: 'fb_sortie' }],
   },
 ];
 

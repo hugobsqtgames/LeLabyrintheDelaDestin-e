@@ -25,6 +25,7 @@ const STATUS_COLOR: Record<CompanionStatus, string> = {
   away: colors.steel,
   captured: colors.amber,
   dead: colors.blood,
+  hero: colors.violet,
 };
 
 function relationKey(v: number): string {

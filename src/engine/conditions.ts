@@ -9,8 +9,11 @@ export function evaluate(content: GameContent, state: GameState, c: Condition): 
   switch (c.type) {
     case 'stat':
       return effectiveStat(content, state, c.stat) >= c.min;
-    case 'profile':
-      return c.profiles.includes(state.player.profile);
+    case 'profile': {
+      // Un compagnon en relève compte comme son profil de famille (Kaz : guerrier…).
+      const fam = content.profiles[state.player.profile]?.family;
+      return c.profiles.includes(state.player.profile) || (!!fam && c.profiles.includes(fam));
+    }
     case 'background':
       return c.backgrounds.includes(state.player.background);
     case 'item':

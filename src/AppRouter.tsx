@@ -16,7 +16,7 @@ import { useStore } from './store/GameStore';
 export interface ScreenProps {
   create?: { initialDraft?: CharacterDraft; initialStep?: number };
   saves?: { initialSlots?: SlotInfo[] };
-  game?: { initialPaused?: boolean; intro?: boolean };
+  game?: { initialPaused?: boolean; intro?: boolean; tutorialStep?: number };
 }
 
 export function AppRouter({ screenProps = {} }: { screenProps?: ScreenProps }) {

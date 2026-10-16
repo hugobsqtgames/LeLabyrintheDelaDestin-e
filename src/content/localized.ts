@@ -10,11 +10,12 @@ import c2 from './en/c2.json';
 import c3 from './en/c3.json';
 import c4 from './en/c4.json';
 import { MESSAGES_EN } from './en/messages';
+import road from './en/road.json';
 import world from './en/world.json';
 import { CONTENT } from './index';
 import { type Dictionary, translateContent } from './translate';
 
-export const EN_DICTIONARY: Dictionary = { ...world, ...c1, ...c2, ...c3, ...c4 };
+export const EN_DICTIONARY: Dictionary = { ...world, ...c1, ...c2, ...c3, ...c4, ...road };
 
 let english: GameContent | null = null;
 

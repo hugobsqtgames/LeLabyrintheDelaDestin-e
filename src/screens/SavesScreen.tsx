@@ -154,7 +154,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                   )}
                 </View>
                 {current && <Badge label={t('saves.current')} color={colors.mossBright} />}
-                {sum?.ended && <Badge label={sum.ended === 'death' ? t('saves.dead') : t('saves.ended')} color={sum.ended === 'death' ? colors.blood : colors.amber} />}
+                {sum?.ended && <Badge label={sum.relay ? t('saves.relay') : sum.ended === 'death' ? t('saves.dead') : t('saves.ended')} color={sum.relay ? colors.violet : sum.ended === 'death' ? colors.blood : colors.amber} />}
               </View>
               {s.error && <Text style={[type.uiSmall, { color: colors.amber }]}>{translateSaveMessage(lang, s.error)}</Text>}
               <View style={{ flexDirection: 'row', gap: space.sm }}>

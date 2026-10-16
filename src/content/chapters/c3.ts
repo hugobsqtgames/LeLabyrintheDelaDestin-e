@@ -1123,7 +1123,7 @@ export const chapter3: Scene[] = [
       p('Il reste {reste} avant l’aube du septième.'),
     ],
     onEnter: [meal(), diary('c3')],
-    choices: [{ id: 'suite', text: 'Chapitre 4 : La Destinée', kind: 'move', time: 14, next: 'c4_halage' }],
+    choices: [{ id: 'suite', text: 'Chapitre 5 : Les Vergers noyés', kind: 'move', time: 1, next: 'r1_berge' }],
   },
 ];
 

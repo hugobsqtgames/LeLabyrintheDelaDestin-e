@@ -71,6 +71,12 @@ function tickStatuses(list: StatusInstance[]): StatusInstance[] {
   return list.map((s) => ({ ...s, turns: s.turns - 1 })).filter((s) => s.turns > 0);
 }
 
+/** Famille de mécaniques du personnage joué (profil d'origine ou compagnon en relève). */
+export function family(content: GameContent, state: GameState): 'guerrier' | 'eclaireur' | 'technicien' {
+  const p = content.profiles[state.player.profile];
+  return p?.family ?? (state.player.profile as 'guerrier' | 'eclaireur' | 'technicien');
+}
+
 export function enemyDef(content: GameContent, enemy: CombatEnemy): EnemyDef {
   const def = content.enemies[enemy.def];
   if (!def) throw new Error(`Ennemi inconnu : ${enemy.def}`);
@@ -400,7 +406,7 @@ function playerAttack(content: GameContent, state: GameState, action: CombatActi
     s = { ...s, rng: crit.seed };
     let label = weaponName;
     if (ambush) {
-      const mult = s.player.profile === 'eclaireur' ? COMBAT.ambushMultiplier + 0.5 : COMBAT.ambushMultiplier;
+      const mult = family(content, s) === 'eclaireur' ? COMBAT.ambushMultiplier + 0.5 : COMBAT.ambushMultiplier;
       dmg = Math.round(dmg * mult);
       label = msg(content, 'combat.ambushLabel', { weapon: weaponName });
     } else if (crit.value) {
@@ -435,10 +441,17 @@ function playerSkill(content: GameContent, state: GameState, action: CombatActio
   const profile = content.profiles[state.player.profile];
   let s = spendStamina(content, state, profile.skill.staminaCost);
   s = withCombat(s, { ...s.combat!, skillCooldown: profile.skill.cooldown + 1 });
+  if (profile.healSkill) {
+    // Soignante : premiers soins en plein combat (saignement et faiblesse résorbés).
+    const amount = Math.round((8 + state.player.stats.survie * 2) * healingMultiplier(content, s));
+    s = { ...s, player: { ...s.player, hp: clamp(s.player.hp + amount, 0, maxHp(content, s)) } };
+    const statuses = removeStatus(removeStatus(s.combat!.playerStatuses, 'saignement'), 'affaibli');
+    return withCombat(s, log({ ...s.combat!, playerStatuses: statuses }, msg(content, 'combat.firstAid', { skill: profile.skill.name, amount }), 'player'));
+  }
   const targetUid = defaultTarget(s, action.target);
   if (!targetUid) return s;
   const target = s.combat!.enemies.find((e) => e.uid === targetUid)!;
-  switch (state.player.profile) {
+  switch (family(content, state)) {
     case 'guerrier': {
       const [min, max] = weaponDamageRange(content, s, 'melee');
       const roll = nextInt(s.rng, min, max);
@@ -480,7 +493,7 @@ function playerSkill2(content: GameContent, state: GameState): GameState {
   const skill = content.profiles[state.player.profile].skill2;
   let s = spendStamina(content, state, skill.staminaCost);
   s = withCombat(s, { ...s.combat!, skill2Cooldown: skill.cooldown + 1 });
-  switch (state.player.profile) {
+  switch (family(content, state)) {
     case 'guerrier': {
       s = { ...s, player: { ...s.player, stamina: clamp(s.player.stamina + 4, 0, maxStamina(content, s)) } };
       return withCombat(s, log({ ...s.combat!, fortified: true, playerStatuses: removeStatus(s.combat!.playerStatuses, 'agrippe') }, msg(content, 'combat.fortify', { skill: skill.name }), 'player'));
@@ -599,7 +612,7 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
     if (d.value) {
       s = withCombat(s, log(s.combat!, msg(content, 'combat.dodged', { move: move.name }), 'player'));
       // L'éclaireur riposte après chaque esquive réussie.
-      if (s.player.profile === 'eclaireur') {
+      if (family(content, s) === 'eclaireur') {
         const [min, max] = weaponDamageRange(content, s, 'melee');
         const counter = nextInt(s.rng, min, max);
         s = { ...s, rng: counter.seed };

@@ -10,8 +10,8 @@
 // ---------------------------------------------------------------------------
 
 export type StatId = 'force' | 'discretion' | 'survie' | 'astuce';
-export type ProfileId = 'guerrier' | 'eclaireur' | 'technicien';
-export type BackgroundId = 'ambulancier' | 'detenu' | 'cataphile' | 'pompier';
+export type ProfileId = 'guerrier' | 'eclaireur' | 'technicien' | 'eclusier' | 'infirmiere' | 'passeuse';
+export type BackgroundId = 'ambulancier' | 'detenu' | 'cataphile' | 'pompier' | 'eclusier' | 'infirmiere' | 'passeuse';
 export type EmblemId = 'masque' | 'boussole' | 'cle' | 'corbeau' | 'fougere' | 'lame';
 export type PerkId =
   | 'premiers_secours'
@@ -40,7 +40,8 @@ export type Stats = Record<StatId, number>;
 // ---------------------------------------------------------------------------
 
 export type QuestStatus = 'inactive' | 'active' | 'completed' | 'failed';
-export type CompanionStatus = 'unknown' | 'met' | 'companion' | 'away' | 'captured' | 'dead';
+/** `hero` : ce compagnon a repris la route à la place du protagoniste (relève). */
+export type CompanionStatus = 'unknown' | 'met' | 'companion' | 'away' | 'captured' | 'dead' | 'hero';
 
 export type Condition =
   | { type: 'stat'; stat: StatId; min: number }
@@ -490,6 +491,10 @@ export interface GameState {
   documents: DocumentId[];
   /** Journal intime : une entrée par chapitre. */
   diary: { chapter: ChapterId; text: string }[];
+  /** Compagnon qui a repris la route (null : le protagoniste créé au départ). */
+  hero: CharacterId | null;
+  /** Ceux qui sont tombés avant la relève. */
+  fallen: FallenHero[];
   /** Dernier jet de dés effectué (affiché dans l'histoire). */
   lastCheck: { stat: StatId; roll: [number, number]; total: number; difficulty: number; success: boolean } | null;
 }
@@ -497,6 +502,37 @@ export interface GameState {
 // ---------------------------------------------------------------------------
 // Contenu
 // ---------------------------------------------------------------------------
+
+/** Un personnage joueur mort avant la relève. */
+export interface FallenHero {
+  name: string;
+  profile: ProfileId;
+  level: number;
+  chapter: ChapterId;
+  scene: SceneId;
+  turn: number;
+  /** Compagnon (id) ou null pour le protagoniste d'origine. */
+  character: CharacterId | null;
+}
+
+/** Fiche d'un compagnon capable de reprendre la route (relève). */
+export interface HeroSheet {
+  character: CharacterId;
+  /** Nom porté une fois aux commandes (court : « Kaz »). */
+  name: string;
+  profile: ProfileId;
+  background: BackgroundId;
+  /** Caractéristiques de base au niveau 1. */
+  stats: Stats;
+  /** Ordre d'attribution des points gagnés en montant de niveau. */
+  growth: StatId[];
+  /** Niveau minimal ; le niveau réel suit la progression du voyage. */
+  level: number;
+  perks: PerkId[];
+  items: Record<ItemId, number>;
+  equipment: Partial<Record<EquipSlot, ItemId>>;
+  emblem: EmblemId;
+}
 
 export interface ProfileDef {
   id: ProfileId;
@@ -510,6 +546,12 @@ export interface ProfileDef {
   startingItems: Record<ItemId, number>;
   startingEquipment: Partial<Record<EquipSlot, ItemId>>;
   art: string;
+  /** Famille de mécaniques de combat (les profils de compagnons réutilisent celles des trois profils). */
+  family?: 'guerrier' | 'eclaireur' | 'technicien';
+  /** Compétence de soin (remplace la compétence de famille). */
+  healSkill?: boolean;
+  /** Absent de la création de personnage. */
+  hidden?: boolean;
 }
 
 export interface BackgroundDef {
@@ -525,6 +567,8 @@ export interface BackgroundDef {
   checkModifiers?: Partial<Stats>;
   startingItems?: Record<ItemId, number>;
   startingRelations?: Record<CharacterId, number>;
+  /** Absent de la création de personnage. */
+  hidden?: boolean;
 }
 
 export interface CharacterDef {
@@ -567,6 +611,10 @@ export interface ChapterDef {
   subtitle: string;
   region: string;
   start: SceneId;
+  /** Ambiance lumineuse de l'interface (halos du fond). */
+  aura?: string;
+  /** Une infection non soignée s'aggrave en entrant dans ce chapitre. */
+  infects?: boolean;
 }
 
 /** Une phrase du journal intime, retenue si sa condition est remplie. */
@@ -577,6 +625,8 @@ export interface DiaryRule {
 }
 
 export interface EndingDef {
+  /** Mort : le corps peut-il être fouillé par celui qui prend la relève ? (défaut : oui) */
+  remains?: 'recoverable' | 'lost';
   id: EndingId;
   title: string;
   kind: 'ending' | 'death';
@@ -618,6 +668,8 @@ export interface GameContent {
   documents: Record<DocumentId, DocumentDef>;
   diaryRules: DiaryRule[];
   summaryRules: SummaryRule[];
+  /** Compagnons jouables en cas de relève. */
+  heroes: Record<CharacterId, HeroSheet>;
   startScene: SceneId;
   /**
    * Messages du moteur (notifications, journal de combat, raisons de

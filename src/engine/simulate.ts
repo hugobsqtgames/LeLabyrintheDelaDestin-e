@@ -137,7 +137,7 @@ export function simulate(
   content: GameContent,
   policy: Policy,
   seed: number,
-  options: { maxSteps?: number; draft?: CharacterDraft } = {},
+  options: { maxSteps?: number; draft?: CharacterDraft; /** Trace du temps passé par choix (équilibrage de l'horloge). */ trace?: (scene: string, choice: string, hours: number) => void } = {},
 ): SimulationResult {
   const rng = { seed: seed ^ 0x9e3779b9 };
   let state = newGame(content, options.draft ?? draftFor(policy, seed), { seed, id: `sim-${seed}`, now: 0 });
@@ -187,6 +187,7 @@ export function simulate(
       }
       const res = choose(content, state, state.currentScene, pick.choice.id);
       if (!res.ok) return { state, steps, ending: null, stuck: true, path, combats, error: res.error, clockAt };
+      options.trace?.(state.currentScene, pick.choice.id, res.state.clock - state.clock);
       state = res.state;
       if (path[path.length - 1] !== state.currentScene) path.push(state.currentScene);
     }

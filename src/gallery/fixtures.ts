@@ -12,6 +12,7 @@ import { choose, enterScene, newGame } from '../engine/narrative';
 import type { CharacterDraft, GameContent, GameState } from '../engine/types';
 import { serialize } from '../persistence/schema';
 import type { AppModel, SavesMode, Tab } from '../store/GameStore';
+import { DEFAULT_SETTINGS } from '../store/settings';
 import type { ScreenProps } from '../AppRouter';
 
 /** Contenu utilisé pour construire les états (français par défaut, ou la langue demandée). */
@@ -121,8 +122,22 @@ export function buildMockups(content: GameContent = CONTENT): Mockup[] {
     return enterScene(C, { ...s, chapter: 'c1' }, 'c1_fin');
   })();
   const death = (() => {
-    const s = midGame();
+    // Personne pour prendre la relève : la mort est définitive.
+    const s = applyEffects(C, midGame(), [
+      { type: 'companion', character: 'ines', status: 'away' },
+      { type: 'companion', character: 'maelle', status: 'away' },
+      { type: 'companion', character: 'kaz', status: 'away' },
+    ]);
     return enterScene(C, s, 'c2_mort_berger');
+  })();
+  const relay = (() => {
+    // Mort sur la route, Kaz, Maëlle et Inès présents : la relève est proposée, le corps peut être fouillé.
+    let s = applyEffects(C, midGame(), [
+      { type: 'giveItem', item: 'molotov', qty: 1 },
+      { type: 'giveItem', item: 'bandage', qty: 2 },
+    ]);
+    s = { ...s, chapter: 'r6' };
+    return enterScene(C, { ...s, previousScene: 'r6_passe' }, 'r6_mort');
   })();
   const ending = (() => {
     let s = midGame();
@@ -203,6 +218,9 @@ export function buildMockups(content: GameContent = CONTENT): Mockup[] {
     { id: 'pause', title: 'Pause', caption: 'Autosauvegarde, copie vers un emplacement, paramètres.', model: game(midGame()), screenProps: { game: { initialPaused: true } } },
     { id: 'settings', title: 'Paramètres', caption: 'Langue, ambiance sonore, choix chronométrés, animations, taille du texte.', model: { route: 'settings' } },
     { id: 'saves', title: 'Sauvegardes', caption: 'Emplacements, sauvegarde corrompue, suppression confirmée.', model: savesModel('load'), screenProps: { saves: { initialSlots: slots() } } },
+    { id: 'tutorial', title: 'Tutoriel · les choix', caption: 'Visite guidée au premier lancement : récit, choix et probabilités, bandeau, horloge, chaque onglet. Rejouable dans les paramètres.', model: game(start, 'story', { settings: { ...DEFAULT_SETTINGS, tutorialDone: false } }), screenProps: { game: { intro: false, tutorialStep: 2 } } },
+    { id: 'tutorial-tab', title: 'Tutoriel · un onglet', caption: 'Chaque étape ouvre l’onglet qu’elle présente et l’entoure dans la barre.', model: game(midGame(), 'inventory', { settings: { ...DEFAULT_SETTINGS, tutorialDone: false } }), screenProps: { game: { intro: false, tutorialStep: 7 } } },
+    { id: 'relay', title: 'Relève · un compagnon reprend la route', caption: 'À la mort du héros, un compagnon jouable prend le relais avec sa propre fiche ; fouille du corps limitée à trois objets.', model: game(relay), screenProps: { game: { intro: false } } },
     { id: 'death', title: 'Mort définitive', caption: 'Épitaphe, récapitulatif, recommencer sans écraser.', model: game(death), screenProps: { game: { intro: false } } },
     { id: 'ending', title: 'Fin · L’Accord', caption: 'Épilogue conditionné par les choix, alliés, bilan.', model: game(ending), screenProps: { game: { intro: false } } },
   ];

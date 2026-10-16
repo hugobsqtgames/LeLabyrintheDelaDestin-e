@@ -21,7 +21,18 @@ const DANGER_COLOR = ['', colors.mossBright, colors.amber, colors.blood];
 function RegionDecor({ index }: { index: number }) {
   switch (index) {
     case 2:
+      // Faubourgs : faisceau de voies ferrées.
+      return (
+        <G stroke="rgba(255,248,240,0.07)" strokeWidth={1.5}>
+          <Line x1={0} y1={62} x2={100} y2={52} />
+          <Line x1={0} y1={66} x2={100} y2={56} />
+          <Line x1={0} y1={78} x2={100} y2={64} />
+          <Line x1={0} y1={82} x2={100} y2={68} />
+        </G>
+      );
     case 3:
+    case 4:
+    case 5:
       return <Path d="M0 82 C 25 70, 45 92, 70 80 S 100 70, 100 74 L100 100 L0 100 Z" fill="rgba(156,203,255,0.08)" />;
     case 1:
       return (

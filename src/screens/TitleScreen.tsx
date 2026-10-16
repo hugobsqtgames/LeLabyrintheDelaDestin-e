@@ -38,7 +38,7 @@ export function TitleScreen() {
     return () => loop.stop();
   }, [spin, reduceMotion]);
 
-  const playable = (slots ?? []).filter((s) => s.status === 'ok' && !s.summary?.ended);
+  const playable = (slots ?? []).filter((s) => s.status === 'ok' && (!s.summary?.ended || !!s.summary?.relay));
   const last = playable.find((s) => s.slot === model.settings.lastSlot) ?? [...playable].sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))[0];
 
   const onContinue = async () => {

@@ -1,5 +1,5 @@
 import type { SummaryRule } from '../engine/types';
-import { all, companionIs, flag, not, notFlag, quest } from './helpers';
+import { all, any, companionIs, flag, not, notFlag, quest } from './helpers';
 
 /** Lignes du récapitulatif de fin, filtrées selon l'état réellement vécu. */
 export const SUMMARY_RULES: SummaryRule[] = [
@@ -31,8 +31,30 @@ export const SUMMARY_RULES: SummaryRule[] = [
   { if: flag('foule_soulevee'), text: 'Vous avez fait entendre la vérité à toute la foule de l’écluse.', tone: 'neutral' },
   { if: flag('cloche_utilisee'), text: 'La cloche du Berger a emmené la horde loin de l’écluse.', tone: 'good' },
   { if: flag('vanne_auto'), text: 'Votre cliquet préparé a ouvert l’écluse sans sacrifier personne.', tone: 'good' },
-  { if: flag('aide_famille'), text: 'Vous avez soigné un enfant inconnu devant la grille.', tone: 'good' },
+  { if: all(flag('aide_famille'), notFlag('delmas_sauves'), notFlag('delmas_abandonnes')), text: 'Vous avez soigné un enfant inconnu devant la grille.', tone: 'good' },
+  { if: all(flag('aide_famille'), any(flag('delmas_sauves'), flag('delmas_abandonnes'))), text: 'Devant la grille, vous avez soigné le petit Jules Delmas.', tone: 'good' },
   { if: flag('gaspard_temoigne'), text: 'Gaspard Lenoir a avoué le commerce des porteurs devant la docteure Sorel.', tone: 'good' },
+  // La route du fleuve (chapitres 3 à 14).
+  { if: flag('armand_aide'), text: 'Vous avez aidé Armand Vidal, l’aiguilleur de la gare de triage.', tone: 'good' },
+  { if: quest('q_armand', 'failed'), text: 'Vous avez laissé tomber le vieil aiguilleur des Faubourgs.', tone: 'bad' },
+  { if: flag('delmas_sauves'), text: 'Vous avez descendu Claire et Jules Delmas de leur toit, au milieu des vergers noyés.', tone: 'good' },
+  { if: flag('delmas_abandonnes'), text: 'Vous avez laissé Claire et Jules Delmas sur leur toit.', tone: 'bad' },
+  { if: flag('peage_paye'), text: 'Vous avez payé le Péage pour passer la rocade.', tone: 'neutral' },
+  { if: flag('peage_vaincu'), text: 'Vous avez abattu le Péage et ouvert la rocade à tous.', tone: 'good' },
+  { if: flag('peage_contourne'), text: 'Vous avez contourné le Péage par le viaduc.', tone: 'neutral' },
+  { if: flag('prieure_sang_donne'), text: 'Théo a donné son sang aux pensionnaires du prieuré.', tone: 'neutral' },
+  { if: flag('prieure_refuge'), text: 'Le prieuré de Saint-Aubin vous a promis un refuge.', tone: 'good' },
+  { if: flag('courant_retabli'), text: 'Vous avez rendu le courant au barrage de Vaulx.', tone: 'good' },
+  { if: flag('ordre_trouve'), text: 'Vous avez trouvé l’ordre de mission signé par Rousset dans l’épave du convoi.', tone: 'good' },
+  { if: flag('dame_tuee'), text: 'Vous avez abattu la Dame des tourbières.', tone: 'good' },
+  { if: flag('dame_evitee'), text: 'Vous avez traversé les tourbières sans réveiller la Dame.', tone: 'neutral' },
+  { if: flag('brennes_demasque'), text: 'Vous avez démasqué le maire de Brennes devant son village.', tone: 'good' },
+  { if: flag('brennes_fuite'), text: 'Vous avez fui Brennes par la voie ferrée.', tone: 'neutral' },
+  { if: flag('draisine_prise'), text: 'Vous avez descendu la ligne du fleuve sur la draisine d’Armand.', tone: 'good' },
+  { if: flag('theo_libere'), text: 'Vous avez ouvert la cage de Théo au gué de la Sauldre.', tone: 'good' },
+  { if: all(flag('r9_theo_vendu'), flag('theo_libere')), text: 'Vous aviez vendu Théo. Vous l’avez repris. Il ne l’a pas oublié.', tone: 'neutral' },
+  { if: flag('captifs_liberes'), text: 'Vous avez libéré les captifs de la livraison au gué.', tone: 'good' },
+  { if: flag('vanne_electrique'), text: 'Le courant de Vaulx a ouvert les portes de l’écluse.', tone: 'good' },
   { if: flag('en_retard'), text: 'Vous êtes arrivé à l’écluse après l’aube du septième jour.', tone: 'bad' },
   { if: flag('barge_manquee'), text: 'La Destinée est partie sans vous.', tone: 'bad' },
 ];

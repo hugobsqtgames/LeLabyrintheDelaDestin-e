@@ -25,7 +25,7 @@ import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, type } f
 
 function DialogueLine({ block, game, scale }: { block: TextBlock; game: GameState; scale: number }) {
   const { content } = useStore();
-  const isMe = block.speaker === 'moi';
+  const isMe = block.speaker === 'moi' || (!!game.hero && block.speaker === game.hero);
   const ch = !isMe && block.speaker ? content.characters[block.speaker] : null;
   const name = isMe ? game.player.name : ch?.name ?? '';
   const color = isMe ? colors.paperDim : ch?.color ?? colors.textDim;

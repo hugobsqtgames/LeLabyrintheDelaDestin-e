@@ -8,7 +8,7 @@
  * 12,2 – 15,6 Combat      « Des combats sans pitié. »        deux coups portés, secousse
  * 15,6 – 18,8 Relations   « Ils se souviennent de vous. »    fiche : portraits, relations
  * 18,8 – 22,3 Monde       « Un monde qui garde vos traces. » trois téléphones : carte, archives, atelier
- * 22,3 – 25,8 Récit       plongée dans l'écran              carton de chapitre plein cadre, « 4 chapitres · 6 fins »
+ * 22,3 – 25,8 Récit       plongée dans l'écran              carton de chapitre plein cadre, « 15 chapitres · 6 fins »
  * 25,8 – 30,0 Conclusion  icône, nom, « Entrez dans le Labyrinthe »
  *
  * Les écrans sont des plans filmés dans l'application (promo/clips.mjs) :
@@ -45,7 +45,7 @@ export const COPY = [
   { in: 18.95, out: 22.15, text: T('Un monde qui garde<br><em>vos traces.</em>', 'A world that<br><em>bears your scars.</em>') },
 ];
 
-export const STATS = { in: 24.1, out: 25.7, text: T('4 chapitres · 6 fins · 159 scènes', '4 chapters · 6 endings · 159 scenes') };
+export const STATS = { in: 24.1, out: 25.7, text: T('15 chapitres · 6 fins · 393 scènes', '15 chapters · 6 endings · 393 scenes') };
 
 export const OUTRO = {
   in: 25.85,

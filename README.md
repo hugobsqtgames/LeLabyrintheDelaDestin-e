@@ -39,16 +39,18 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
 
 ## Contenu livré
 
-- **4 chapitres, 159 scènes, 290 choix, environ 19 000 mots** de narration et de dialogues (plus 5 000 mots de
+- **15 chapitres, 393 scènes, 785 choix, environ 62 000 mots** de narration, de dialogues et de choix (plus les
   données du monde : objets, documents, journal…), **intégralement traduits en anglais** (tout est écrit et relié ;
-  aucun texte de remplissage). La durée d’une partie dépend des branches suivies : une seule partie ne parcourt qu’une
+  aucun texte de remplissage). De Valombre à l’écluse : la ville (1), les Carrières (2), les Faubourgs (3), le port
+  (4), puis dix étapes sur la route du fleuve (5 à 14 : vergers noyés, rocade du Péage, prieuré, barrage de Vaulx,
+  convoi, tourbières, Brennes, draisine, gué de la Sauldre, dernière veillée) et l’écluse de Morvan (15). La durée d’une partie dépend des branches suivies : une seule partie ne parcourt qu’une
   partie du texte.
 - **6 fins** (l’Accord, les Capitaines, le Prix du passage, le Gardien de l’écluse, les Racines, le Fleuve) et
   **4 morts définitives** distinctes, chacune avec un épilogue qui dépend des alliés, des quêtes et des décisions.
-- **24 rencontres de combat** dont **6 boss** à phases ou comportements propres (Hurleur, Berger, Gaspard Lenoir,
-  capitaine Rousset, Colosse de l’écluse).
-- **11 personnages** récurrents dont 5 compagnons possibles (épilogues selon la relation), **20 lieux** sur 4 régions
-  reliés par de vrais chemins, **10 quêtes**, **42 objets**, **7 recettes**, **14 documents d’archives**, un **journal
+- **59 rencontres de combat** dont **7 boss** à phases ou comportements propres (Hurleur, Berger, Gaspard Lenoir,
+  le Péage, la Dame des tourbières, capitaine Rousset, Colosse de l’écluse).
+- **15 personnages** récurrents dont 5 compagnons possibles (épilogues selon la relation), **33 lieux** sur 6 régions
+  reliés par de vrais chemins, **15 quêtes**, **46 objets**, **7 recettes**, **34 documents d’archives**, un **journal
   intime** écrit à la fin de chaque chapitre selon ce qui a été vécu.
 
 ### Exemples de conséquences différées
@@ -59,8 +61,10 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
   l’ossuaire (chapitre 2).
 - Nourrir le vieux carillonneur réduit la horde de l’assaut final du chapitre 1 et lui donne une place dans
   l’épilogue des Racines.
-- Les preuves réunies (dossier de l’hôpital, carnet de Malik, enregistrement radio, lettre) conditionnent la
-  confiance de la docteure Sorel, donc la possibilité de l’Accord.
+- Les preuves réunies (dossier de l’hôpital, carnet de Malik, enregistrement radio, lettre, ordre de mission du
+  convoi) conditionnent la confiance de la docteure Sorel, donc la possibilité de l’Accord.
+- Rendre le courant au barrage de Vaulx (chapitre 8) ouvre, au chapitre 15, une façon de manœuvrer l’écluse sans
+  sacrifier personne ; descendre Claire et Jules de leur toit (chapitre 5) les fait réapparaître devant la grille.
 
 ## Systèmes
 
@@ -90,6 +94,16 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
 - **Choix chronométrés** rares, avec choix de repli annoncé ; désactivables, et toujours désactivés avec VoiceOver.
 - **Mort et défaites** : les dégâts narratifs ne tuent jamais par surprise ; seules certaines défaites (boss
   annoncés comme tels, captivité) sont mortelles. Les autres mènent à une blessure, une perte ou une capture.
+- **La relève** : quand le personnage meurt, un compagnon jouable qui voyage avec lui (Kaz l’éclusier, Maëlle
+  l’infirmière, Inès la passeuse) peut reprendre la route, juste avant le coup fatal. Il garde **sa propre fiche** :
+  profil caché avec deux compétences à lui, passé, caractéristiques, talents, équipement, et un niveau qui suit
+  l’avancée du voyage (sans dépasser celui du héros tombé). Rien du héros tombé ne lui revient, sauf les objets de
+  quête et **ce qu’il prend en fouillant le corps** (trois objets au plus) quand le corps est accessible : certaines
+  morts (le troupeau, la cage, l’écluse) ne laissent rien. La partie ne s’arrête que lorsque plus personne ne peut
+  reprendre la route. Les tombés restent dans la chronique.
+- **Tutoriel** au premier lancement : visite guidée en 13 étapes (récit, choix et probabilités, bandeau, horloge,
+  chacun des 5 onglets — Récit, Fiche, Sac, Carte, Carnet —, combats, relève). Chaque étape ouvre l’onglet qu’elle
+  présente. On peut le passer, et le revoir dans **Paramètres › Aide › Revoir le tutoriel**.
 
 ## Interface (refonte 2026)
 
@@ -112,7 +126,7 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
 - 3 emplacements ; chaque partie se sauvegarde automatiquement **après chaque décision, action de combat ou
   changement d’inventaire**, et à la mise en arrière-plan.
 - Enveloppe versionnée (`schemaVersion`) avec **somme de contrôle** ; avant d’écraser une sauvegarde valide, elle
-  est copiée en **secours** ; au chargement : vérification, **migration** (v1 → v2 → v3 incluses et testées),
+  est copiée en **secours** ; au chargement : vérification, **migration** (v1 → v2 → v3 → v4 incluses et testées),
   validation/réparation (objets inconnus retirés, scène disparue → début du chapitre, combat relancé).
 - **File d’écriture** : jamais deux écritures concurrentes, les rafales sont fusionnées.
 - Nouvelle partie dans un emplacement occupé, suppression et copie : **confirmation explicite**. Le RNG est stocké
@@ -158,12 +172,14 @@ src/
     effects.ts               application centralisée des effets
     inventory.ts             poids, piles, équipement, consommables, objets au sol
     narrative.ts             nouvelle partie, scènes, choix, jets, routage, sortie de combat
+    relay.ts                 la relève : compagnons candidats, fiche du nouveau héros, fouille du corps
     combat.ts                combat au tour par tour
     summary.ts               récapitulatif de fin
     validator.ts             validateur de contenu
     simulate.ts              joueurs automatiques (tests et équilibrage)
   content/                   données narratives (aucune logique)
-    chapters/c1.ts … c4.ts   scènes des 4 chapitres
+    chapters/                scènes des 15 chapitres (c1, c2, fb, c3, r1 … r10, c4)
+    heroes.ts                fiches des compagnons jouables (relève)
     world.ts                 profils, passés, compétences, personnages, lieux, quêtes, chapitres, fins
     items.ts, enemies.ts, summary.ts, helpers.ts, index.ts
   persistence/               stockage, format, migrations, emplacements
@@ -193,7 +209,7 @@ la partie (retour arrière Android géré explicitement : onglet → récit → 
 ## Résultats obtenus
 
 - `npm test` : **131/131 tests réussis** (dont des parties automatiques complètes en français et en anglais).
-- `npm run validate` : 159 scènes, 290 choix, 10 fins, **0 erreur, 0 avertissement**.
+- `npm run validate` : 393 scènes, 785 choix, 10 fins, **0 erreur, 0 avertissement**.
 - `npm run typecheck`, `npx expo lint`, `npx expo-doctor` (21/21) : **aucun problème**.
 - Export web puis parcours automatisé dans Chromium au format iPhone : création, choix, combat, onglets,
   **rechargement et reprise** avec résumé : aucune erreur console. Les 27 maquettes se rendent sans erreur, en

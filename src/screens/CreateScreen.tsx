@@ -131,7 +131,7 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
         )}
 
         {step === 1 &&
-          (Object.keys(content.profiles) as ProfileId[]).map((id) => {
+          (Object.keys(content.profiles) as ProfileId[]).filter((id) => !content.profiles[id].hidden).map((id) => {
             const pdef = content.profiles[id];
             const sel = draft.profile === id;
             return (
@@ -160,7 +160,7 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
           })}
 
         {step === 2 &&
-          (Object.keys(content.backgrounds) as BackgroundId[]).map((id) => {
+          (Object.keys(content.backgrounds) as BackgroundId[]).filter((id) => !content.backgrounds[id].hidden).map((id) => {
             const b = content.backgrounds[id];
             const sel = draft.background === id;
             return (

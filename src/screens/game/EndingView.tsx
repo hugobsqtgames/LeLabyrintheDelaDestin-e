@@ -2,17 +2,19 @@
  * Fin de partie : conclusion ou mort définitive, avec récapitulatif,
  * portraits des compagnons et bilan en tuiles.
  */
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { visibleText } from '../../engine/narrative';
+import { BODY_LOOT_MAX, bodyItems, bodyRecoverable, questItems, relayCandidates, relayLevel, takeOver } from '../../engine/relay';
 import { formatPlaytime, summarize } from '../../engine/summary';
-import type { GameState } from '../../engine/types';
+import type { CharacterId, GameState, ItemId } from '../../engine/types';
 import { useT } from '../../i18n';
 import { useStore } from '../../store/GameStore';
+import { ItemIcon } from '../../ui/art/ItemIcon';
 import { Emblem } from '../../ui/art/Logo';
 import { Portrait, PORTRAITS } from '../../ui/art/Portraits';
 import { useChrome } from '../../ui/components/Hud';
-import { Badge, Button, FadeIn, Label, Panel, SectionTitle, Tile } from '../../ui/components/primitives';
+import { Badge, Button, FadeIn, Label, Panel, SectionTitle, Tile, withAlpha } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, space, type } from '../../ui/theme';
 
@@ -22,6 +24,7 @@ const STATUS_COLOR: Record<string, string> = {
   away: colors.steel,
   captured: colors.amber,
   dead: colors.blood,
+  hero: colors.violet,
 };
 
 export function EndingView({ game }: { game: GameState }) {
@@ -33,13 +36,14 @@ export function EndingView({ game }: { game: GameState }) {
   const scene = content.scenes[game.currentScene];
   const blocks = scene && (scene.kind === 'ending' || scene.kind === 'death') ? visibleText(content, game, scene) : [];
   const accent = death ? colors.blood : colors.amber;
+  const relay = death ? relayCandidates(content, game) : [];
 
   return (
     <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg + 4, paddingTop: chrome.top + space.lg, paddingBottom: chrome.bottom }}>
       <FadeIn>
         <View style={{ alignItems: 'center', gap: space.sm }}>
           {death ? <Icon name="skull" size={64} color={colors.blood} strokeWidth={1.3} /> : <Emblem size={110} />}
-          <Label color={accent}>{death ? t('end.death') : t('end.ending')}</Label>
+          <Label color={accent}>{death ? (relay.length ? t('end.fallen') : t('end.death')) : t('end.ending')}</Label>
           <Text style={[type.display, { textAlign: 'center', fontSize: 52, lineHeight: 54 }]} accessibilityRole="header" maxFontSizeMultiplier={MAX_SCALE_UI}>
             {summary.ending?.title ?? t('end.fallback')}
           </Text>
@@ -59,6 +63,8 @@ export function EndingView({ game }: { game: GameState }) {
           ))}
         </View>
       )}
+
+      {relay.length > 0 && <RelayPanel game={game} />}
 
       <SectionTitle>{t('end.stats')}</SectionTitle>
       <View style={styles.bento}>
@@ -117,7 +123,121 @@ export function EndingView({ game }: { game: GameState }) {
   );
 }
 
+/** La relève : choisir le compagnon qui reprend la route, puis fouiller le corps. */
+function RelayPanel({ game }: { game: GameState }) {
+  const { content, update, setTab, feedback } = useStore();
+  const t = useT();
+  const candidates = relayCandidates(content, game);
+  const [hero, setHero] = useState<CharacterId>(candidates[0].character);
+  const [picks, setPicks] = useState<ItemId[]>([]);
+  const recoverable = bodyRecoverable(content, game);
+  const body = bodyItems(content, game);
+  const kept = questItems(content, game);
+  const heroName = candidates.find((h) => h.character === hero)?.name ?? hero;
+
+  const toggle = (id: ItemId) => {
+    feedback('light');
+    setPicks((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= BODY_LOOT_MAX ? cur : [...cur, id]));
+  };
+
+  return (
+    <FadeIn delay={250}>
+      <SectionTitle>{t('relay.title')}</SectionTitle>
+      <Panel style={{ gap: space.md }}>
+        <Text style={type.bodySmall}>{t('relay.intro', { name: game.player.name })}</Text>
+        <Label>{t('relay.choose')}</Label>
+        <View style={{ gap: space.sm }}>
+          {candidates.map((h) => {
+            const selected = h.character === hero;
+            const prof = content.profiles[h.profile];
+            return (
+              <Pressable
+                key={h.character}
+                onPress={() => {
+                  feedback('light');
+                  setHero(h.character);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                style={[styles.heroCard, selected && { borderColor: colors.violet, backgroundColor: withAlpha(colors.violet, 0.12) }]}
+              >
+                <Portrait id={h.character} size={52} ring={selected ? colors.violet : undefined} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.heroName}>{content.characters[h.character]?.name ?? h.character}</Text>
+                  <Text style={type.uiSmall}>
+                    {prof?.name} · {t('relay.level', { n: relayLevel(content, game, h) })}
+                  </Text>
+                  <Text style={[type.uiSmall, { color: colors.textDim }]} numberOfLines={2}>
+                    {[prof?.skill.name, prof?.skill2?.name].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                {selected && <Icon name="check" size={18} color={colors.violet} strokeWidth={2.4} />}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Label>{t('relay.search')}</Label>
+        {!recoverable ? (
+          <Text style={type.bodySmall}>{t('relay.bodyLost')}</Text>
+        ) : body.length === 0 ? (
+          <Text style={type.bodySmall}>{t('relay.bodyEmpty')}</Text>
+        ) : (
+          <>
+            <Text style={type.uiSmall}>
+              {t('relay.searchHint', { max: BODY_LOOT_MAX, name: game.player.name })} {t('relay.picked', { n: picks.length, max: BODY_LOOT_MAX })}
+            </Text>
+            <View style={styles.loot}>
+              {body.map(({ item, qty }) => {
+                const def = content.items[item];
+                const on = picks.includes(item);
+                const full = !on && picks.length >= BODY_LOOT_MAX;
+                return (
+                  <Pressable
+                    key={item}
+                    onPress={() => toggle(item)}
+                    disabled={full}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on, disabled: full }}
+                    accessibilityLabel={`${def.name} ×${qty}`}
+                    style={[styles.lootItem, on && { borderColor: colors.mossBright, backgroundColor: withAlpha(colors.mossBright, 0.12) }, full && { opacity: 0.4 }]}
+                  >
+                    <ItemIcon icon={def.icon} category={def.category} size={30} />
+                    <Text style={styles.lootName} numberOfLines={2}>
+                      {def.name}
+                      {qty > 1 ? ` ×${qty}` : ''}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
+        {kept.length > 0 && (
+          <Text style={[type.uiSmall, { color: colors.amber }]}>{t('relay.questKept', { items: kept.map((k) => content.items[k.item]?.name ?? k.item).join(', ') })}</Text>
+        )}
+
+        <Button
+          label={t('relay.go', { name: heroName })}
+          icon="chevron"
+          accessibilityHint={t('relay.goA11y', { name: heroName })}
+          onPress={() => {
+            feedback('success');
+            update((g) => takeOver(content, g, hero, picks));
+            setTab('story');
+          }}
+        />
+      </Panel>
+    </FadeIn>
+  );
+}
+
 const styles = StyleSheet.create({
+  heroCard: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: 18, borderWidth: 1, borderColor: colors.line },
+  heroName: { fontFamily: fonts.uiBold, fontSize: 16, color: colors.text },
+  loot: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  lootItem: { width: 96, alignItems: 'center', gap: 4, padding: space.sm, borderRadius: 14, borderWidth: 1, borderColor: colors.line },
+  lootName: { fontFamily: fonts.ui, fontSize: 12, color: colors.text, textAlign: 'center' },
   epitaph: { fontFamily: fonts.titleItalic, fontSize: 22, lineHeight: 28, textAlign: 'center' },
   line: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   bento: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },

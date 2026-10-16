@@ -4,7 +4,6 @@
  */
 import type {
   BackgroundDef,
-  BackgroundId,
   ChapterDef,
   CharacterDef,
   EndingDef,
@@ -12,7 +11,6 @@ import type {
   PerkDef,
   PerkId,
   ProfileDef,
-  ProfileId,
   QuestDef,
 } from '../engine/types';
 
@@ -20,7 +18,7 @@ import type {
 // Profils
 // ---------------------------------------------------------------------------
 
-export const PROFILES: Record<ProfileId, ProfileDef> = {
+export const PROFILES: Record<'guerrier' | 'eclaireur' | 'technicien', ProfileDef> = {
   guerrier: {
     id: 'guerrier',
     name: 'Guerrier',
@@ -99,7 +97,7 @@ export const PROFILES: Record<ProfileId, ProfileDef> = {
 // Passés
 // ---------------------------------------------------------------------------
 
-export const BACKGROUNDS: Record<BackgroundId, BackgroundDef> = {
+export const BACKGROUNDS: Record<'ambulancier' | 'detenu' | 'cataphile' | 'pompier', BackgroundDef> = {
   ambulancier: {
     id: 'ambulancier',
     name: 'Ancien ambulancier',
@@ -249,6 +247,42 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     description: 'Il applique le protocole. Toujours. Même quand le protocole n’a plus de sens.',
     color: '#7D8590',
     initials: 'CR',
+    eats: false,
+  },
+  armand: {
+    id: 'armand',
+    name: 'Armand Vidal',
+    role: 'Ancien cheminot de la gare de triage',
+    description: 'Soixante-dix ans, une casquette de la SNCF vissée sur la tête, il vit dans un poste d’aiguillage et parle aux trains qui ne passent plus.',
+    color: '#8C9A6E',
+    initials: 'AV',
+    eats: false,
+  },
+  claire: {
+    id: 'claire',
+    name: 'Claire Delmas',
+    role: 'Ancienne professeure de piano, mère de Jules',
+    description: 'Une femme maigre et droite qui marche vers l’écluse avec son fils de six ans et une valise qu’elle refuse de lâcher.',
+    color: '#B98FA6',
+    initials: 'CD',
+    eats: false,
+  },
+  agathe: {
+    id: 'agathe',
+    name: 'Mère Agathe',
+    role: 'Prieure de Saint-Aubin',
+    description: 'Une religieuse aux mains d’infirmière qui garde les malades dans la crypte du prieuré et refuse de les appeler des Muets.',
+    color: '#C9C1B0',
+    initials: 'MA',
+    eats: false,
+  },
+  vautrin: {
+    id: 'vautrin',
+    name: 'Bertrand Vautrin',
+    role: 'Maire de Brennes',
+    description: 'Un homme affable en gilet de laine, qui serre les mains longtemps et regarde les nuques.',
+    color: '#9A7E5C',
+    initials: 'BV',
     eats: false,
   },
   cazal: {
@@ -445,6 +479,125 @@ const locations: LocationDef[] = [
     y: 62,
     danger: 2,
   },
+  // Les Faubourgs
+  {
+    id: 'cimetiere',
+    name: 'Cimetière Saint-Lazare',
+    region: 'Les Faubourgs',
+    description: 'Des allées de tombes et de cyprès entre la sortie de l’aqueduc et la voie ferrée. Les caveaux servent d’abri, à qui ou à quoi que ce soit.',
+    x: 18,
+    y: 30,
+    danger: 2,
+  },
+  {
+    id: 'triage',
+    name: 'Gare de triage',
+    region: 'Les Faubourgs',
+    description: 'Un océan de rails, de wagons-citernes et de ballast. Au milieu, un poste d’aiguillage encore habité.',
+    x: 52,
+    y: 46,
+    danger: 2,
+  },
+  {
+    id: 'remblai',
+    name: 'Le remblai du port',
+    region: 'Les Faubourgs',
+    description: 'La voie qui descend vers les quais, surveillée par les Ferrailleurs depuis les grues.',
+    x: 80,
+    y: 70,
+    danger: 3,
+  },
+  // La Route du Fleuve
+  {
+    id: 'vergers',
+    name: 'Les vergers noyés',
+    region: 'La Route du Fleuve',
+    description: 'Des pommiers alignés dans un mètre d’eau brune, depuis que la digue a cédé. Des toits de ferme émergent comme des radeaux.',
+    x: 10,
+    y: 76,
+    danger: 2,
+  },
+  {
+    id: 'rocade',
+    name: 'La Rocade',
+    region: 'La Route du Fleuve',
+    description: 'Le viaduc de l’autoroute, figé dans un embouteillage de quatorze mois. Ceux qui le tiennent font payer le passage.',
+    x: 22,
+    y: 54,
+    danger: 3,
+  },
+  {
+    id: 'prieure',
+    name: 'Prieuré de Saint-Aubin',
+    region: 'La Route du Fleuve',
+    description: 'Un cloître de pierre blonde sur une colline, entouré d’un mur de vigne. On y soigne encore.',
+    x: 30,
+    y: 30,
+    danger: 1,
+  },
+  {
+    id: 'barrage',
+    name: 'Barrage de Vaulx',
+    region: 'La Route du Fleuve',
+    description: 'Un mur de béton en travers du fleuve et sa centrale électrique. C’est d’ici que partait le courant de l’écluse.',
+    x: 46,
+    y: 18,
+    danger: 2,
+  },
+  {
+    id: 'convoi',
+    name: 'Le convoi de la D12',
+    region: 'La Route du Fleuve',
+    description: 'Deux camions et une ambulance aux couleurs de l’Institut Ferrand, renversés dans un fossé depuis l’hiver.',
+    x: 58,
+    y: 36,
+    danger: 2,
+  },
+  {
+    id: 'tourbieres',
+    name: 'Les tourbières',
+    region: 'La Route du Fleuve',
+    description: 'Une lande noyée de brouillard, traversée par une digue de rondins. Ce qui tombe dans la tourbe n’en ressort pas.',
+    x: 66,
+    y: 58,
+    danger: 3,
+  },
+  {
+    id: 'brennes',
+    name: 'Brennes',
+    region: 'La Route du Fleuve',
+    description: 'Un village fortifié derrière des remorques et des sacs de sable. Il y a de la soupe et des lits. Il y a toujours un prix.',
+    x: 76,
+    y: 40,
+    danger: 1,
+  },
+  {
+    id: 'voie_fleuve',
+    name: 'La ligne du fleuve',
+    region: 'La Route du Fleuve',
+    description: 'Une voie ferrée unique qui longe le fleuve jusqu’à Morvan, entre deux talus de ronces.',
+    x: 84,
+    y: 22,
+    danger: 2,
+  },
+  {
+    id: 'gue',
+    name: 'Le gué de la Sauldre',
+    region: 'La Route du Fleuve',
+    description: 'Le pont routier s’est effondré ; reste un gué de pierres plates, à hauteur de genou quand l’eau est basse.',
+    x: 88,
+    y: 62,
+    danger: 2,
+  },
+  {
+    id: 'bivouac',
+    name: 'La chapelle des mariniers',
+    region: 'La Route du Fleuve',
+    description: 'Une chapelle sans toit au bord du fleuve, à trois heures de marche de l’écluse. Le dernier abri avant Morvan.',
+    x: 92,
+    y: 84,
+    danger: 1,
+  },
   // Écluse de Morvan
   {
     id: 'halage',
@@ -492,16 +645,28 @@ export const MAP_LINKS: [string, string][] = [
   ['galerie_craie', 'grande_salle'],
   ['ossuaire', 'grande_salle'],
   ['grande_salle', 'aqueduc'],
+  ['cimetiere', 'triage'],
+  ['triage', 'remblai'],
   ['quai', 'capitainerie'],
   ['quai', 'mouette'],
   ['capitainerie', 'casse'],
   ['mouette', 'casse'],
   ['casse', 'pont_fer'],
+  ['vergers', 'rocade'],
+  ['rocade', 'prieure'],
+  ['prieure', 'barrage'],
+  ['barrage', 'convoi'],
+  ['convoi', 'tourbieres'],
+  ['tourbieres', 'brennes'],
+  ['brennes', 'voie_fleuve'],
+  ['voie_fleuve', 'gue'],
+  ['brennes', 'gue'],
+  ['gue', 'bivouac'],
   ['halage', 'ecluse'],
   ['ecluse', 'destinee'],
 ];
 
-export const REGIONS = ['Quartier des Tanneurs', 'Les Carrières', 'Port fluvial', 'Écluse de Morvan'];
+export const REGIONS = ['Quartier des Tanneurs', 'Les Carrières', 'Les Faubourgs', 'Port fluvial', 'La Route du Fleuve', 'Écluse de Morvan'];
 
 // ---------------------------------------------------------------------------
 // Quêtes
@@ -618,6 +783,62 @@ const quests: QuestDef[] = [
       { id: 'reperer', text: 'Les prisonniers sont enfermés dans la casse Lenoir.' },
     ],
   },
+  {
+    id: 'q_armand',
+    title: 'Le dernier aiguilleur',
+    kind: 'side',
+    chapter: 'fb',
+    summary: 'Armand Vidal garde une draisine en état quelque part sur la ligne du fleuve. Il ne la confiera pas à n’importe qui.',
+    steps: [
+      { id: 'rencontre', text: 'Gagner la confiance d’Armand, au poste d’aiguillage de la gare de triage.' },
+      { id: 'cle', text: 'Armand vous a confié la clé de la draisine, remisée à la gare de Brennes.' },
+      { id: 'draisine', text: 'Prendre la draisine sur la ligne du fleuve.' },
+    ],
+  },
+  {
+    id: 'q_delmas',
+    title: 'Les naufragés du verger',
+    kind: 'side',
+    chapter: 'r1',
+    summary: 'Une mère et son fils sont bloqués sur le toit d’une ferme, au milieu des vergers noyés.',
+    steps: [
+      { id: 'toit', text: 'Atteindre la ferme où Claire Delmas et son fils sont réfugiés.' },
+      { id: 'route', text: 'Les Delmas marchent vers l’écluse de Morvan.' },
+    ],
+  },
+  {
+    id: 'q_barrage',
+    title: 'Le courant de Vaulx',
+    kind: 'side',
+    chapter: 'r4',
+    summary: 'L’écluse de Morvan est alimentée par la centrale du barrage de Vaulx. Quelqu’un l’a coupée.',
+    steps: [
+      { id: 'centrale', text: 'Comprendre pourquoi la centrale de Vaulx est à l’arrêt.' },
+      { id: 'piece', text: 'Trouver une pièce de rechange pour le disjoncteur principal.' },
+      { id: 'courant', text: 'Le courant est rétabli jusqu’à l’écluse.' },
+    ],
+  },
+  {
+    id: 'q_convoi',
+    title: 'Le premier convoi',
+    kind: 'side',
+    chapter: 'r5',
+    summary: 'Un convoi de l’Institut Ferrand gît dans un fossé de la D12. Ce qu’il transportait n’avait rien de médical.',
+    steps: [
+      { id: 'epave', text: 'Fouiller les épaves du convoi.' },
+      { id: 'ordre', text: 'Vous avez l’ordre de mission signé du capitaine Rousset.' },
+    ],
+  },
+  {
+    id: 'q_brennes',
+    title: 'L’hospitalité de Brennes',
+    kind: 'side',
+    chapter: 'r7',
+    summary: 'Le village de Brennes accueille les voyageurs avec trop de générosité.',
+    steps: [
+      { id: 'soupe', text: 'Découvrir ce que le maire Vautrin attend en échange.' },
+    ],
+  },
 ];
 
 export const QUESTS: Record<string, QuestDef> = Object.fromEntries(quests.map((q) => [q.id, q]));
@@ -627,17 +848,28 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(quests.map((q
 // ---------------------------------------------------------------------------
 
 export const CHAPTERS: ChapterDef[] = [
-  { id: 'c1', number: 1, title: 'Le Dernier Comptoir', subtitle: 'Deux jours avant le départ', region: 'Quartier des Tanneurs', start: 'c1_toit' },
-  { id: 'c2', number: 2, title: 'Le Labyrinthe', subtitle: 'Sous Valombre', region: 'Les Carrières', start: 'c2_brasserie' },
-  { id: 'c3', number: 3, title: 'La Ferraille et l’Eau', subtitle: 'Le port fluvial', region: 'Port fluvial', start: 'c3_quai' },
-  { id: 'c4', number: 4, title: 'La Destinée', subtitle: 'L’aube du septième jour', region: 'Écluse de Morvan', start: 'c4_halage' },
+  { id: 'c1', number: 1, title: 'Le Dernier Comptoir', subtitle: 'La nuit de la pharmacie', region: 'Quartier des Tanneurs', start: 'c1_toit', aura: 'c1' },
+  { id: 'c2', number: 2, title: 'Le Labyrinthe', subtitle: 'Sous Valombre', region: 'Les Carrières', start: 'c2_brasserie', aura: 'c2', infects: true },
+  { id: 'fb', number: 3, title: 'Les Faubourgs', subtitle: 'Entre les morts et les rails', region: 'Les Faubourgs', start: 'fb_sortie', aura: 'c2' },
+  { id: 'c3', number: 4, title: 'La Ferraille et l’Eau', subtitle: 'Le port fluvial', region: 'Port fluvial', start: 'c3_quai', aura: 'c3', infects: true },
+  { id: 'r1', number: 5, title: 'Les Vergers noyés', subtitle: 'Au-delà du Pont de Fer', region: 'La Route du Fleuve', start: 'r1_berge', aura: 'c3' },
+  { id: 'r2', number: 6, title: 'La Rocade', subtitle: 'Le prix du passage', region: 'La Route du Fleuve', start: 'r2_bretelle', aura: 'c3' },
+  { id: 'r3', number: 7, title: 'Le Prieuré', subtitle: 'Ceux qu’on garde', region: 'La Route du Fleuve', start: 'r3_vigne', aura: 'c4', infects: true },
+  { id: 'r4', number: 8, title: 'Le Barrage', subtitle: 'La nuit de Vaulx', region: 'La Route du Fleuve', start: 'r4_couronnement', aura: 'c2' },
+  { id: 'r5', number: 9, title: 'Le Convoi', subtitle: 'Le sixième jour', region: 'La Route du Fleuve', start: 'r5_fosse', aura: 'c3' },
+  { id: 'r6', number: 10, title: 'Les Tourbières', subtitle: 'Ce que garde le brouillard', region: 'La Route du Fleuve', start: 'r6_digue', aura: 'c2', infects: true },
+  { id: 'r7', number: 11, title: 'Brennes', subtitle: 'La soupe du maire', region: 'La Route du Fleuve', start: 'r7_barricade', aura: 'c3' },
+  { id: 'r8', number: 12, title: 'La Draisine', subtitle: 'La ligne du fleuve', region: 'La Route du Fleuve', start: 'r8_quai', aura: 'c4' },
+  { id: 'r9', number: 13, title: 'Le Gué', subtitle: 'La livraison', region: 'La Route du Fleuve', start: 'r9_rive', aura: 'c3' },
+  { id: 'r10', number: 14, title: 'La Dernière Veillée', subtitle: 'La veille du septième jour', region: 'La Route du Fleuve', start: 'r10_chapelle', aura: 'c4' },
+  { id: 'c4', number: 15, title: 'La Destinée', subtitle: 'L’aube du septième jour', region: 'Écluse de Morvan', start: 'c4_halage', aura: 'c4', infects: true },
 ];
 
 const endings: EndingDef[] = [
   { id: 'mort', title: 'La fin du chemin', kind: 'death', epitaph: 'Valombre garde ses morts.' },
-  { id: 'mort_berger', title: 'Le troupeau', kind: 'death', epitaph: 'Une cloche sonne dans le noir. Vous la suivez.' },
-  { id: 'mort_cage', title: 'Marchandise', kind: 'death', epitaph: 'Le port a toujours vendu ce qui flotte.' },
-  { id: 'mort_ecluse', title: 'Le protocole', kind: 'death', epitaph: 'Une ligne de plus dans un registre.' },
+  { id: 'mort_berger', title: 'Le troupeau', kind: 'death', remains: 'lost', epitaph: 'Une cloche sonne dans le noir. Vous la suivez.' },
+  { id: 'mort_cage', title: 'Marchandise', kind: 'death', remains: 'lost', epitaph: 'Le port a toujours vendu ce qui flotte.' },
+  { id: 'mort_ecluse', title: 'Le protocole', kind: 'death', remains: 'lost', epitaph: 'Une ligne de plus dans un registre.' },
   { id: 'fin_accord', title: 'L’Accord', kind: 'ending', epitaph: 'Un porteur n’est pas une marchandise. C’est un passager.' },
   { id: 'fin_capitaines', title: 'Les Capitaines', kind: 'ending', epitaph: 'La Destinée a changé de main. Le fleuve, lui, ne change pas.' },
   { id: 'fin_prix', title: 'Le Prix du passage', kind: 'ending', epitaph: 'Vous êtes à bord. Vous avez payé.' },

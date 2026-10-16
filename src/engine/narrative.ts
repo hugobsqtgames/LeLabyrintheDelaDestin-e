@@ -85,6 +85,8 @@ export function newGame(
     durability: {},
     documents: [],
     diary: [],
+    hero: null,
+    fallen: [],
     lastCheck: null,
   };
   const starting: Record<string, number> = { ...profile.startingItems };

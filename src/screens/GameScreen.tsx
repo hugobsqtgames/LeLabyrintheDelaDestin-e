@@ -14,6 +14,7 @@ import { type Tab, useGame, useStore } from '../store/GameStore';
 import { Backdrop } from '../ui/components/Glass';
 import { ChromeContext, ClockChip, TabBar, TopBar, useChrome } from '../ui/components/Hud';
 import { Layer, Sheet } from '../ui/components/Sheet';
+import { Tutorial } from '../ui/components/Tutorial';
 import { Button, Label, Screen, Segmented } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
 import { type AuraName, colors, fonts, MAX_SCALE_UI, NATIVE_DRIVER, space, type } from '../ui/theme';
@@ -27,10 +28,18 @@ import { MapView } from './game/MapView';
 import { QuestsView } from './game/QuestsView';
 import { StoryView } from './game/StoryView';
 
-function auraFor(game: GameState): AuraName {
+const CHAPTER_AURAS = ['c1', 'c2', 'c3', 'c4'];
+
+/** Ambiance lumineuse d'un chapitre : la sienne, ou celle qu'il emprunte (`aura`). */
+function chapterAura(chapter: ChapterDef | undefined): AuraName {
+  const id = chapter?.aura ?? chapter?.id ?? '';
+  return (CHAPTER_AURAS.includes(id) ? id : 'neutral') as AuraName;
+}
+
+function auraFor(game: GameState, chapters: ChapterDef[]): AuraName {
   if (game.ending) return 'ending';
   if (game.combat) return 'combat';
-  return (['c1', 'c2', 'c3', 'c4'].includes(game.chapter) ? game.chapter : 'neutral') as AuraName;
+  return chapterAura(chapters.find((c) => c.id === game.chapter));
 }
 
 /** Carton plein écran au début de chaque chapitre. */
@@ -57,7 +66,7 @@ function ChapterTransition({ chapter, onDone }: { chapter: ChapterDef; onDone: (
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity, zIndex: 100 }]}>
       <Pressable style={{ flex: 1 }} onPress={onDone} accessibilityRole="button" accessibilityLabel={t('transition.skip')}>
-        <Backdrop aura={chapter.id as AuraName} intensity={1.6} />
+        <Backdrop aura={chapterAura(chapter)} intensity={1.6} />
         <Animated.View style={[styles.transition, { transform: [{ translateY: lift }] }]}>
           <Label color={colors.rustBright}>{t('story.chapter', { n: String(chapter.number).padStart(2, '0') })}</Label>
           <Text style={styles.transitionTitle} accessibilityRole="header" maxFontSizeMultiplier={MAX_SCALE_UI}>
@@ -148,9 +157,19 @@ function JournalView({ game, tab, setTab }: { game: GameState; tab: Tab; setTab:
   );
 }
 
-export function GameScreen({ initialPaused = false, intro }: { initialPaused?: boolean; /** Forcer (ou masquer) le carton de chapitre à l'ouverture. */ intro?: boolean }) {
+export function GameScreen({
+  initialPaused = false,
+  intro,
+  tutorialStep,
+}: {
+  initialPaused?: boolean;
+  /** Forcer (ou masquer) le carton de chapitre à l'ouverture. */
+  intro?: boolean;
+  /** Étape initiale du tutoriel (maquettes). */
+  tutorialStep?: number;
+}) {
   const game = useGame();
-  const { model, content, setTab, go, openSaves, closeGame, dismissRecap } = useStore();
+  const { model, content, setTab, go, openSaves, closeGame, dismissRecap, setSettings } = useStore();
   const t = useT();
   const [paused, setPaused] = useState(initialPaused);
   const [topH, setTopH] = useState(110);
@@ -199,7 +218,7 @@ export function GameScreen({ initialPaused = false, intro }: { initialPaused?: b
   const chrome = { top: topH + space.sm, bottom: insets.bottom + 96 };
 
   return (
-    <Screen padded={false} edges={[]} aura={auraFor(game)}>
+    <Screen padded={false} edges={[]} aura={auraFor(game, content.chapters)}>
       <ChromeContext.Provider value={chrome}>
         <View style={{ flex: 1 }}>{body}</View>
       </ChromeContext.Provider>
@@ -253,7 +272,11 @@ export function GameScreen({ initialPaused = false, intro }: { initialPaused?: b
         </View>
       </Sheet>
 
-      <RecapSheet game={game} visible={model.recap && !transitionChapter && !paused} onClose={dismissRecap} />
+      <RecapSheet game={game} visible={model.recap && !transitionChapter && !paused && model.settings.tutorialDone} onClose={dismissRecap} />
+
+      {!model.settings.tutorialDone && !transitionChapter && !paused && (
+        <Tutorial topHeight={topH} initialStep={tutorialStep} onDone={() => setSettings({ tutorialDone: true })} />
+      )}
 
       {transitionChapter && (
         <Layer visible animation="none" onRequestClose={() => setTransition(null)}>

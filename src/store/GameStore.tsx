@@ -17,25 +17,12 @@ import { addPlaytime, newGame } from '../engine/narrative';
 import { newSeed } from '../engine/rng';
 import type { CharacterDraft, GameContent, GameState } from '../engine/types';
 import type { SaveManager } from '../persistence/saves';
+import { DEFAULT_SETTINGS, type Settings } from './settings';
 
 export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery';
 export type SavesMode = 'new' | 'load' | 'copy';
 export type Tab = 'story' | 'character' | 'inventory' | 'map' | 'quests' | 'chronicle' | 'archives';
-export type LanguageSetting = 'auto' | Lang;
-
-export interface Settings {
-  reduceMotion: boolean;
-  haptics: boolean;
-  textScale: number;
-  lastSlot: number;
-  /** Choix chronométrés (désactivables : le temps n'est alors plus compté). */
-  timedChoices: boolean;
-  /** Volume de l'ambiance sonore, 0 à 1 (0 : coupé). */
-  volume: number;
-  language: LanguageSetting;
-}
-
-export const DEFAULT_SETTINGS: Settings = { reduceMotion: false, haptics: true, textScale: 1, lastSlot: 0, timedChoices: true, volume: 0.5, language: 'auto' };
+export { DEFAULT_SETTINGS, type LanguageSetting, type Settings } from './settings';
 
 export interface AppModel {
   route: Route;
@@ -153,7 +140,8 @@ export function GameProvider({
     tab: 'story',
     slot: null,
     game: null,
-    settings: DEFAULT_SETTINGS,
+    // Maquettes et vidéo (état initial fourni) : pas de tutoriel par-dessus.
+    settings: initial ? { ...DEFAULT_SETTINGS, tutorialDone: true } : DEFAULT_SETTINGS,
     systemReduceMotion: false,
     saveError: null,
     saveCount: 0,
@@ -167,6 +155,8 @@ export function GameProvider({
     languageRef.current = model.settings.language;
   }, [model.settings.language]);
   const settingsLoaded = useRef(!saves);
+  // Maquettes : le tutoriel n'apparaît que si la maquette le demande.
+  const mockTutorial = initial ? (initial.settings?.tutorialDone ?? true) : null;
 
   useEffect(() => {
     lastActivity.current = Date.now();
@@ -178,13 +168,13 @@ export function GameProvider({
     let alive = true;
     saves.loadSettings(DEFAULT_SETTINGS).then((s) => {
       if (!alive) return;
-      dispatch({ type: 'settings', patch: s });
+      dispatch({ type: 'settings', patch: mockTutorial === null ? s : { ...s, tutorialDone: mockTutorial } });
       settingsLoaded.current = true;
     });
     return () => {
       alive = false;
     };
-  }, [saves]);
+  }, [saves, mockTutorial]);
   useEffect(() => {
     if (saves && settingsLoaded.current) saves.saveSettings(model.settings).catch(() => undefined);
   }, [saves, model.settings]);

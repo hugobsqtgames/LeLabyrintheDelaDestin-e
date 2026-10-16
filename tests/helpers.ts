@@ -44,8 +44,10 @@ export function fightOut(state: GameState, maxTurns = 200): GameState {
  * Suit une liste de préférences (scène → choix préférés), combats compris.
  * Si aucune préférence ne s'applique, prend le premier choix disponible.
  */
-export function follow(state: GameState, prefs: Record<string, string[]>, maxSteps = 600): GameState {
+export function follow(state: GameState, prefs: Record<string, string[]>, maxSteps = 1500): GameState {
   let s = state;
+  // Sans préférence, on évite de tourner en rond entre deux scènes « carrefour ».
+  const seen: Record<string, number> = {};
   for (let i = 0; i < maxSteps && !s.ending; i += 1) {
     if (s.combat) {
       s = fightOut(s);
@@ -55,7 +57,12 @@ export function follow(state: GameState, prefs: Record<string, string[]>, maxSte
     if (!views.length) throw new Error(`Impasse dans ${s.currentScene}`);
     if (i === maxSteps - 1) throw new Error(`Parcours trop long, arrêté dans ${s.currentScene}`);
     const wanted = prefs[s.currentScene] ?? [];
-    const chosen = wanted.map((id) => views.find((v) => v.choice.id === id)).find(Boolean) ?? views[views.length - 1];
+    // Chapitres de la route : le premier choix est la voie principale ; ailleurs, le dernier.
+    const road = /^(fb|r\d+)$/.test(C.scenes[s.currentScene]?.chapter ?? '');
+    const ordered = road ? views : [...views].reverse();
+    const fresh = ordered.find((v) => !v.choice.next || (seen[v.choice.next] ?? 0) < 2);
+    const chosen = wanted.map((id) => views.find((v) => v.choice.id === id)).find(Boolean) ?? ((seen[s.currentScene] ?? 0) >= 2 ? fresh : undefined) ?? ordered[0];
+    seen[s.currentScene] = (seen[s.currentScene] ?? 0) + 1;
     s = pick(s, chosen!.choice.id);
   }
   return s;

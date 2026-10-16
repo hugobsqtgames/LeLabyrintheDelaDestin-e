@@ -24,10 +24,10 @@ Le récit suit : **problème → découverte → fonctionnalités → expérienc
 | 12,2 – 15,6 | Combat | « Des combats *sans pitié.* » | deux coups portés : éclair rouge sur l’ennemi, journal, barres de vie | léger pivot, secousse à l’impact |
 | 15,6 – 18,8 | Relations | « Ils se souviennent *de vous.* » | fiche : portrait, tuiles, défilement jusqu’aux rencontres | pivot opposé |
 | 18,8 – 22,3 | Monde | « Un monde qui garde *vos traces.* » | trois téléphones : **carte** (chemins), **archives** (document ouvert), **atelier** (onglet ouvert) | éventail, dérive latérale |
-| 22,3 – 25,8 | Récit | *4 chapitres · 6 fins · 159 scènes* | carton de chapitre de l’application | plongée : l’écran remplit le cadre |
+| 22,3 – 25,8 | Récit | *15 chapitres · 6 fins · 393 scènes* | carton de chapitre de l’application | plongée : l’écran remplit le cadre |
 | 25,8 – 30,0 | Conclusion | « Le Labyrinthe *de la Destinée* » · *Hors ligne · Sans pub · Sans compte* · **Entrez dans le Labyrinthe** | icône de l’application | apparition mot à mot |
 
-Chaque chiffre affiché est vrai (validateur : 159 scènes, 6 fins et 4 morts ; 4 chapitres ; aucune connexion,
+Chaque chiffre affiché est vrai (validateur : 393 scènes, 6 fins et 4 morts ; 15 chapitres ; aucune connexion,
 publicité ni compte). Les appuis visibles (point + onde) sont les **vrais clics** enregistrés pendant la capture.
 
 **Son** : bande-son synthétisée (`soundtrack.py`), calée sur la scène — impact sur chaque coupe, tic-tac sur « sept

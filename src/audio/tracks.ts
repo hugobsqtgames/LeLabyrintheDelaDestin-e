@@ -5,7 +5,8 @@ import type { AppModel } from '../store/GameStore';
 
 export type TrackId = 'ville' | 'carrieres' | 'port' | 'ecluse' | 'combat';
 
-const REGION_TRACKS: TrackId[] = ['ville', 'carrieres', 'port', 'ecluse'];
+// Faubourgs : la ville ; route du fleuve : l'eau du port.
+const REGION_TRACKS: TrackId[] = ['ville', 'carrieres', 'ville', 'port', 'port', 'ecluse'];
 
 /** `null` : silence (galerie, fin de partie). */
 export function trackFor(model: Pick<AppModel, 'route' | 'game'>, regions: string[], regionOf: (sceneId: string) => string | undefined): TrackId | null {

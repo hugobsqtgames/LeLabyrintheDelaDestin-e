@@ -8,10 +8,11 @@
  *  - v3 : horloge des sept jours, usure des armes, archives et journal intime.
  */
 import { EQUIP_SLOTS } from '../engine/inventory';
+import { canRelay } from '../engine/relay';
 import { CLOCK_START } from '../engine/rules';
 import type { CombatState, CompanionStatus, GameContent, GameState, QuestState, QuestStatus } from '../engine/types';
 
-export const SAVE_SCHEMA_VERSION = 3;
+export const SAVE_SCHEMA_VERSION = 4;
 
 export interface SaveSummary {
   name: string;
@@ -25,6 +26,8 @@ export interface SaveSummary {
   sceneTitle: string;
   playtimeMs: number;
   ended: 'ending' | 'death' | null;
+  /** Mort, mais un compagnon peut reprendre la route. */
+  relay?: boolean;
 }
 
 export interface SaveEnvelope {
@@ -58,6 +61,7 @@ export function buildSummary(content: GameContent, state: GameState): SaveSummar
     sceneTitle: content.scenes[state.currentScene]?.title ?? '',
     playtimeMs: state.playtimeMs,
     ended: state.ending?.kind ?? null,
+    relay: canRelay(content, state),
   };
 }
 
@@ -108,6 +112,8 @@ export const MIGRATIONS: Record<number, Migration> = {
       diary: s.diary ?? [],
     };
   },
+  // v3 → v4 : relève (un compagnon peut reprendre la route après la mort du héros).
+  3: (s) => ({ ...s, hero: s.hero ?? null, fallen: s.fallen ?? [] }),
 };
 
 export interface MigrationResult {
@@ -151,7 +157,7 @@ function stringArray(v: unknown): string[] {
 }
 
 const QUEST_STATUSES: QuestStatus[] = ['inactive', 'active', 'completed', 'failed'];
-const COMPANION_STATUSES: CompanionStatus[] = ['unknown', 'met', 'companion', 'away', 'captured', 'dead'];
+const COMPANION_STATUSES: CompanionStatus[] = ['unknown', 'met', 'companion', 'away', 'captured', 'dead', 'hero'];
 
 export interface ValidationResult {
   ok: boolean;
@@ -291,6 +297,8 @@ export function validateState(content: GameContent, raw: unknown): ValidationRes
       ? (raw.diary as unknown[]).filter((d): d is { chapter: string; text: string } => isObj(d) && typeof d.chapter === 'string' && typeof d.text === 'string')
       : [],
     lastCheck: null,
+    hero: typeof raw.hero === 'string' && content.heroes[raw.hero] ? raw.hero : null,
+    fallen: Array.isArray(raw.fallen) ? (raw.fallen as GameState['fallen']).filter((f) => isObj(f) && typeof f.name === 'string') : [],
   };
   // Le combat restera cohérent avec la scène courante.
   if (state.combat && state.combat.sceneId !== state.currentScene) {

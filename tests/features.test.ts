@@ -167,10 +167,24 @@ describe('migration v2 → v3', () => {
     delete v2.documents;
     delete v2.diary;
     const m = migrate(2, v2);
-    expect(SAVE_SCHEMA_VERSION).toBe(3);
+    expect(SAVE_SCHEMA_VERSION).toBe(4);
     expect(m.ok).toBe(true);
     const v = validateState(C, m.state);
     expect(v.state!.clock).toBe(100);
     expect(v.state!.documents).toEqual([]);
+    // v3 → v4 : la relève (héros joué, tombés).
+    expect(v.state!.hero).toBeNull();
+    expect(v.state!.fallen).toEqual([]);
+  });
+
+  it('migre une sauvegarde v3 vers la relève', () => {
+    const v3: Record<string, unknown> = JSON.parse(JSON.stringify(start()));
+    delete v3.hero;
+    delete v3.fallen;
+    const m = migrate(3, v3);
+    expect(m.ok).toBe(true);
+    const v = validateState(C, m.state);
+    expect(v.state!.hero).toBeNull();
+    expect(v.state!.fallen).toEqual([]);
   });
 });

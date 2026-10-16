@@ -20,7 +20,7 @@ describe('parcours automatiques complets', () => {
   it('toutes les fins sont atteignables avec le vrai moteur', () => {
     const reached = new Set<string>();
     for (const policy of POLICIES) {
-      for (let i = 0; i < 60 && reached.size < Object.keys(C.endings).length; i += 1) {
+      for (let i = 0; i < 200 && reached.size < Object.keys(C.endings).length; i += 1) {
         const r = simulate(C, policy, 9000 + i * 977);
         if (r.ending) reached.add(r.ending);
       }
@@ -94,6 +94,9 @@ describe('parcours scénarisés', () => {
     c4_sorel_bilan: ['grille'],
     c4_maree_accord: ['cloche', 'kaz', 'colosse'],
     c4_maree_force: ['cloche', 'kaz', 'colosse'],
+    // La route : payer le Péage, contourner la Dame.
+    r2_barriere: ['vivres', 'cartouches', 'jumelles', 'kaz', 'contourner'],
+    r6_passe: ['ilots', 'piquets', 'canal', 'detour'],
   };
 
   it('un joueur orienté relations peut conclure l’Accord', () => {

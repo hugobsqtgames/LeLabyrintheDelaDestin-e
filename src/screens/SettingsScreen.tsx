@@ -3,12 +3,12 @@
  * choix chronométrés) et lecture (taille du texte du récit, en plus de la
  * taille de texte du système, toujours respectée).
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useT } from '../i18n';
 import { deviceLanguage } from '../i18n/lang';
 import { type LanguageSetting, useStore } from '../store/GameStore';
-import { Body, IconButton, Label, Panel, Screen, SectionTitle, Segmented } from '../ui/components/primitives';
+import { Body, Button, IconButton, Label, Panel, Screen, SectionTitle, Segmented } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, TOUCH, type } from '../ui/theme';
 
@@ -39,6 +39,13 @@ export function SettingsScreen() {
   const { model, setSettings, back } = useStore();
   const t = useT();
   const s = model.settings;
+  const [tutorialQueued, setTutorialQueued] = useState(false);
+  const replayTutorial = () => {
+    setSettings({ tutorialDone: false });
+    // En pleine partie, on y retourne tout de suite ; sinon il s'ouvrira à la prochaine.
+    if (model.game && model.prevRoute === 'game') back();
+    else setTutorialQueued(true);
+  };
   return (
     <Screen aura="neutral">
       <View style={styles.header}>
@@ -133,6 +140,13 @@ export function SettingsScreen() {
           <Body style={{ fontSize: 18 * s.textScale, lineHeight: 29 * s.textScale }}>{t('settings.sample')}</Body>
         </Panel>
         <Text style={[type.uiSmall, { marginTop: space.sm }]}>{t('settings.dynamicType', { n: MAX_SCALE_READING })}</Text>
+
+        <SectionTitle>{t('settings.help')}</SectionTitle>
+        <Panel style={{ gap: space.sm }}>
+          <Text style={type.bodySmall}>{t('settings.tutorialHint')}</Text>
+          <Button label={t('settings.tutorial')} icon="book" variant="secondary" onPress={replayTutorial} />
+          {(tutorialQueued || (!s.tutorialDone && !model.game)) && <Text style={[type.uiSmall, { color: colors.mossBright }]}>{t('settings.tutorialQueued')}</Text>}
+        </Panel>
 
         <SectionTitle>{t('settings.about')}</SectionTitle>
         <Panel style={{ gap: space.sm }}>

@@ -36,6 +36,10 @@ export const PORTRAITS: Record<string, Spec> = {
   rousset: { bg: '#7D8590', skin: '#DDB094', hair: '#9A9690', hairStyle: 'crew', garment: '#4E555E', garmentStyle: 'uniform', extras: ['collar'] },
   cazal: { bg: '#B49A6E', skin: '#C7926E', hair: '#8C4A3A', hairStyle: 'scarf', garment: '#5C4A36', garmentStyle: 'coat', extras: ['pipe'] },
   nour: { bg: '#D49C8C', skin: '#A86F4E', hair: '#1A1310', hairStyle: 'puffs', garment: '#B9786A', garmentStyle: 'shirt', extras: ['key'], young: true },
+  armand: { bg: '#8C8A6E', skin: '#E0B89A', hair: '#D8D2C6', hairStyle: 'bald_tufts', garment: '#3F4A5C', garmentStyle: 'workjacket', extras: ['beard', 'pipe'] },
+  claire: { bg: '#B48FA6', skin: '#E6BFA0', hair: '#6B3F2A', hairStyle: 'bob', garment: '#5A4560', garmentStyle: 'coat', extras: ['glasses'] },
+  agathe: { bg: '#A9A08A', skin: '#EBC8AE', hair: '#2A2522', hairStyle: 'hood', garment: '#2B2826', garmentStyle: 'cloak', extras: ['medal'] },
+  vautrin: { bg: '#9C7A5A', skin: '#E2B08F', hair: '#4A3A30', hairStyle: 'crew', garment: '#3A3530', garmentStyle: 'coat', extras: ['medal', 'beard'], broad: true },
   // Protagoniste, selon le profil (silhouettes neutres).
   guerrier: { bg: '#FF6A3D', skin: '#C89878', hair: '#2A2420', hairStyle: 'short', garment: '#3A3532', garmentStyle: 'padded', extras: ['bandage'], broad: true },
   eclaireur: { bg: '#6FBF8A', skin: '#B9876A', hair: '#2E3A33', hairStyle: 'hood', garment: '#2E3A33', garmentStyle: 'cloak', extras: ['mask'] },
@@ -397,7 +401,11 @@ export function Portrait({ id, size = 48, ring, shape = 'circle' }: { id: string
   );
 }
 
+/** Profils de relève : le compagnon joué garde son propre visage. */
+const HERO_FACES: Record<string, string> = { eclusier: 'kaz', infirmiere: 'maelle', passeuse: 'ines' };
+
 /** Portrait du protagoniste, d'après son profil. */
 export function PlayerPortrait({ profile, size = 48, ring, shape }: { profile: string; size?: number; ring?: string; shape?: 'circle' | 'squircle' | 'tall' }) {
-  return <Portrait id={PORTRAITS[profile] ? profile : 'guerrier'} size={size} ring={ring} shape={shape} />;
+  const id = HERO_FACES[profile] ?? profile;
+  return <Portrait id={PORTRAITS[id] ? id : 'guerrier'} size={size} ring={ring} shape={shape} />;
 }

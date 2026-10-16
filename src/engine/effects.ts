@@ -70,6 +70,7 @@ export function applyEffect(content: GameContent, state: GameState, e: Effect): 
     case 'companion': {
       const before = state.companions[e.character] ?? 'unknown';
       if (before === 'dead' && e.status !== 'dead') return state; // Les morts ne reviennent pas.
+      if (before === 'hero') return state; // Le compagnon joué n'obéit plus au récit des compagnons.
       let s: GameState = { ...state, companions: { ...state.companions, [e.character]: e.status } };
       const name = content.characters[e.character]?.name ?? e.character;
       const messages: Partial<Record<typeof e.status, string>> = {
@@ -158,8 +159,9 @@ export function applyEffect(content: GameContent, state: GameState, e: Effect): 
     case 'chapter': {
       if (state.chapter === e.chapter) return state;
       let s: GameState = { ...state, chapter: e.chapter };
-      // Une infection non soignée s'aggrave à chaque nouveau chapitre.
-      if (s.player.infection > 0) s = applyEffect(content, s, { type: 'infection', amount: 1 });
+      // Une infection non soignée s'aggrave en entrant dans certains chapitres (environ une fois par jour).
+      const def = content.chapters.find((c) => c.id === e.chapter);
+      if (s.player.infection > 0 && def?.infects) s = applyEffect(content, s, { type: 'infection', amount: 1 });
       return s;
     }
     case 'if':
