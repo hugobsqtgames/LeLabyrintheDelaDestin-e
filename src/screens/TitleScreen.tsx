@@ -96,7 +96,8 @@ export function TitleScreen() {
             <Button label={t('title.memories')} icon="star" variant="ghost" style={{ flex: 1 }} onPress={() => go('memories')} />
             <Button label={t('title.settings')} icon="gear" variant="ghost" style={{ flex: 1 }} onPress={() => go('settings')} />
           </View>
-          <Button label={t('title.mockups')} icon="grid" variant="ghost" compact onPress={() => go('gallery')} />
+          {/* Galerie de maquettes : outil de développement, absent des builds de production. */}
+          {__DEV__ && <Button label={t('title.mockups')} icon="grid" variant="ghost" compact onPress={() => go('gallery')} />}
           {error && <Text style={[type.uiSmall, { color: colors.rustBright, textAlign: 'center' }]}>{error}</Text>}
         </FadeIn>
 
