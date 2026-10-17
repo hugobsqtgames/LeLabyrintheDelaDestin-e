@@ -3,6 +3,7 @@
  * paramètres s'écrivent entre accolades (« Niv. {n} »).
  * Un test vérifie que chaque clé utilisée existe dans toutes les langues.
  */
+import { useCallback } from 'react';
 import { useStore } from '../store/GameStore';
 import type { Lang } from './lang';
 import { type Params, translate } from './translate';
@@ -13,7 +14,8 @@ export type T = (key: string, params?: Params) => string;
 
 export function useT(): T {
   const { lang } = useStore();
-  return (key, params) => translate(lang, key, params);
+  // Stable tant que la langue ne change pas : utilisable dans les dépendances d'un effet sans le relancer à chaque rendu.
+  return useCallback<T>((key, params) => translate(lang, key, params), [lang]);
 }
 
 /** Messages du système de sauvegarde (produits en français) traduits à l'affichage. */
