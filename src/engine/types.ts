@@ -305,7 +305,8 @@ export interface DocumentDef {
 // Ennemis & combat
 // ---------------------------------------------------------------------------
 
-export type EnemyMoveKind = 'attack' | 'heavy' | 'grab' | 'bite' | 'scream' | 'guard' | 'spit';
+/** `pause` : l'ennemi ne fait rien ce tour (recharge, reprend son souffle). */
+export type EnemyMoveKind = 'attack' | 'heavy' | 'grab' | 'bite' | 'scream' | 'guard' | 'spit' | 'pause';
 
 export interface EnemyMove {
   id: string;
@@ -569,6 +570,8 @@ export interface BackgroundDef {
   healingMultiplier?: number;
   /** Modificateurs appliqués aux jets de compétence. */
   checkModifiers?: Partial<Stats>;
+  /** Endurance maximale (malus d'un passé, ex. épuisement). */
+  staminaModifier?: number;
   startingItems?: Record<ItemId, number>;
   startingRelations?: Record<CharacterId, number>;
   /** Absent de la création de personnage. */

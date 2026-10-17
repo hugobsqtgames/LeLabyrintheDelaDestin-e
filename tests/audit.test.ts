@@ -2,8 +2,13 @@
  * Non-régression des défauts relevés par l'audit (persistance, relève, paramètres).
  */
 import { describe, expect, it } from 'vitest';
+import { performAction } from '../src/engine/combat';
+import { addItem, canCraft, canUseOutOfCombat } from '../src/engine/inventory';
 import { absorbGame, emptyMeta } from '../src/engine/meta';
+import { enterScene } from '../src/engine/narrative';
+import type { GameState } from '../src/engine/types';
 import { takeOver } from '../src/engine/relay';
+import { validateContent } from '../src/engine/validator';
 import { META_KEY, relayKey, SaveManager, slotKey } from '../src/persistence/saves';
 import { validateState } from '../src/persistence/schema';
 import { MemoryStorage } from '../src/persistence/storage';
@@ -102,5 +107,79 @@ describe('relève : reprise toujours sur une scène existante', () => {
     const s = takeOver(C, dead, 'kaz');
     expect(C.scenes[s.currentScene]).toBeDefined();
     expect(C.scenes[s.currentScene].kind).not.toBe('death');
+  });
+});
+
+describe('validateur : défauts injectés', () => {
+  const errorsOf = (content: typeof C) => validateContent(content).filter((i) => i.level === 'error').map((i) => i.message);
+
+  it('détecte une boucle fermée sans issue', () => {
+    const scenes = { ...C.scenes };
+    const base = { chapter: 'c1', location: C.scenes[C.startScene].location, kind: 'story' as const, text: [{ text: 'x' }] };
+    scenes.zz_a = { ...base, id: 'zz_a', title: 'A', choices: [{ id: 'b', text: 'B', kind: 'move' as const, next: 'zz_b' }] };
+    scenes.zz_b = { ...base, id: 'zz_b', title: 'B', choices: [{ id: 'a', text: 'A', kind: 'move' as const, next: 'zz_a' }] };
+    scenes[C.startScene] = { ...C.scenes[C.startScene], choices: [...C.scenes[C.startScene].choices, { id: 'zz', text: 'zz', kind: 'move', next: 'zz_a' }] };
+    expect(errorsOf({ ...C, scenes }).some((m) => m.includes('aucune fin atteignable'))).toBe(true);
+  });
+
+  it('détecte une fiche de relève avec un objet inconnu', () => {
+    const heroes = { ...C.heroes, kaz: { ...C.heroes.kaz, items: { ...C.heroes.kaz.items, objet_fantome: 1 } } };
+    expect(errorsOf({ ...C, heroes }).some((m) => m.includes('objet_fantome'))).toBe(true);
+  });
+
+  it('le contenu livré passe toutes ces règles', () => {
+    expect(errorsOf(C)).toEqual([]);
+  });
+});
+
+describe('combat : les règles annoncées sont tenues', () => {
+  const fight = (enemy: string, intent: string, extra: Partial<GameState['combat'] & object> = {}): GameState => {
+    let s = enterScene(C, start(), 'c1_super_combat');
+    const c = s.combat!;
+    const e = { ...c.enemies[0], def: enemy, hp: 30, maxHp: 30, intent, statuses: [], phase: 0 };
+    s = { ...s, combat: { ...c, enemies: [e], ...extra } };
+    return s;
+  };
+
+  it('« se met à couvert » réduit déjà les coups du tour où c’est annoncé', () => {
+    const openMove = C.enemies.pillard.moves.find((m) => m.kind !== 'guard')!.id;
+    const total = (intent: string) => {
+      let sum = 0;
+      for (let seed = 1; seed <= 80; seed += 1) {
+        const s = { ...fight('pillard', intent), rng: seed };
+        const after = performAction(C, s, { type: 'attack', target: s.combat!.enemies[0].uid, weapon: 'melee' });
+        sum += 30 - after.combat!.enemies[0].hp;
+      }
+      return sum;
+    };
+    // Mêmes dés (mêmes graines) : seule la couverture annoncée change.
+    expect(total('garde')).toBeLessThan(total(openMove));
+  });
+
+  it('un statut gênant posé par l’ennemi pèse encore au tour suivant du joueur', () => {
+    const s = fight('soldat', 'crosse');
+    let found = false;
+    for (let seed = 1; seed < 60 && !found; seed += 1) {
+      const after = performAction(C, { ...s, rng: seed }, { type: 'defend' });
+      if (after.combat?.log.some((l) => l.text.includes(C.messages['combat.playerStatus']?.split('{')[0] ?? 'zzz'))) {
+        found = after.combat!.playerStatuses.some((st) => st.kind === 'sonne' && st.turns > 0);
+        if (!found) throw new Error('sonné posé puis effacé avant le tour du joueur');
+      }
+    }
+    expect(found).toBe(true);
+  });
+
+  it('le Rempart bloque aussi l’étreinte', () => {
+    const s = fight('rodeur', 'etreinte', { fortified: true } as Partial<GameState['combat'] & object>);
+    // Le joueur se défend ; le Rempart est actif ce tour (posé avant l’action ennemie).
+    const after = performAction(C, s, { type: 'defend' });
+    expect(after.combat!.playerStatuses.some((st) => st.kind === 'agrippe')).toBe(false);
+  });
+
+  it('après la mort, plus de soins ni de fabrication', () => {
+    let s = addItem(C, start(), 'bandage', 1, false).state;
+    s = { ...s, player: { ...s.player, hp: 0 }, ending: { id: 'mort', kind: 'death' } };
+    expect(canUseOutOfCombat(C, s, 'bandage').ok).toBe(false);
+    expect(Object.keys(C.recipes).every((r) => !canCraft(C, s, r).ok)).toBe(true);
   });
 });

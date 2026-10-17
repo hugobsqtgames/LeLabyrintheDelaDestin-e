@@ -159,7 +159,8 @@ export function maxHp(content: GameContent, state: GameState): number {
 
 export function maxStamina(content: GameContent, state: GameState): number {
   const p = state.player;
-  return STAMINA_BASE + p.stats.survie + p.stats.discretion + (hasPerk(state, 'second_souffle') ? 3 : 0);
+  const bg = content.backgrounds[p.background];
+  return Math.max(1, STAMINA_BASE + p.stats.survie + p.stats.discretion + (hasPerk(state, 'second_souffle') ? 3 : 0) + (bg?.staminaModifier ?? 0));
 }
 
 export function armorValue(content: GameContent, state: GameState): number {

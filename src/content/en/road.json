@@ -140,8 +140,6 @@
   "Passeuse": "Smuggler",
   "Voir avant d’être vue.": "See before being seen.",
   "Inès a fait passer des centaines de gens sous la ville. Elle tire avant qu’on la remarque.": "Inès has guided hundreds of people beneath the city. She shoots before anyone notices her.",
-  "Carreau ajusté": "Aimed Bolt",
-  "Un tir patient qui ne rate jamais : critique renforcé (×2,6 sur une cible distraite ou étourdie) et saignement.": "A patient shot that never misses: enhanced critical (×2.6 against a distracted or stunned target) and bleeding.",
   "Inès disparaît dans l’ombre : esquive garantie au prochain coup, et la prochaine attaque compte comme une embuscade.": "Inès vanishes into the shadows: guaranteed dodge against the next blow, and the next attack counts as an ambush.",
   "Les écluses, les barrages, les moteurs : Kaz comprend tout ce qui a des engrenages.": "Locks, dams, engines: Kaz understands anything with gears.",
   "Charge transportable +4 kg, +1 aux jets d’Astuce.": "Carrying capacity +4 kg, +1 to Wits rolls.",
@@ -152,7 +150,6 @@
   "Épuisée : endurance maximale −1 (compensée par la Survie).": "Exhausted: maximum stamina −1 (offset by Survival).",
   "Elle connaît chaque galerie sous Valombre et chaque façon de ne pas se faire voir.": "She knows every tunnel beneath Valombre and every way of not being seen.",
   "+1 aux jets de Discrétion.": "+1 to Stealth rolls.",
-  "Ne se fie à personne : les inconnus l’aident moins volontiers.": "Trusts no one: strangers are less willing to help her.",
   "Nous avons traversé un cimetière à la tombée de la nuit. Là-bas, les morts restent debout et les vivants rampent.": "We crossed a cemetery at nightfall. There, the dead stay standing and the living crawl.",
   "J’ai refermé la grille du fossoyeur. Il l’avait demandé dans son registre. C’est la seule chose que j’aie pu faire pour lui.": "I closed the gravedigger’s gate. He had asked for it in his register. It was the only thing I could do for him.",
   "Armand m’a donné la clé de sa draisine. Il l’a enlevée de son cou comme on enlève une alliance.": "Armand gave me the key to his handcar. He took it from around his neck the way you take off a wedding ring.",
@@ -2750,5 +2747,8 @@
   "Atteindre le quinzième chapitre.": "Reach the fifteenth chapter.",
   "Le garçon de la ronde avait trois points tatoués au poignet et pas vingt ans. Le prix a changé. Pour lui aussi.": "The boy on the patrol had three dots tattooed on his wrist and wasn’t twenty yet. The price has changed. For him too.",
   "Tout à l’heure, une cloche a sonné sur une colline. Une seule fois. Comme pour dire qu’il y a encore quelqu’un.": "Earlier, a bell rang on a hill. Just once. As if to say someone is still there.",
-  "Nour a fini le voyage à la place de la personne qui l’avait commencé. Elle a douze ans. Elle sait combien de pas il y avait entre l’endroit où tout s’est arrêté et l’écluse de Morvan. Elle ne le dit à personne.": "Nour finished the journey in place of the person who began it. She is twelve. She knows how many steps there were between the place where everything stopped and Morvan Lock. She tells no one."
+  "Nour a fini le voyage à la place de la personne qui l’avait commencé. Elle a douze ans. Elle sait combien de pas il y avait entre l’endroit où tout s’est arrêté et l’écluse de Morvan. Elle ne le dit à personne.": "Nour finished the journey in place of the person who began it. She is twelve. She knows how many steps there were between the place where everything stopped and Morvan Lock. She tells no one.",
+  "Coup ajusté": "Precise Strike",
+  "Inès frappe là où ça compte : un coup qui ne rate jamais, critique renforcé (×2,6 sur une cible distraite ou étourdie) et saignement.": "Inès strikes where it counts: a blow that never misses, with a heavier critical (×2.6 on a distracted or stunned target) and bleeding.",
+  "Ne se fie à personne : −1 aux jets d’Astuce.": "Trusts no one: −1 to Wits rolls."
 }

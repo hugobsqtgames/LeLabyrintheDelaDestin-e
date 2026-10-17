@@ -45,7 +45,8 @@ export function currentWeight(content: GameContent, state: GameState): number {
   for (const [id, qty] of Object.entries(state.inventory)) {
     w += (content.items[id]?.weight ?? 0) * qty;
   }
-  return Math.round(w * 10) / 10;
+  // Au centième : certains objets pèsent 0,05 kg, un arrondi au dixième laisserait dépasser la charge.
+  return Math.round(w * 100) / 100;
 }
 
 export function itemCount(state: GameState, item: ItemId): number {
@@ -216,6 +217,7 @@ export function canUseOutOfCombat(content: GameContent, state: GameState, item: 
   const def = content.items[item];
   if (!def?.use?.outOfCombat) return { ok: false, reason: msg(content, 'use.notThisWay') };
   if (itemCount(state, item) <= 0) return { ok: false, reason: msg(content, 'use.noneLeft') };
+  if (state.ending) return { ok: false, reason: msg(content, 'choice.gameOver') };
   if (state.combat) return { ok: false, reason: msg(content, 'use.inCombat') };
   const u = def.use;
   const needsHeal = (u.heal ?? 0) > 0 && state.player.hp < maxHp(content, state);
@@ -283,6 +285,7 @@ export function repairWeapons(content: GameContent, state: GameState, amount: nu
 export function canCraft(content: GameContent, state: GameState, recipeId: string): { ok: boolean; reason?: string } {
   const r = content.recipes[recipeId];
   if (!r) return { ok: false, reason: msg(content, 'craft.unknown') };
+  if (state.ending) return { ok: false, reason: msg(content, 'choice.gameOver') };
   if (state.combat) return { ok: false, reason: msg(content, 'craft.inCombat') };
   const missing = Object.entries(r.inputs)
     .filter(([id, qty]) => itemCount(state, id) < qty)

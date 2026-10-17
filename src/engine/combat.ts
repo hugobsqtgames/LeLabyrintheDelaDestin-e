@@ -327,7 +327,10 @@ function damageEnemy(
   if (hasStatus(target.statuses, 'distrait')) dmg = Math.round(dmg * 1.3);
   const phaseDefense = target.phase > 0 ? def.phases?.[target.phase - 1]?.defenseBonus ?? 0 : 0;
   if (!ignoreDefense) dmg -= def.defense + phaseDefense;
-  if (hasStatus(target.statuses, 'garde')) dmg = Math.floor(dmg / 2);
+  // À couvert : dès que l'intention annoncée est de se protéger (le joueur agit avant l'ennemi), puis le tour suivant.
+  const announced = findMove(def, target.phase, target.intent);
+  const covering = announced?.kind === 'guard' && !hasStatus(target.statuses, 'etourdi') && !hasStatus(target.statuses, 'distrait');
+  if (hasStatus(target.statuses, 'garde') || covering) dmg = Math.floor(dmg / 2);
   dmg = Math.max(1, dmg);
   const hp = Math.max(0, target.hp - dmg);
   combat = updateEnemy(combat, uid, (e) => ({ ...e, hp }));
@@ -345,7 +348,8 @@ function damageEnemy(
     });
     if (phase !== updated.phase) {
       const p = def.phases[phase - 1];
-      combat = updateEnemy(combat, uid, (e) => ({ ...e, phase, intent: null }));
+      // L'intention annoncée reste valable ce tour : pas de coup lourd surprise au changement de phase.
+      combat = updateEnemy(combat, uid, (e) => ({ ...e, phase }));
       combat = log(combat, `${p.name} — ${p.announce}`, 'danger');
     }
   }
@@ -587,6 +591,9 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
   const move = findMove(def, enemy.phase, enemy.intent) ?? currentMoves(def, enemy.phase)[0];
   const combat = s.combat!;
 
+  if (move.kind === 'pause') {
+    return withCombat(s, log(s.combat!, msg(content, 'combat.enemyMove', { enemy: def.name, move: move.name }), 'player'));
+  }
   if (move.kind === 'guard') {
     s = applyEnemyStatus(s, enemy.uid, 'garde', 1);
     return withCombat(s, log(s.combat!, msg(content, 'combat.enemyMove', { enemy: def.name, move: move.name }), 'enemy'));
@@ -629,6 +636,8 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
   if (move.kind === 'bite' && hasStatus(s.combat!.playerStatuses, 'agrippe')) dmg += 2;
   if (dmg > 0) s = hurtPlayer(content, s, dmg, msg(content, 'combat.enemyMoveName', { enemy: def.name, move: move.name }), move.kind === 'spit');
   else s = withCombat(s, log(s.combat!, msg(content, 'combat.enemyMove', { enemy: def.name, move: move.name }), 'enemy'));
+  // Rempart : rien ne passe, ni étreinte, ni statut, ni morsure.
+  if (s.combat!.fortified) return s;
 
   if (move.kind === 'grab') {
     if (s.combat!.defending) {
@@ -643,7 +652,13 @@ function enemyAct(content: GameContent, state: GameState, enemy: CombatEnemy): G
     if (roll2.value && !(s.combat!.defending && move.applies.status === 'saignement')) {
       s = withCombat(s, {
         ...s.combat!,
-        playerStatuses: addStatus(s.combat!.playerStatuses, move.applies.status, move.applies.turns),
+        // Un statut qui gêne les actions (sonné…) est posé pendant le tour ennemi : +1 pour qu'il pèse
+        // encore sur le prochain tour du joueur. Les statuts qui blessent gardent leur durée.
+        playerStatuses: addStatus(
+          s.combat!.playerStatuses,
+          move.applies.status,
+          move.applies.turns + (move.applies.status === 'saignement' || move.applies.status === 'brulure' ? 0 : 1),
+        ),
       });
       s = withCombat(s, log(s.combat!, msg(content, 'combat.playerStatus', { status: statusLabel(content, move.applies.status).toLowerCase() }), 'danger'));
     }

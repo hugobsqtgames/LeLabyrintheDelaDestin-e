@@ -233,6 +233,57 @@ export function validateContent(content: GameContent): ValidationIssue[] {
     const has = Object.values(content.scenes).some((s) => s.ending === ending.id && reachable.has(s.id));
     if (!has) err(`fin « ${ending.id} » impossible à atteindre`);
   }
+  // Issue : depuis chaque scène atteignable, une fin (ou une mort) doit rester atteignable.
+  // Une boucle fermée sans sortie bloquerait le joueur pour toujours.
+  const preds = new Map<string, string[]>();
+  for (const sc of Object.values(content.scenes)) {
+    for (const t of sceneTargets(sc)) preds.set(t, [...(preds.get(t) ?? []), sc.id]);
+  }
+  const canFinish = new Set<string>();
+  const todo = Object.values(content.scenes)
+    .filter((sc) => sc.kind === 'ending' || sc.kind === 'death')
+    .map((sc) => sc.id);
+  while (todo.length) {
+    const id = todo.pop()!;
+    if (canFinish.has(id)) continue;
+    canFinish.add(id);
+    todo.push(...(preds.get(id) ?? []));
+  }
+  for (const id of reachable) {
+    if (!canFinish.has(id)) err('aucune fin atteignable depuis cette scène (boucle sans issue)', id);
+  }
+  // Routages en cycle (le moteur s'arrêterait en silence à la profondeur maximale).
+  const routeOf = (id: string) => (content.scenes[id]?.routes ?? []).map((r) => r.to);
+  for (const id of Object.keys(content.scenes)) {
+    const seen = new Set<string>([id]);
+    const walk = [...routeOf(id)];
+    while (walk.length) {
+      const next = walk.pop()!;
+      if (next === id) {
+        err('routage en cycle', id);
+        break;
+      }
+      if (seen.has(next)) continue;
+      seen.add(next);
+      walk.push(...routeOf(next));
+    }
+  }
+  // Fiches de relève et équipements de départ.
+  for (const h of Object.values(content.heroes)) {
+    if (!content.characters[h.character]) err(`relève : personnage inconnu ${h.character}`);
+    if (!content.profiles[h.profile]) err(`relève ${h.character} : profil inconnu ${h.profile}`);
+    if (!content.backgrounds[h.background]) err(`relève ${h.character} : passé inconnu ${h.background}`);
+    for (const item of Object.keys(h.items)) if (!content.items[item]) err(`relève ${h.character} : objet inconnu ${item}`);
+    for (const item of Object.values(h.equipment)) {
+      if (item && !h.items[item]) err(`relève ${h.character} : ${item} équipé mais absent du sac`);
+    }
+  }
+  for (const pr of Object.values(content.profiles)) {
+    for (const item of Object.keys(pr.startingItems)) if (!content.items[item]) err(`profil ${pr.id} : objet inconnu ${item}`);
+    for (const item of Object.values(pr.startingEquipment)) {
+      if (item && !pr.startingItems[item]) err(`profil ${pr.id} : ${item} équipé mais absent des objets de départ`);
+    }
+  }
   // Données diverses.
   for (const item of Object.values(content.items)) {
     if (item.ammo && !content.items[item.ammo]) err(`objet ${item.id} : munition inconnue ${item.ammo}`);

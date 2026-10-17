@@ -158,8 +158,17 @@ export function takeOver(content: GameContent, state: GameState, hero: Character
     if (item && s.inventory[item]) s = { ...s, equipment: { ...s.equipment, [slot]: item } };
   }
   for (const { item, qty } of keep) s = addItem(content, s, item, qty, false).state;
-  for (const item of taken) s = addItem(content, s, item, available.get(item)!, false).state;
-  // Ce qui ne rentre pas dans le sac reste au sol, pas question de le perdre en silence.
+  for (const item of taken) {
+    const res = addItem(content, s, item, available.get(item)!, false);
+    s = res.state;
+    // Ce qui ne rentre pas (poids ou pile pleine) reste au sol, pas question de le perdre en silence.
+    if (res.refused > 0) {
+      const max = content.items[item]?.maxStack ?? res.refused;
+      s = { ...s, ground: { ...s.ground, [item]: Math.min(max, (s.ground[item] ?? 0) + res.refused) } };
+    }
+    // Une arme ramassée garde son usure.
+    if (state.durability[item] !== undefined && s.durability[item] === undefined) s = { ...s, durability: { ...s.durability, [item]: state.durability[item] } };
+  }
 
   s = { ...s, player: { ...s.player, hp: maxHp(content, s), stamina: maxStamina(content, s) } };
   const cause = dead.cause ? ` (${dead.cause})` : '';

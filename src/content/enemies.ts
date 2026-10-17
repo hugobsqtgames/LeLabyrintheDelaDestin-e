@@ -295,7 +295,7 @@ const list: EnemyDef[] = [
         moves: [
           { id: 'canon', name: 'Décharge à bout portant', kind: 'heavy', weight: 3, damage: [9, 13], telegraph: 'Arme le canon scié et le pointe sur vous. Coup lourd : défendez-vous ou esquivez.' },
           { id: 'crosse', name: 'Coup de crosse', kind: 'attack', weight: 3, damage: [4, 6], applies: { status: 'sonne', turns: 1, chance: 0.4 }, telegraph: 'Retourne l’arme pour frapper.' },
-          { id: 'recharge', name: 'Recharge', kind: 'guard', weight: 1, telegraph: 'Recule pour recharger : c’est le moment de frapper.' },
+          { id: 'recharge', name: 'Recharge', kind: 'pause', weight: 1, telegraph: 'Recule pour recharger : c’est le moment de frapper.' },
         ],
       },
     ],
