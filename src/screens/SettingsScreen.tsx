@@ -45,7 +45,7 @@ export function SettingsScreen() {
   const replayTutorial = () => {
     setSettings({ tutorialDone: false, hintsSeen: [] });
     // En pleine partie, on y retourne tout de suite ; sinon il s'ouvrira à la prochaine.
-    if (model.game && model.prevRoute === 'game') back();
+    if (model.game) back();
     else setTutorialQueued(true);
   };
   return (
@@ -76,7 +76,21 @@ export function SettingsScreen() {
             <Text style={[type.ui, { flex: 1, fontFamily: fonts.uiBold }]}>{t('settings.ambience')}</Text>
             <Text style={[type.number, { fontSize: 13, color: colors.textDim }]}>{s.volume === 0 ? t('settings.mute') : `${Math.round(s.volume * 100)} %`}</Text>
           </View>
-          <View style={styles.volume} accessibilityRole="adjustable" accessibilityLabel={t('settings.ambience')} accessibilityValue={{ min: 0, max: 100, now: Math.round(s.volume * 100) }}>
+          <View
+            style={styles.volume}
+            // Un seul élément réglable pour VoiceOver : balayer vers le haut ou le bas change le volume.
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel={t('settings.ambience')}
+            accessibilityValue={{ min: 0, max: 100, now: Math.round(s.volume * 100), text: s.volume === 0 ? t('settings.mute') : `${Math.round(s.volume * 100)} %` }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(e) => {
+              const i = VOLUMES.findIndex((v) => v >= s.volume);
+              const at = i < 0 ? VOLUMES.length - 1 : i;
+              const next = e.nativeEvent.actionName === 'increment' ? Math.min(VOLUMES.length - 1, at + 1) : Math.max(0, at - 1);
+              setSettings({ volume: VOLUMES[next] });
+            }}
+          >
             {VOLUMES.map((v) => {
               const on = s.volume >= v && s.volume > 0 && v > 0;
               return (

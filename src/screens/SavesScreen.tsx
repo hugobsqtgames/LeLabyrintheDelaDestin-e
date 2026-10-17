@@ -8,6 +8,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPlaytime } from '../engine/summary';
 import type { SlotInfo } from '../persistence/saves';
 import { translateSaveMessage, useT } from '../i18n';
+import { summaryLabels } from '../persistence/summaryLabels';
 import { useStore } from '../store/GameStore';
 import { PlayerPortrait } from '../ui/art/Portraits';
 import { EmblemBadge } from '../ui/art/Emblems';
@@ -20,17 +21,19 @@ import type { EmblemId } from '../engine/types';
 type Pending = { kind: 'overwrite-new' | 'overwrite-copy' | 'delete' | 'restore'; slot: number } | null;
 
 
-function formatDate(ts?: number): string {
+function formatDate(ts: number | undefined, lang: string): string {
   if (!ts) return '';
   const d = new Date(ts);
   const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const date = lang === 'en' ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  return `${date} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
   const { saves, model, back, go, loadGame, restoreBeforeRelay, setPendingSlot, startFromChapter, feedback, content, lang } = useStore();
   const t = useT();
   const mode = model.savesMode;
+  const chapterLabel = (n: number) => t('story.chapter', { n });
   const [slots, setSlots] = useState<SlotInfo[] | null>(initialSlots ?? null);
   const [pending, setPending] = useState<Pending>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -38,8 +41,12 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
 
   const refresh = useCallback(async () => {
     if (!saves) return;
-    setSlots(await saves.listSlots());
-  }, [saves]);
+    try {
+      setSlots(await saves.listSlots());
+    } catch {
+      setMessage(t('saves.listFailed'));
+    }
+  }, [saves, t]);
 
   useEffect(() => {
     if (initialSlots || !saves) return;
@@ -47,13 +54,19 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
     saves
       .listSlots()
       .then((s) => alive && setSlots(s))
-      .catch(() => alive && setSlots([]));
+      .catch(() => {
+        // Lecture impossible : on le dit, plutôt qu'une page vide.
+        if (!alive) return;
+        setSlots([]);
+        setMessage(t('saves.listFailed'));
+      });
     return () => {
       alive = false;
     };
-  }, [saves, initialSlots]);
+  }, [saves, initialSlots, t]);
 
   const chooseNew = async (slot: number) => {
+    if (busy) return;
     // « Rejouer un chapitre » : la partie repart du début du chapitre choisi.
     if (model.pendingChapter) {
       setBusy(true);
@@ -106,8 +119,12 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
     const p = pending;
     setPending(null);
     if (p.kind === 'delete') {
-      await saves.remove(p.slot);
-      setMessage(t('saves.deleted', { slot: p.slot }));
+      try {
+        await saves.remove(p.slot);
+        setMessage(t('saves.deleted', { slot: p.slot }));
+      } catch (e) {
+        setMessage(t('saves.deleteFailed', { error: (e as Error)?.message ?? '' }));
+      }
       await refresh();
     } else if (p.kind === 'restore') {
       setBusy(true);
@@ -161,13 +178,13 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                   {sum && (
                     <>
                       <Text style={[type.ui, { fontFamily: fonts.uiBold }]}>
-                        {sum.name} · {sum.profile} · {t('hud.level', { n: sum.level })}
+                        {sum.name} · {summaryLabels(content, sum, chapterLabel).profile} · {t('hud.level', { n: sum.level })}
                       </Text>
                       <Text style={type.uiSmall} numberOfLines={1}>
-                        {sum.chapterTitle}
+                        {summaryLabels(content, sum, chapterLabel).chapter}
                       </Text>
                       <Text style={type.uiSmall} numberOfLines={1}>
-                        {sum.sceneTitle} · {formatPlaytime(content, sum.playtimeMs)} · {formatDate(s.savedAt)}
+                        {summaryLabels(content, sum, chapterLabel).scene} · {formatPlaytime(content, sum.playtimeMs)} · {formatDate(s.savedAt, lang)}
                       </Text>
                     </>
                   )}
@@ -181,7 +198,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                   <Button label={s.status === 'corrupt' ? t('saves.try') : t('saves.load')} compact style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
                 )}
                 {mode === 'new' && (
-                  <Button label={s.status === 'empty' ? t('saves.startHere') : t('saves.replace')} compact variant={s.status === 'empty' ? 'primary' : 'secondary'} style={{ flex: 1 }} onPress={() => onSlot(s)} />
+                  <Button label={s.status === 'empty' ? t('saves.startHere') : t('saves.replace')} compact variant={s.status === 'empty' ? 'primary' : 'secondary'} style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
                 )}
                 {mode === 'copy' && !current && (
                   <Button label={s.status === 'empty' ? t('saves.copyHere') : t('saves.overwrite')} compact variant="secondary" style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />

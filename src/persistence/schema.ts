@@ -24,6 +24,8 @@ export interface SaveSummary {
   chapter: string;
   chapterTitle: string;
   sceneTitle: string;
+  /** Identifiant de la scène (libellé recalculé à l'affichage, dans la langue courante). */
+  scene?: string;
   playtimeMs: number;
   ended: 'ending' | 'death' | null;
   /** Mort, mais un compagnon peut reprendre la route. */
@@ -59,6 +61,7 @@ export function buildSummary(content: GameContent, state: GameState): SaveSummar
     chapter: state.chapter,
     chapterTitle: chapter ? `Chapitre ${chapter.number} — ${chapter.title}` : state.chapter,
     sceneTitle: content.scenes[state.currentScene]?.title ?? '',
+    scene: state.currentScene,
     playtimeMs: state.playtimeMs,
     ended: state.ending?.kind ?? null,
     relay: canRelay(content, state),

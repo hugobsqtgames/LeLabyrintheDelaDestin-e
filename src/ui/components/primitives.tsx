@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...CONTINUOUS,
   },
-  buttonCompact: { minHeight: 40, paddingHorizontal: space.lg },
+  buttonCompact: { minHeight: 44, paddingHorizontal: space.lg },
   buttonText: { fontFamily: fonts.uiBold, fontSize: 16.5, letterSpacing: -0.2, textAlign: 'center' },
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
   dot: { position: 'absolute', top: 7, right: 7, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.rust, borderWidth: 2, borderColor: colors.bg },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   tileHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tileValue: { fontFamily: fonts.title, fontSize: 34, lineHeight: 38 },
   segmented: {},
-  segment: { flex: 1, minHeight: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
+  segment: { flex: 1, minHeight: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
   segmentActive: { backgroundColor: colors.text },
   segmentText: { fontFamily: fonts.uiBold, fontSize: 14, color: colors.textDim },
 });

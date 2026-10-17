@@ -96,7 +96,7 @@ export function ArchivesView({ game }: { game: GameState }) {
             const ch = content.chapters.find((c) => c.id === page.chapter);
             return (
               <Panel key={page.chapter} tone="paper" taped>
-                <Label color="rgba(27,23,20,0.6)">{t('archives.diaryPage', { n: ch?.number ?? '' })}</Label>
+                <Label color="rgba(27,23,20,0.72)">{t('archives.diaryPage', { n: ch?.number ?? '' })}</Label>
                 <Text style={[type.h2, { color: colors.paperInk, fontSize: 24, marginTop: 2, marginBottom: space.sm }]}>{ch?.title}</Text>
                 <Text style={styles.diaryText} maxFontSizeMultiplier={MAX_SCALE_READING}>
                   {page.text}
@@ -110,7 +110,7 @@ export function ArchivesView({ game }: { game: GameState }) {
       <Sheet visible={!!open} onClose={() => setOpen(null)} title={open?.title ?? ''}>
         {open && (
           <View style={styles.paper}>
-            <Text style={[type.label, { color: 'rgba(27,23,20,0.6)' }]}>{open.source}</Text>
+            <Text style={[type.label, { color: 'rgba(27,23,20,0.72)' }]}>{open.source}</Text>
             <Text style={styles.paperText} maxFontSizeMultiplier={MAX_SCALE_READING}>
               {open.body}
             </Text>

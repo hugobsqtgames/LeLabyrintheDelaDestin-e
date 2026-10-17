@@ -14,6 +14,7 @@ import { Glass } from '../ui/components/Glass';
 import { Button, FadeIn, Label, Screen } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
 import { colors, fonts, MAX_SCALE_UI, radius, space, type, NATIVE_DRIVER } from '../ui/theme';
+import { summaryLabels } from '../persistence/summaryLabels';
 
 export function TitleScreen() {
   const { saves, model, loadGame, openSaves, go, reduceMotion, content, lang } = useStore();
@@ -42,7 +43,8 @@ export function TitleScreen() {
   const last = playable.find((s) => s.slot === model.settings.lastSlot) ?? [...playable].sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))[0];
 
   const onContinue = async () => {
-    if (!last) return;
+    // Deux contrôles mènent ici (carte et bouton) : un seul chargement à la fois.
+    if (!last || loading) return;
     setLoading(true);
     const res = await loadGame(last.slot);
     setLoading(false);
@@ -80,7 +82,7 @@ export function TitleScreen() {
                     {last.summary.name} · {t('hud.level', { n: last.summary.level })}
                   </Text>
                   <Text style={[type.uiSmall, { fontSize: 12.5 }]} numberOfLines={1}>
-                    {last.summary.sceneTitle} · {formatPlaytime(content, last.summary.playtimeMs)}
+                    {summaryLabels(content, last.summary, (n) => t('story.chapter', { n })).scene} · {formatPlaytime(content, last.summary.playtimeMs)}
                   </Text>
                 </View>
                 <View style={styles.play}>

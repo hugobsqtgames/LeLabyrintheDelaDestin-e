@@ -161,7 +161,7 @@ function Codex() {
 }
 
 function Chapters() {
-  const { model, content, saves, setPendingChapter, openSaves } = useStore();
+  const { model, content, saves, openSaves } = useStore();
   const t = useT();
   const unlocked = memoriesUnlocked(model.meta);
   const [starts, setStarts] = useState<string[]>([]);
@@ -205,8 +205,7 @@ function Chapters() {
                     icon="back"
                     style={{ flex: 1 }}
                     onPress={() => {
-                      setPendingChapter(ch.id);
-                      openSaves('new');
+                      openSaves('new', ch.id);
                     }}
                   />
                 )}

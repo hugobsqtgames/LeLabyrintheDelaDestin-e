@@ -41,13 +41,27 @@ export const TUTORIAL_STEPS: Step[] = [
 
 const TAB_COUNT = 5;
 
-export function Tutorial({ topHeight, onDone, initialStep = 0 }: { topHeight: number; onDone: () => void; initialStep?: number }) {
+export function Tutorial({
+  topHeight,
+  onDone,
+  initialStep = 0,
+  onStep,
+}: {
+  topHeight: number;
+  onDone: () => void;
+  initialStep?: number;
+  /** Étape courante, pour reprendre au même endroit si le tutoriel est masqué (pause, carton de chapitre). */
+  onStep?: (index: number) => void;
+}) {
   const { setTab, feedback } = useStore();
   const t = useT();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [index, setIndex] = useState(() => Math.min(Math.max(0, initialStep), TUTORIAL_STEPS.length - 1));
   const step = TUTORIAL_STEPS[index];
+  useEffect(() => {
+    onStep?.(index);
+  }, [index, onStep]);
   const last = index === TUTORIAL_STEPS.length - 1;
 
   useEffect(() => {

@@ -2,8 +2,8 @@
  * Création du personnage en cinq étapes : identité, profil, passé,
  * caractéristiques, récapitulatif. Les règles viennent du moteur.
  */
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   adjustDraftStat,
   canDecrement,
@@ -33,6 +33,15 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
   const t = useT();
   const [draft, setDraft] = useState<CharacterDraft>(initialDraft ?? emptyDraft());
   const [step, setStep] = useState(initialStep);
+  // Retour matériel Android : étape précédente, puis l'écran parent (comme le bouton Retour).
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === 0) back();
+      else setStep(step - 1);
+      return true;
+    });
+    return () => sub.remove();
+  }, [step, back]);
   const validation = useMemo(() => validateDraft(content, draft), [content, draft]);
   const remaining = remainingPoints(draft);
   const name = normalizeName(draft.name);

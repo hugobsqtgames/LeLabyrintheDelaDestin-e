@@ -22,6 +22,7 @@ import { translate } from '../i18n/translate';
 import { cancelReminders, scheduleReminder } from '../notifications/reminders';
 import type { ChapterId, CharacterDraft, CharacterId, GameContent, GameState, ItemId } from '../engine/types';
 import { META_KEY, type SaveManager } from '../persistence/saves';
+import { parentRoute } from './navigation';
 import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from './settings';
 
 export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery' | 'memories';
@@ -53,7 +54,8 @@ export interface AppModel {
 }
 
 type Action =
-  | { type: 'route'; route: Route; savesMode?: SavesMode }
+  | { type: 'route'; route: Route; savesMode?: SavesMode; pendingChapter?: ChapterId | null }
+  | { type: 'back' }
   | { type: 'tab'; tab: Tab }
   | { type: 'update'; fn: (g: GameState) => GameState }
   | { type: 'start'; slot: number | null; game: GameState }
@@ -72,7 +74,19 @@ type Action =
 function reducer(model: AppModel, action: Action): AppModel {
   switch (action.type) {
     case 'route':
-      return { ...model, prevRoute: model.route, route: action.route, savesMode: action.savesMode ?? model.savesMode };
+      return {
+        ...model,
+        prevRoute: model.route,
+        route: action.route,
+        savesMode: action.savesMode ?? model.savesMode,
+        // Ouvrir les sauvegardes fixe (ou annule) la reprise de chapitre : jamais de reliquat d'une visite précédente.
+        pendingChapter: action.route === 'saves' ? action.pendingChapter ?? null : model.pendingChapter,
+      };
+    case 'back': {
+      const route = parentRoute(model);
+      // Quitter les sauvegardes annule une reprise de chapitre en attente.
+      return { ...model, prevRoute: model.route, route, pendingChapter: model.route === 'saves' ? null : model.pendingChapter };
+    }
     case 'tab':
       return { ...model, tab: action.tab };
     case 'update': {
@@ -121,7 +135,8 @@ export interface Store {
   reduceMotion: boolean;
   go: (route: Route) => void;
   back: () => void;
-  openSaves: (mode: SavesMode) => void;
+  /** `chapter` : « Rejouer un chapitre » ; sinon toute reprise de chapitre en attente est annulée. */
+  openSaves: (mode: SavesMode, chapter?: ChapterId | null) => void;
   setTab: (tab: Tab) => void;
   update: (fn: (g: GameState) => GameState) => void;
   startNewGame: (draft: CharacterDraft, slot: number | null) => GameState;
@@ -419,8 +434,8 @@ export function GameProvider({
       saves,
       reduceMotion,
       go: (route) => dispatch({ type: 'route', route }),
-      back: () => dispatch({ type: 'route', route: model.prevRoute === model.route ? (model.game ? 'game' : 'title') : model.prevRoute }),
-      openSaves: (mode) => dispatch({ type: 'route', route: 'saves', savesMode: mode }),
+      back: () => dispatch({ type: 'back' }),
+      openSaves: (mode, chapter = null) => dispatch({ type: 'route', route: 'saves', savesMode: mode, pendingChapter: chapter }),
       setTab: (tab) => dispatch({ type: 'tab', tab }),
       update,
       startNewGame,

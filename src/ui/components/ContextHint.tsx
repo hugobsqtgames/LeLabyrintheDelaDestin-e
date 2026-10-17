@@ -36,7 +36,7 @@ export function ContextHint({ id, style }: { id: string; style?: object }) {
             {t(`hint.${id}.body`)}
           </Text>
         </View>
-        <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('hint.close')}>
+        <Pressable onPress={close} hitSlop={14} accessibilityRole="button" accessibilityLabel={t('hint.close')}>
           <Icon name="close" size={16} color={colors.textDim} />
         </Pressable>
       </Glass>

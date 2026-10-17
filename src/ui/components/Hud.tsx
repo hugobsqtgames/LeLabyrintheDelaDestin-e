@@ -48,8 +48,8 @@ export function ClockChip({ clock, compact, pace = 'ok' }: { clock: number; comp
       accessibilityLabel={t('hud.clockA11y', { day, hour, left: Math.max(0, Math.round(left)) }) + (pace === 'ok' ? '' : ` ${t(pace === 'late' ? 'hud.lateA11y' : 'hud.tightA11y')}`)}
     >
       <Icon name={pace === 'ok' ? 'clock' : 'warning'} size={12} color={color} strokeWidth={2} />
-      <Text style={[styles.clockText, { color }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
-        {t('hud.day', { day })} · {String(hour).padStart(2, '0')}h{!compact && left > 0 ? ` · ${t('hud.left', { h: Math.round(left) })}` : ''}
+      <Text style={[styles.clockText, { color }]} maxFontSizeMultiplier={MAX_SCALE_UI} numberOfLines={1}>
+        {t('hud.day', { day })} · {String(hour).padStart(2, '0')}h{!compact && left > 0 && pace === 'ok' ? ` · ${t('hud.left', { h: Math.round(left) })}` : ''}
         {!compact && paceText}
       </Text>
     </View>
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   miniFill: { height: '100%', borderRadius: 3 },
   num: { fontFamily: fonts.mono, fontSize: 11.5, color: colors.text, minWidth: 18, textAlign: 'right' },
   clockRow: { flexDirection: 'row', paddingLeft: 54 },
-  clock: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: 'rgba(255,248,240,0.05)' },
-  clockText: { fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.3 },
+  clock: { flexDirection: 'row', flexShrink: 1, alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: 'rgba(255,248,240,0.05)' },
+  clockText: { flexShrink: 1, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.3 },
   tabs: { marginHorizontal: space.lg, ...CONTINUOUS },
   tabRow: { flexDirection: 'row', padding: 5, gap: 2 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 7, gap: 2, minHeight: 52, borderRadius: radius.pill },

@@ -64,6 +64,12 @@ function ChapterTransition({ chapter, previously = [], onDone }: { chapter: Chap
   useEffect(() => {
     done.current = onDone;
   });
+  // Un double appui sur le choix qui ouvre le chapitre ne doit pas passer le carton aussitôt.
+  const [skippable, setSkippable] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setSkippable(true), 600);
+    return () => clearTimeout(id);
+  }, []);
   useEffect(() => {
     const seq = Animated.sequence([
       Animated.timing(v, { toValue: 1, duration: reduceMotion ? 0 : 900, useNativeDriver: NATIVE_DRIVER }),
@@ -78,7 +84,7 @@ function ChapterTransition({ chapter, previously = [], onDone }: { chapter: Chap
   const lift = v.interpolate({ inputRange: [0, 1, 2], outputRange: [24, 0, -12] });
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity, zIndex: 100 }]}>
-      <Pressable style={{ flex: 1 }} onPress={onDone} accessibilityRole="button" accessibilityLabel={t('transition.skip')}>
+      <Pressable style={{ flex: 1 }} onPress={() => skippable && onDone()} accessibilityRole="button" accessibilityLabel={t('transition.skip')}>
         <Backdrop aura={chapterAura(chapter)} intensity={1.6} />
         <Animated.View style={[styles.transition, { transform: [{ translateY: lift }] }]}>
           <Label color={colors.rustBright}>{t('story.chapter', { n: String(chapter.number).padStart(2, '0') })}</Label>
@@ -174,7 +180,7 @@ function RecapSheet({ game, visible, onClose }: { game: GameState; visible: bool
         )}
         {r.lastDiary && (
           <View style={styles.recapDiary}>
-            <Text style={[type.label, { color: 'rgba(27,23,20,0.6)' }]}>{t('archives.diary')}</Text>
+            <Text style={[type.label, { color: 'rgba(27,23,20,0.72)' }]}>{t('archives.diary')}</Text>
             <Text style={styles.recapDiaryText} numberOfLines={5}>
               {r.lastDiary}
             </Text>
@@ -226,6 +232,7 @@ export function GameScreen({
   const t = useT();
   const [paused, setPaused] = useState(initialPaused);
   const [topH, setTopH] = useState(110);
+  const [tutorialIndex, setTutorialIndex] = useState(tutorialStep ?? 0);
   const insets = useSafeAreaInsets();
   const tab = model.tab;
 
@@ -353,7 +360,7 @@ export function GameScreen({
       {model.unlocked.length > 0 && !transitionChapter && <AchievementToast key={model.unlocked[0].id} title={model.unlocked[0].title} onDone={dismissUnlocked} />}
 
       {!model.settings.tutorialDone && !transitionChapter && !paused && (
-        <Tutorial topHeight={topH} initialStep={tutorialStep} onDone={() => setSettings({ tutorialDone: true })} />
+        <Tutorial topHeight={topH} initialStep={tutorialIndex} onStep={setTutorialIndex} onDone={() => setSettings({ tutorialDone: true })} />
       )}
 
       {transitionChapter && (

@@ -14,8 +14,8 @@ import { Newsreader_400Regular_Italic } from '@expo-google-fonts/newsreader/400R
 import { Newsreader_600SemiBold } from '@expo-google-fonts/newsreader/600SemiBold';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppRouter } from './AppRouter';
 import { Ambience } from './audio/Ambience';
@@ -59,8 +59,19 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode; onReset
 }
 
 function Shell() {
-  const { closeGame } = useStore();
+  const { closeGame, back, model } = useStore();
   const t = useT();
+  const route = model.route;
+  // Retour matériel Android : même parent que le bouton « Retour » de chaque écran.
+  // Le jeu et la création (étape par étape) gèrent le leur ; sur l'écran titre, le système ferme l'application.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (route === 'title' || route === 'game' || route === 'create') return false;
+      back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [route, back]);
   return (
     <ErrorBoundary onReset={() => closeGame()} labels={{ title: t('crash.title'), text: t('crash.text'), menu: t('crash.menu') }}>
       <AppRouter />

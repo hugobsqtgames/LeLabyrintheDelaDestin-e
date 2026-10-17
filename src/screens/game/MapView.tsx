@@ -183,6 +183,7 @@ export function MapView({ game }: { game: GameState }) {
               disabled={!isKnown}
               onPress={() => setRegion(r)}
               accessibilityRole="button"
+              accessibilityLabel={isKnown ? r : t('map.regionLocked')}
               accessibilityState={{ selected: active, disabled: !isKnown }}
               style={[styles.chip, active && styles.chipActive, !isKnown && { opacity: 0.35 }]}
             >
@@ -276,7 +277,7 @@ export function MapView({ game }: { game: GameState }) {
 
       {sel && (
         <Panel tone="paper" taped style={{ marginTop: space.lg }}>
-          <Label color="rgba(27,23,20,0.6)">
+          <Label color="rgba(27,23,20,0.72)">
             {sel.region} · {t(`danger.${sel.danger}`)}
             {sel.id === current ? ` · ${t('map.here')}` : ''}
           </Label>
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendSwatch: { width: 18, height: 3, borderRadius: 2, backgroundColor: ROUTE_COLOR, shadowColor: ROUTE_COLOR, shadowOpacity: 0.8, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
   mapFrame: { aspectRatio: 1, width: '100%' },
-  chip: { borderRadius: radius.pill, paddingHorizontal: space.md + 2, paddingVertical: 8, backgroundColor: 'rgba(255,248,240,0.06)' },
+  chip: { borderRadius: radius.pill, paddingHorizontal: space.md + 2, paddingVertical: 8, minHeight: 44, justifyContent: 'center', backgroundColor: 'rgba(255,248,240,0.06)' },
   chipActive: { backgroundColor: colors.text },
   chipText: { fontFamily: fonts.uiBold, fontSize: 13.5, color: colors.textDim },
   locRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },

@@ -13,6 +13,7 @@ import { META_KEY, relayKey, SaveManager, slotKey } from '../src/persistence/sav
 import { validateState } from '../src/persistence/schema';
 import { MemoryStorage } from '../src/persistence/storage';
 import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from '../src/store/settings';
+import { parentRoute } from '../src/store/navigation';
 import { C, start } from './helpers';
 
 function manager(storage = new MemoryStorage()) {
@@ -181,5 +182,34 @@ describe('combat : les règles annoncées sont tenues', () => {
     s = { ...s, player: { ...s.player, hp: 0 }, ending: { id: 'mort', kind: 'death' } };
     expect(canUseOutOfCombat(C, s, 'bandage').ok).toBe(false);
     expect(Object.keys(C.recipes).every((r) => !canCraft(C, s, r).ok)).toBe(true);
+  });
+});
+
+describe('navigation : retour', () => {
+  const routes = ['title', 'create', 'game', 'saves', 'settings', 'gallery', 'memories'] as const;
+  it('« Retour » finit toujours sur l’accueil ou la partie, sans boucle', () => {
+    for (const withGame of [false, true]) {
+      for (const pendingChapter of [null, 'c3']) {
+        for (const from of routes) {
+          if (from === 'game' && !withGame) continue;
+          let route: (typeof routes)[number] = from;
+          const seen = new Set<string>();
+          // Le geste de retour ne quitte jamais la partie ni l'accueil (le système s'en charge).
+          while (route !== 'title' && !(route === 'game' && withGame)) {
+            expect(seen.has(route), `boucle depuis ${from}`).toBe(false);
+            seen.add(route);
+            // En quittant les sauvegardes, le chapitre en attente est oublié (comme dans le réducteur).
+            const next = parentRoute({ route, game: withGame ? start() : null, savesMode: 'new', pendingChapter: route === 'saves' || route === 'create' ? pendingChapter : null });
+            route = next;
+          }
+        }
+      }
+    }
+  });
+  it('les sauvegardes ouvertes pour rejouer un chapitre reviennent aux mémoires', () => {
+    expect(parentRoute({ route: 'saves', game: null, savesMode: 'new', pendingChapter: 'c3' })).toBe('memories');
+    expect(parentRoute({ route: 'saves', game: null, savesMode: 'new', pendingChapter: null })).toBe('title');
+    expect(parentRoute({ route: 'create', game: null, savesMode: 'new', pendingChapter: null })).toBe('saves');
+    expect(parentRoute({ route: 'settings', game: start(), savesMode: 'load', pendingChapter: null })).toBe('game');
   });
 });
