@@ -51,6 +51,7 @@
     "promo:capture": "expo export --platform web --output-dir dist && node promo/capture.mjs --lang fr && node promo/capture.mjs --lang en",
     "promo:render": "node promo/render.mjs --lang fr && node promo/render.mjs --lang en",
     "promo:stills": "node promo/stills.mjs --lang fr && node promo/stills.mjs --lang en",
+    "e2e:web": "expo export --platform web --output-dir dist && node promo/e2e-flow.mjs",
     "promo": "npm run promo:capture && npm run promo:render && npm run promo:stills"
   },
   "private": true

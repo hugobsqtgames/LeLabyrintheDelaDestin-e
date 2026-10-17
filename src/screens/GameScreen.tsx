@@ -53,6 +53,9 @@ function previouslyFor(game: GameState, chapter: string, chapters: ChapterDef[])
     .map((e) => e.text);
 }
 
+/** Parties dont le carton d'ouverture a déjà été montré pendant cette session. */
+const introduced = new Set<string>();
+
 /** Carton plein écran au début de chaque chapitre. */
 function ChapterTransition({ chapter, previously = [], onDone }: { chapter: ChapterDef; previously?: string[]; onDone: () => void }) {
   const { reduceMotion } = useStore();
@@ -239,11 +242,14 @@ export function GameScreen({
   // Transition de chapitre : à chaque changement de chapitre, et au tout début d'une partie.
   const [seenChapter, setSeenChapter] = useState<string | null>(() => {
     if (intro !== undefined) return intro ? null : game.chapter;
+    // Retour des paramètres (l'écran est remonté) : le carton déjà vu ne se rejoue pas.
+    if (introduced.has(game.id)) return game.chapter;
     return game.turn === 0 && !model.recap ? null : game.chapter;
   });
   const [transition, setTransition] = useState<string | null>(null);
   if (seenChapter !== game.chapter) {
     setSeenChapter(game.chapter);
+    introduced.add(game.id);
     if (!game.ending) setTransition(game.chapter);
   }
   const transitionChapter = transition ? content.chapters.find((c) => c.id === transition) : null;
