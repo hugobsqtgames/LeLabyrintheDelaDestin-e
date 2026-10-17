@@ -47,6 +47,11 @@ const QUELQU_UN = not(PERSONNE);
 const PEUT_PARLER: Condition[] = [{ type: 'counter', counter: 'r10_veillees', max: 1 }, clock(undefined, 147)];
 const PARLER = counter('r10_veillees', 1);
 const GASPARD_BLESSE: Condition = { type: 'visited', scene: 'c3_gaspard_tombe' };
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
+/** Un compagnon a repris la route : le protagoniste d’origine est tombé. */
+const HEROS = any(KAZ_HEROS, MAELLE_HEROS, INES_HEROS);
 
 export const chapterR10: Scene[] = [
   {
@@ -62,6 +67,7 @@ export const chapterR10: Scene[] = [
       p('Plus loin encore, il y a d’autres lumières. Des points jaunes, alignés, immobiles. Les lampadaires de Morvan. Le courant de Vaulx est arrivé jusque-là. Personne ne dit rien pendant un long moment.', flag('courant_retabli')),
       p('Vous avez encore dans les bras la cadence du levier de la draisine. Le corps se souvient du chemin plus longtemps que la tête.', flag('draisine_prise')),
       p('Quelque part entre ici et ces projecteurs, un camion des Ferrailleurs roule vers l’écluse avec ses cages. Théo est dans l’une d’elles. On ne rattrape pas un camion à pied, dans le noir.', THEO_CAGE),
+      p('Vous connaissez cette chapelle. Le dimanche, avant, vous montiez ici à vélo avec Irena, et elle allumait un cierge pour les mariniers. Vous n’y étiez jamais revenu sans elle.', KAZ_HEROS),
       p('Pas un bruit, sinon l’eau. C’est le dernier abri avant Morvan.'),
     ],
     choices: [
@@ -157,11 +163,13 @@ export const chapterR10: Scene[] = [
     title: 'Le dernier feu',
     kind: 'story',
     checkpoint: true,
+    illustration: 'veillee',
     text: [
       p('Le feu fait un rond de lumière où tiennent juste les visages. Au-delà, la nef et les étoiles. On parle bas, par habitude.'),
       p('Personne ne le dit : c’est peut-être le dernier feu partagé. Demain, il y aura une grille, et quelqu’un derrière qui triera.', QUELQU_UN),
       p('La place de Théo, près du feu, est restée vide. Personne ne s’y assoit.', THEO_CAGE),
       p('Il n’y a que vous, le feu et les projecteurs. Ce soir, la solitude pèse plus que d’habitude.', PERSONNE),
+      p('De l’autre côté du feu, il y a une place que personne ne prend. Personne n’en parle, et tout le monde la regarde.', all(HEROS, QUELQU_UN)),
       p('La nuit avance. Vous ne parlerez pas à tout le monde ce soir.', all(QUELQU_UN, { type: 'counter', counter: 'r10_veillees', min: 2 })),
       p('La nuit est déjà bien avancée. Il faut penser à repartir.', all(QUELQU_UN, clock(147.01))),
     ],
@@ -221,6 +229,16 @@ export const chapterR10: Scene[] = [
         effects: [set('r10_seul'), set('r10_t_seul'), xp(10)],
         next: 'r10_confidence',
       },
+      {
+        id: 'releve',
+        text: 'Vous asseoir un moment à l’écart du feu, et penser à qui a marché devant vous jusqu’ici.',
+        kind: 'explore',
+        time: 0.5,
+        visibleIf: [HEROS],
+        once: true,
+        effects: [set('r10_releve'), set('r10_t_releve'), xp(10)],
+        next: 'r10_confidence',
+      },
       { id: 'dormir', text: 'Laisser le feu baisser.', kind: 'move', next: 'r10_visiteur' },
     ],
   },
@@ -232,13 +250,13 @@ export const chapterR10: Scene[] = [
     kind: 'story',
     text: [
       p('Maëlle roule des bandes de tissu propres, toutes de la même largeur. Elle ne lève pas les yeux. Elle vous fait juste un peu de place.'),
-      p('Sur son avant-bras, la morsure du Hurleur a laissé un croissant violet, refermé. Elle surprend votre regard. « Sans tes cachets, je claquerais des dents au fond de l’ossuaire. Je ne l’oublie pas. »', flag('maelle_soignee')),
+      p('Sur son avant-bras, la morsure du Hurleur a laissé un croissant violet, refermé. Elle surprend votre regard. « Sans tes cachets, je claquerais des dents au fond de l’ossuaire. Je ne l’oublie pas. »', all(flag('maelle_soignee'), not(HEROS))),
       say('maelle', '« Il fait semblant de dormir pour que j’arrête de le regarder. » Elle écoute Théo respirer. « Je fais semblant d’arrêter. »', THEO_ICI),
-      say('maelle', '« Il est à l’ossuaire, avec de l’eau claire et des murs. Il est vivant. Je me le répète chaque soir, comme une prière. »', all(notWithUs('theo'), not(THEO_CAGE))),
+      say('maelle', '« Il est à l’ossuaire, avec de l’eau claire et des murs. Il est vivant. Je me le répète chaque soir, comme une prière. »', companionIs('theo', 'away')),
       say('maelle', '« Il est dans ce camion, à trois heures d’ici. » Ses mains ne s’arrêtent pas. « Demain, je ne sais pas ce que je ferai à celui qui tiendra la clé. »', THEO_CAGE),
       say('maelle', '« Huit mois que je cache sa cicatrice sous des cols roulés. Demain, je l’amène devant ceux qui la cherchent. » Ses jointures blanchissent. « S’il monte, je monte. Sinon, je me couche sur la passerelle. »', THEO_ICI),
-      say('maelle', '« Tu m’as promis, dans le noir, que personne ne le vendrait. Je n’ai pas oublié non plus. »', all(flag('promis_maelle'), THEO_ICI)),
-      say('maelle', '« Et si on me sépare de lui à la grille… » Elle vous regarde enfin, et pour la première fois, vous lui voyez peur. « Toi, tu restes avec lui. Quoi qu’il arrive. Promets-le. »', THEO_ICI),
+      say('maelle', '« Tu m’as promis, dans le noir, que personne ne le vendrait. Je n’ai pas oublié non plus. »', all(flag('promis_maelle'), THEO_ICI, not(HEROS))),
+      say('maelle', '« Et si on me sépare de lui à la grille… » Elle vous regarde enfin, et pour la première fois, vous voyez la peur sur son visage. « Toi, tu restes avec lui. Quoi qu’il arrive. Promets-le. »', THEO_ICI),
     ],
     onEnter: [set('veillee_maelle'), rel('maelle', 1)],
     choices: [
@@ -278,7 +296,7 @@ export const chapterR10: Scene[] = [
     text: [
       p('Théo vous fait de la place sur l’autel. Sur la page, pas de projecteurs : une seule ligne horizontale, très longue, d’un bord à l’autre, et rien autour.'),
       say('theo', '« C’est la mer. Je ne l’ai jamais vue. Papa disait qu’on ne voit pas l’autre côté. Alors je ne sais pas quoi dessiner d’autre. »'),
-      say('theo', '« Je n’ai pas oublié la casse. » Il ne vous regarde pas. « Je ne t’ai pas pardonné. Mais demain, il faudra que quelqu’un parle pour moi. Autant que ce soit quelqu’un qui sait ce que ça coûte. »', all(flag('theo_libere'), relMax('theo', 2))),
+      say('theo', '« Je n’ai pas oublié la casse. » Il ne vous regarde pas. « Je ne t’ai pas pardonné. Mais demain, il faudra que quelqu’un parle pour moi. Autant que ce soit quelqu’un qui sait ce que ça coûte. »', all(flag('theo_libere'), relMax('theo', 2), not(HEROS))),
       say('theo', '« Dans la cage, je comptais les ponts. Au gué, il n’y avait pas de pont. Et tu es là quand même. » Il cherche le mot, et renonce.', all(flag('theo_libere'), relMin('theo', 3))),
       say('theo', '« Au prieuré, Mère Agathe m’a demandé mon sang, et elle a attendu ma réponse. C’était la première fois qu’on me demandait. Je veux que demain, ce soit pareil. »', flag('prieure_sang_donne')),
       say('theo', '« Tout le monde décide pour moi. Même ceux qui m’aiment. Surtout eux. » Il referme le carnet. « Je veux qu’on me pose la question. Une fois. Et qu’on écoute la réponse. »'),
@@ -318,9 +336,9 @@ export const chapterR10: Scene[] = [
     text: [
       p('Kaz vous tend une planche, et vous la cassez sur votre genou. Il rit dans sa barbe.'),
       say('kaz', '« Morvan. » Il désigne les projecteurs. « Six ans éclusier là-bas, avant le port. On habitait la maison aux volets bleus, Irena et moi. Le dimanche, on montait ici à vélo, et elle allumait un cierge. Elle disait que ça ne coûtait rien et que ça ne pouvait pas faire de mal. »'),
-      say('kaz', '« Le premier soir de la Fièvre, elle n’est pas rentrée de l’hôpital. Je l’ai cherchée trois fois, sans demander d’aide à personne. Je ne savais pas qu’on pouvait demander. J’ai appris avec toi. Un peu tard. »'),
-      say('kaz', '« J’ai vendu le petit, une nuit. Tu m’as tendu la main quand même. Chaque matin, je me demande comment le mériter. Demain, peut-être, je saurai. »', flag('kaz_rachete')),
-      say('kaz', '« Tu sais ce que j’ai failli faire, et tu m’as gardé. C’est la seule dette que je suis content de porter. »', flag('kaz_pardonne')),
+      say('kaz', '« Le premier soir de la Fièvre, elle n’est pas rentrée de l’hôpital. Je l’ai cherchée trois jours, sans demander d’aide à personne. Je ne savais pas qu’on pouvait demander. J’ai appris avec toi. Un peu tard. »'),
+      say('kaz', '« J’ai vendu le petit, une nuit. Tu m’as tendu la main quand même. Chaque matin, je me demande comment le mériter. Demain, peut-être, je saurai. »', all(flag('kaz_rachete'), not(HEROS))),
+      say('kaz', '« Tu sais ce que j’ai failli faire, et tu m’as gardé. C’est la seule dette que je suis content de porter. »', all(flag('kaz_pardonne'), not(HEROS))),
       say('kaz', '« Gaspard est mort. Ma dette avec. Ça devrait me soulager. » Il crache dans le feu. « Ça ne me soulage pas. »', flag('gaspard_tue')),
       say('kaz', '« Les portes aval s’ouvrent à l’électricité, ou à la manivelle quand le courant saute. Seul, à la manivelle, il faut douze minutes. Je les ai comptées cent fois. » Il sourit. « Douze minutes, c’est long, quand quelque chose attend derrière la porte. »'),
       say('kaz', '« Avec ton courant, elles répondront au bouton. Si personne ne le coupe. J’ai appris à ne pas trop croire aux boutons. »', flag('courant_retabli')),
@@ -360,8 +378,8 @@ export const chapterR10: Scene[] = [
       p('Inès s’est postée sur le mur effondré, d’où l’on voit le chemin dans les deux sens. L’arbalète repose sur ses genoux, armée, comme un chat endormi.'),
       say('ines', '« Sous la ville, je savais toujours où j’étais. Ici, il y a trop de ciel. »'),
       say('ines', '« J’ai tiré le carreau moi-même, pour être sûre d’y croire. Maintenant j’y crois. Ça m’aide moins que je pensais. »', flag('ines_libere_malik')),
-      say('ines', '« Tu l’as fait à ma place, dans la galerie. Je ne t’ai jamais dit merci. Mais je pense à toi chaque fois que je pense à lui. »', flag('moi_libere_malik')),
-      say('ines', '« Malik est arrivé trop tard pour lui, pas pour nous. Demain, j’arrive à l’heure. C’est tout ce que je lui dois. »'),
+      say('ines', '« Tu l’as fait à ma place, dans la galerie. Je ne t’ai jamais dit merci. Mais je pense à toi chaque fois que je pense à lui. »', all(flag('moi_libere_malik'), not(HEROS))),
+      say('ines', '« Je suis arrivée trop tard pour Malik. Demain, j’arrive à l’heure. C’est tout ce que je lui dois. »'),
       say('ines', '« Et après… » Un long silence. « Il y a encore des gens sous Valombre qui attendent une passeuse. Je ne sais pas si je monterai sur ce bateau. Je ne veux pas qu’on me le reproche. »'),
     ],
     onEnter: [set('veillee_ines'), rel('ines', 1)],
@@ -410,7 +428,7 @@ export const chapterR10: Scene[] = [
         id: 'echange',
         text: 'Lui dire quelque chose de vous que personne ne sait, sans rien demander en retour.',
         kind: 'talk',
-        effects: [rel('nour', 2), set('r10_nom_nour'), journal('Nour vous a confié son nom de famille. Personne d’autre ne le connaît.')],
+        effects: [rel('nour', 2), set('r10_nom_nour'), set('r10_t_nom'), journal('Nour vous a confié son nom de famille. Personne d’autre ne le connaît.')],
         next: 'r10_confidence',
       },
       {
@@ -448,6 +466,10 @@ export const chapterR10: Scene[] = [
       p('Vous lui racontez une chose de votre vie d’avant, petite et vraie. Elle écoute sérieusement. Puis elle le dit à votre oreille, très vite, comme on se débarrasse d’un caillou : Nour Belkacem.', flag('r10_t_nom')),
       say('nour', '« Maintenant on est quittes. Vous ne l’écrivez nulle part. » Elle réfléchit. « Sauf si je meurs. Là, vous pouvez. »', flag('r10_t_nom')),
       say('nour', '« Eux aussi, ils demandaient gentiment, au début. » Nour se lève sans colère, va s’asseoir plus loin et recommence à compter les plaques du mur.', flag('r10_t_refus')),
+      p('Vous gravez au couteau, à côté du clou qui n’a plus de plaque : IRENA K. Puis vous restez là, la lame à la main, à chercher comment graver l’autre nom, celui de qui marchait devant vous depuis Valombre. Vous le gravez aussi. Deux noms pour un seul cierge. Ça ne coûte rien. Ça ne peut pas faire de mal.', all(flag('r10_t_releve'), KAZ_HEROS)),
+      p('Vous roulez des bandes au bord du feu, toutes de la même largeur, une pour chaque personne du groupe, et il en reste une. La première nuit, quelqu’un est sorti dans le noir chercher des antibiotiques pour votre fils, sans rien demander en retour. Vous gardez la bande en trop dans votre poche. Vous savez très bien pourquoi.', all(flag('r10_t_releve'), MAELLE_HEROS)),
+      p('Vous prenez la garde sur le mur effondré. Malik, et maintenant l’autre : deux personnes que vous avez guidées dans le noir et qui ne sont pas arrivées au bout. Sous la ville, un passeur qui perd quelqu’un trace une croix de craie au dernier carrefour. Vous en tracez une sur la pierre, à hauteur d’épaule.', all(flag('r10_t_releve'), INES_HEROS)),
+      p('Le feu craque derrière vous. Vous marchez à la place de l’autre, maintenant. Demain, à la grille, il faudra parler pour deux.', flag('r10_t_releve')),
       p('Au bord du fleuve, l’eau passe vers la mer sans rien vous demander. Vous dites quelques noms à voix haute, ceux qui ne sont plus là. Ça ne sert à rien. Ça fait du bien quand même, comme un cierge.', flag('r10_t_seul')),
     ],
     choices: [
@@ -455,7 +477,7 @@ export const chapterR10: Scene[] = [
         id: 'retour',
         text: 'Retourner près du feu.',
         kind: 'move',
-        effects: [set('r10_t_lettre', false), set('r10_t_vaccin', false), set('r10_t_irena', false), set('r10_t_carnet', false), set('r10_t_nom', false), set('r10_t_refus', false), set('r10_t_seul', false)],
+        effects: [set('r10_t_lettre', false), set('r10_t_vaccin', false), set('r10_t_irena', false), set('r10_t_carnet', false), set('r10_t_nom', false), set('r10_t_refus', false), set('r10_t_seul', false), set('r10_t_releve', false)],
         next: 'r10_feu',
       },
     ],
@@ -524,10 +546,13 @@ export const chapterR10: Scene[] = [
     text: [
       p('Il entre sans frapper, puisqu’il n’y a pas de porte. Un manteau de ville trop grand, et cette carrure qu’on reconnaît même de dos. Gaspard Lenoir. Seul.'),
       p('Il porte encore au cou les pansements de votre combat. Il ne les cache pas.', GASPARD_BLESSE),
+      p('Un chiffon raidi de sang serre son bras, là où la balle du sergent l’a touché au gué.', flag('r9_gaspard_aide')),
       say('gaspard', '« Vu votre feu depuis le halage. Des idiots, ou des gens qui n’ont plus peur de rien. » Il s’accroupit à distance, les mains bien visibles. « Je ne viens pas me battre. Je n’ai plus de quoi. »'),
       say('kaz', '« Gaspard. » Kaz s’est levé, sans sa clé à molette. Les deux hommes se regardent par-dessus le feu, comme deux vieux joueurs à la fin d’une partie.', KAZ_ICI),
       say('gaspard', '« Assieds-toi, le Polonais. Ta dette, je n’ai plus personne pour la réclamer. » Il sourit sans joie. « Il ne me reste que ma mémoire. »', KAZ_ICI),
-      say('gaspard', 'Il regarde Théo, et pour une fois baisse les yeux le premier. « Je ne m’excuserai pas, ça ne vaudrait rien. Mais demain, je dirai à qui je t’aurais vendu, et combien. »', THEO_ICI),
+      say('gaspard', '« Le Polonais. » Il vous regarde longtemps, puis regarde la place vide près du feu. « Tu as repris la tête, alors. Ta dette, je n’ai plus personne pour la réclamer. Assieds-toi. »', KAZ_HEROS),
+      p('Il regarde Théo, et pour une fois baisse les yeux le premier.', THEO_ICI),
+      say('gaspard', '« Je ne m’excuserai pas, ça ne vaudrait rien. Mais demain, je dirai à qui on vend les gamins comme toi, et combien. »', THEO_ICI),
       say('gaspard', '« Tout ce que j’ai vendu, je sais à qui. Rousset ne remontera pas ce fleuve les mains propres. Pas pour toi : pour moi. Je n’aime pas être roulé. »'),
     ],
     onEnter: [set('r10_gaspard_vu')],
@@ -746,6 +771,7 @@ export const chapterR10: Scene[] = [
       p('Vous mangez debout ce qui reste. Puis vous éteignez le feu pour de bon et quittez la chapelle sans vous retourner.'),
       p('Sur l’autel, une bougie brûle encore devant un nom gravé au couteau. Kaz ne la souffle pas.', flag('r10_irena_gravee')),
       p('Claire et Jules sont déjà partis. Il reste d’eux un creux dans la poussière, de la taille d’un enfant.', flag('r10_delmas_veillee')),
+      p('Vous emportez deux noms en quittant la chapelle : le vôtre, et celui de qui marchait devant vous.', flag('r10_releve')),
       p('Gaspard marche devant, à cinquante mètres, sans jamais se retourner. Il ne vous attend pas. Il ne vous distance pas non plus.', flag('r10_gaspard_feu')),
       p('En bas, le chemin de halage file entre les peupliers vers les projecteurs. Il reste {reste} avant l’aube du septième.'),
     ],

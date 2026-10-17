@@ -46,6 +46,9 @@ const THEO_CAPTIF = companionIs('theo', 'captured');
 const CARNET_LU: Condition = { type: 'document', doc: 'doc_r6_carnet' };
 const THEO_SANS_CARNET: Condition = all(V_THEO, { type: 'visited', scene: 'r6_sauve_tard' });
 const BOSS = 'Combat de boss. Une défaite serait fatale.';
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
 
 const relVictime = (n: number): Effect[] => [
   when(V_KAZ, [rel('kaz', n)]),
@@ -73,6 +76,8 @@ export const chapterR6: Scene[] = [
       p('Inès s’avance la première, l’arbalète en travers de la poitrine. Elle tâte chaque rondin du bout du pied avant d’y mettre son poids, et ne dit rien.', withUs('ines')),
       say('kaz', '« La tourbe, c’est de l’eau qui a oublié qu’elle était de l’eau. Elle s’en souvient quand on marche dessus. »', withUs('kaz')),
       say('maelle', '« Personne ne se presse. Personne ne lâche personne. »', withUs('maelle')),
+      p('La tourbe, c’est de l’eau qui a oublié qu’elle était de l’eau. Vous l’avez appris à Morvan, en curant les fossés de dérivation : elle s’en souvient quand on marche dessus. Vous passez en dernier. Le plus lourd ferme la marche, c’était la règle de l’écluse.', KAZ_HEROS),
+      p('Vous passez devant, comme dans les galeries. Chaque rondin, vous le tâtez du bout du pied avant d’y mettre votre poids. Sous Valombre, Malik disait que le sol ment toujours une fois. Ici, il ment à chaque pas.', INES_HEROS),
       p('Personne pour ouvrir la marche, personne pour la fermer. Vous tâtez le premier rondin du bout du pied. Il s’enfonce d’un doigt, puis tient.', SEUL),
     ],
     choices: [
@@ -366,6 +371,14 @@ export const chapterR6: Scene[] = [
         visibleIf: [withUs('maelle')],
         effects: [heal(5), rel('maelle', 1)],
       },
+      {
+        id: 'soins_vous',
+        text: '[Vous, Maëlle] Ouvrir votre trousse sur une souche et nettoyer les écorchures de chacun, les vôtres en dernier.',
+        kind: 'rest', time: 0.5,
+        once: true,
+        visibleIf: [MAELLE_HEROS],
+        effects: [heal(5)],
+      },
       { id: 'cabane', text: 'Fouiller la cabane.', kind: 'explore', time: 0.5, once: true, next: 'r6_cabane' },
       { id: 'passe', text: 'Continuer vers le cœur du marais.', kind: 'move', time: 0.5, next: 'r6_passe' },
     ],
@@ -416,6 +429,7 @@ export const chapterR6: Scene[] = [
     title: 'La grande fosse',
     kind: 'story',
     checkpoint: true,
+    illustration: 'dame',
     text: [
       p('La digue s’élargit, puis se resserre entre deux fosses d’eau noire, si étroite qu’il faut y passer un par un. C’est la seule passe. De chaque côté, la tourbe, les joncs, et le brouillard qui fume au ras de l’eau.'),
       p('Ils sont là. Une trentaine de Muets debout dans la grande fosse, de l’eau jusqu’à la taille, immobiles, tournés vers le même point. Leurs dents cliquettent doucement, sans rythme, comme une pluie fine sur un toit de tôle.'),
@@ -472,6 +486,14 @@ export const chapterR6: Scene[] = [
         kind: 'move', time: 1.5,
         visibleIf: [withUs('kaz')],
         effects: [set('r6_canal'), rel('kaz', 1)],
+        next: 'r6_evitee',
+      },
+      {
+        id: 'canal_vous',
+        text: '[Vous, Kaz] Prendre le vieux canal de drainage qui contourne le marais par l’est. Vous en avez curé de pareils.',
+        kind: 'move', time: 1.5,
+        visibleIf: [KAZ_HEROS],
+        effects: [set('r6_canal')],
         next: 'r6_evitee',
       },
       {
@@ -603,7 +625,8 @@ export const chapterR6: Scene[] = [
       p('La bouteille éclate dans les joncs secs. Les flammes prennent mal, puis d’un coup, et une colonne de fumée orange se lève dans le blanc. Les Muets se tournent vers le feu comme vers une fenêtre éclairée, et la Dame les y mène. Vous passez dans leur dos, dans l’odeur de tourbe brûlée.', flag('r6_leurre_feu')),
       p('Vous franchissez la passe un par un, à deux mètres de l’endroit où elle se tenait. L’eau tourne encore dans le trou qu’elle a laissé. Au sud, de plus en plus loin, la cloche tinte.', flag('r6_cloche_perdue')),
       p('Le canal de drainage est un fossé droit comme une règle, couvert de lentilles d’eau, bordé d’un sentier à peine plus large qu’un pied.', flag('r6_canal')),
-      say('kaz', '« Les fossés sont toujours plus vieux que les marais. Les ingénieurs passent, les marais reviennent, mais les fossés se souviennent du plan. » Il a l’air ravi. Vous ne voyez pas la Dame. Vous ne l’entendez pas. C’est exactement ce que vous vouliez.', flag('r6_canal')),
+      say('kaz', '« Les fossés sont toujours plus vieux que les marais. Les ingénieurs passent, les marais reviennent, mais les fossés se souviennent du plan. » Il a l’air ravi. Vous ne voyez pas la Dame. Vous ne l’entendez pas. C’est exactement ce que vous vouliez.', all(flag('r6_canal'), withUs('kaz'))),
+      p('Les fossés sont toujours plus vieux que les marais. Les ingénieurs passent, les marais reviennent, mais les fossés se souviennent du plan. Vous l’auriez dit à Irena, et elle aurait levé les yeux au ciel. Vous ne voyez pas la Dame. Vous ne l’entendez pas.', all(flag('r6_canal'), KAZ_HEROS)),
       p('Le détour vous prend la matinée. La lande, les ronces, des clôtures effondrées, une ferme vide où un chien est mort au bout de sa chaîne. Pas un Muet. Pas de Dame. Seulement le temps qui passe, et que vous ne rattraperez pas.', flag('r6_detour')),
     ],
     onEnter: [set('dame_evitee'), xp(40), journal('Vous avez traversé les tourbières sans affronter la Dame.')],
@@ -674,6 +697,7 @@ export const chapterR6: Scene[] = [
       say('theo', '« Elle avait l’air de quelqu’un », dit Théo. Personne ne lui répond.', withUs('theo')),
       say('kaz', '« Paix à elle. Et à mes genoux. »', withUs('kaz')),
       p('Maëlle vous fait tourner sur vous-même, examine vos bras, votre cou, vos mains. Pas de morsure. Elle souffle enfin.', withUs('maelle')),
+      p('Par réflexe d’infirmière, vous vous examinez vous-même : les bras, le cou, les mains. Pas de morsure. Vos mains ne se mettent à trembler qu’après, quand plus personne n’a besoin d’elles.', MAELLE_HEROS),
     ],
     onEnter: [set('dame_tuee'), xp(30), give('bandage', 2), give('ration', 1), journal('Vous avez abattu la Dame des tourbières.')],
     choices: [{ id: 'suite', text: 'Franchir la passe.', kind: 'move', time: 0.5, next: 'r6_fin' }],
@@ -686,7 +710,7 @@ export const chapterR6: Scene[] = [
     id: 'r6_fin',
     chapter: C,
     location: 'tourbieres',
-    title: 'Fin du chapitre',
+    title: 'Fin du chapitre 10',
     kind: 'chapterEnd',
     text: [
       p('Le brouillard se lève d’un coup, comme on tire un drap. Derrière vous, le marais redevient ce qu’il était sans doute avant : une lande brune et plate, des joncs, quelques bouleaux. On ne devinerait jamais.'),
@@ -716,7 +740,7 @@ export const DOCUMENTS_R6: DocumentDef[] = [
       '28 août. La lumière les attire : la nuit, ils suivent ma lampe. Je ne l’allume plus. J’ai planté des piquets peints en blanc à travers les îlots du nord, pour rentrer dans le noir. Quatre cents pas, en comptant bien.\n\n' +
       '14 octobre. J’ai voulu voir de plus près. Il ne faut jamais vouloir voir de plus près. Morsure à l’avant-bras. Ce n’est pas profond.\n\n' +
       '15 octobre. Fièvre. Je vais descendre m’asseoir au bord de la grande fosse, avec les jumelles. Au moins, je saurai enfin ce qu’ils attendent.\n\n' +
-      '— M. Varenne, garde-animatrice',
+      '— Mme Varenne, garde-animatrice',
   },
 ];
 

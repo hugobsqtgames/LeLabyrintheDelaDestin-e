@@ -40,6 +40,9 @@ const THEO_CAGE = companionIs('theo', 'captured');
 const SEUL = all(not(withUs('maelle')), not(withUs('theo')), not(withUs('kaz')), not(withUs('ines')), not(withUs('nour')));
 const MERCIER_VIVANT = notFlag('r5_mercier_mort');
 const SIRENE = flag('r5_sirene');
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
 
 export const chapterR5: Scene[] = [
   // -------------------------------------------------------------------------
@@ -52,6 +55,7 @@ export const chapterR5: Scene[] = [
     title: 'La D12',
     kind: 'story',
     checkpoint: true,
+    illustration: 'convoi',
     text: [
       p('Le jour se lève sans couleur. La D12 file droit entre deux rangées de platanes, toute blanche de givre, et dans le fossé de gauche, sur deux cents mètres, il y a le convoi.'),
       p('Deux camions bâchés et une ambulance, couchés sur le flanc dans l’herbe haute, comme des bêtes tombées en marchant. Les pneus ont fondu en lambeaux noirs. Sur les portières, sous la boue de l’hiver, on lit encore le sigle de l’Institut Ferrand : une hélice d’ADN couronnée.'),
@@ -59,6 +63,7 @@ export const chapterR5: Scene[] = [
       p('Autour des épaves, trois silhouettes tournent lentement, en combinaison grise à capuche. Des soldats de l’Institut, ou ce qu’il en reste. Même d’ici, dans le silence du matin, on entend leurs dents.'),
       p('Dans la boue du bas-côté, des traces de bottes fraîches, larges, un homme seul et lourd qui a marché vers l’aval sans s’arrêter. Gaspard, peut-être. Lui aussi va à l’écluse.', flag('gaspard_epargne')),
       say('kaz', '« Un convoi de collecte », dit Kaz à voix basse. « Ils en parlaient au port, cet hiver. Celui-là n’est jamais arrivé. »', withUs('kaz')),
+      p('Vous connaissez ces bâches. Au port, cet hiver, on parlait des convois de collecte entre deux donnes de poker, à voix basse, comme on parle d’une dette. Celui-là n’est jamais arrivé. Vous comprenez maintenant pourquoi personne ne posait de questions.', KAZ_HEROS),
       p('Théo ne dit rien. Il regarde le sigle sur les portières, et il remonte le col de son blouson sur son épaule.', THEO_ICI),
     ],
     onEnter: [discover('convoi'), questFx('q_convoi', 'active', 'epave')],
@@ -268,12 +273,14 @@ export const chapterR5: Scene[] = [
     kind: 'story',
     text: [
       p('Sous la bâche, le camion est couché sur le flanc, et ce qui devait être le plancher est devenu un mur. Il faut un moment pour comprendre ce qu’on regarde.'),
-      p('Des cages. Douze cages grillagées, soudées deux par deux, chacune juste assez grande pour un enfant assis. Les portes sont ouvertes. Tordues, même, comme si quelqu’un les avait forcées une à une avec une barre. Il reste des couvertures militaires au fond, roidies par le gel, et un seau.'),
+      p('Des cages. Douze cages grillagées, soudées deux par deux, chacune juste assez grande pour un enfant assis. Les portes sont ouvertes. Tordues, même, comme si quelqu’un les avait forcées une à une avec une barre. Il reste des couvertures militaires au fond, raidies par le gel, et un seau.'),
       p('Et sur les montants peints en blanc, à l’intérieur, des noms. Gravés à l’ongle, à la boucle de ceinture, à la pointe d’un bouton. « Léa ». « Samuel 9 ans ». « Inès » — une autre Inès. « Maman viens ». Un soleil, maladroit, avec des rayons trop longs.'),
       p('Contre la paroi du fond, des caisses de rations militaires éventrées par les renards. Deux sachets ont tenu. Une boîte de munitions, aussi, sous une couverture. Et scotchée à l’intérieur de la ridelle, une feuille de chargement plastifiée.'),
       p('Nour passe la main sur les barreaux, un par un, sans un mot. Puis elle dit : « Douze. Chez Gaspard, on était six. » Elle cherche, parmi les noms, un nom qu’elle connaît. Elle ne le trouve pas. Ses épaules redescendent un peu.', withUs('nour')),
       p('Kaz recule de deux pas. Il s’appuie au platane, le dos tourné, et vous l’entendez respirer comme quelqu’un qui va vomir. Il ne vomit pas. Il savait ce qu’était une cage. Il avait failli y mettre quelqu’un.', all(withUs('kaz'), any(flag('kaz_traitre'), flag('kaz_aveu')))),
       p('Kaz enlève sa casquette et la tient contre sa poitrine, comme à un enterrement.', all(withUs('kaz'), notFlag('kaz_traitre'), notFlag('kaz_aveu'))),
+      p('Pas de sangles de brancard. Pas de perfusion. Pas de place pour un soignant. Quatorze mois de refuge vous ont appris à lire une pièce d’un seul regard, et celle-ci n’a jamais servi à soigner personne. Vous pensez à l’épaule de Théo, et vos mains se ferment toutes seules.', MAELLE_HEROS),
+      p('« Inès », une autre. Vous passez le pouce sur les lettres. Malik aurait gravé son nom à côté, pour qu’elle ne reste pas seule sur ce montant. Vous ne le faites pas. Vous le pensez assez fort pour que ça compte.', INES_HEROS),
       say('maelle', '« Il n’y a pas de sangles de brancard », dit Maëlle. « Pas de perfusion. Pas de place pour un soignant. » Sa voix est plate. « On ne transportait pas des malades, ici. On transportait des bêtes. »', withUs('maelle')),
       p('Quelque part sur une autre route, en ce moment même, un camion de Ferrailleurs roule vers l’écluse. À l’arrière, il y a une cage. Dans la cage, il y a Théo. Vous lisez les noms un par un, et chacun a sa voix.', THEO_CAGE),
       p('Vous pensez à Théo, chez les Veilleurs, à l’abri des murs de crânes. Pour la première fois depuis l’ossuaire, une chose est certaine : c’était la bonne décision.', all(companionIs('theo', 'away'), flag('theo_veilleurs'))),
@@ -317,6 +324,7 @@ export const chapterR5: Scene[] = [
       p('Puis il tend la main et pose la paume à plat contre le montant blanc, là où il n’y a pas encore de nom.'),
       say('theo', '« Elle est à ma taille », dit-il. « Ils les ont faites à notre taille. » Il ne pleure pas. Il a la voix de quelqu’un qui vient de résoudre un problème de géométrie. « C’est ça, le protocole. C’est ça qu’ils veulent faire de moi, à l’écluse. »'),
       p('Maëlle s’est arrêtée à l’entrée de la bâche. Elle ne s’approche pas. Elle vous regarde, vous, et elle attend de voir ce que vous allez répondre à son fils.', withUs('maelle')),
+      p('Vous êtes sa mère. Vous avez désinfecté cette morsure, changé ce pansement, caché cette cicatrice sous des cols roulés pendant des mois. Et devant cette cage, vous n’avez pas de réponse toute prête.', MAELLE_HEROS),
       p('Nour s’accroupit à côté de lui, sans rien dire, et pose sa main à plat à côté de la sienne. Deux mains sur le même montant.', withUs('nour')),
     ],
     choices: [
@@ -393,6 +401,24 @@ export const chapterR5: Scene[] = [
         next: 'r5_ordre',
       },
       {
+        id: 'carreau_vous',
+        text: '[Vous, Inès] Épauler l’arbalète. Un seul carreau, à travers l’étoile du pare-brise.',
+        kind: 'fight',
+        time: 0.25,
+        requires: [INES_HEROS, has('carreau')],
+        effects: [set('r5_mercier_mort'), set('r5_ines_mercier')],
+        next: 'r5_ordre',
+      },
+      {
+        id: 'kaz_vous',
+        text: '[Vous, Kaz] Grimper sur la cabine couchée et ouvrir la portière par le haut.',
+        kind: 'fight',
+        time: 0.25,
+        requires: [KAZ_HEROS],
+        effects: [set('r5_mercier_mort'), set('r5_kaz_mercier')],
+        next: 'r5_ordre',
+      },
+      {
         id: 'bras',
         text: 'Passer le bras par le trou du pare-brise et décrocher la pochette sans le toucher.',
         kind: 'stealth',
@@ -453,8 +479,10 @@ export const chapterR5: Scene[] = [
     title: 'L’ordre de mission',
     kind: 'story',
     text: [
-      p('Kaz se hisse sur la cabine couchée, ouvre la portière vers le ciel et descend d’un coup de clé à molette, une seule fois, très vite. Quand il remonte, il tient la pochette. « Lui, il ne demandait que ça », dit-il.', flag('r5_kaz_mercier')),
-      p('Le carreau d’Inès traverse l’étoile du pare-brise avec un bruit de glace qui craque. Le cliquetis s’arrête. Le silence qui suit est le plus grand que vous ayez entendu depuis l’aube.', flag('r5_ines_mercier')),
+      p('Kaz se hisse sur la cabine couchée, ouvre la portière vers le ciel et descend d’un coup de clé à molette, une seule fois, très vite. Quand il remonte, il tient la pochette. « Lui, il ne demandait que ça », dit-il.', all(flag('r5_kaz_mercier'), withUs('kaz'))),
+      p('Vous vous hissez sur la cabine couchée, vous ouvrez la portière vers le ciel et vous frappez d’un coup de clé à molette, une seule fois, très vite. Trente ans de vannes : on sait où frapper pour que ça ne recommence pas. Quand vous redescendez, vous tenez la pochette.', all(flag('r5_kaz_mercier'), KAZ_HEROS)),
+      p('Le carreau d’Inès traverse l’étoile du pare-brise avec un bruit de glace qui craque. Le cliquetis s’arrête. Le silence qui suit est le plus grand que vous ayez entendu depuis l’aube.', all(flag('r5_ines_mercier'), withUs('ines'))),
+      p('Votre carreau traverse l’étoile du pare-brise avec un bruit de glace qui craque. Le cliquetis s’arrête. Vous attendez que le silence soit complet avant de baisser l’arbalète. Malik disait qu’on doit ce silence-là à ceux qu’on achève.', all(flag('r5_ines_mercier'), INES_HEROS)),
       p('La pochette est tachée d’une ancienne traînée brune, mais la feuille, dessous, est intacte. Papier à en-tête de l’Institut Ferrand. Tampon. Une écriture de machine, nette, sans une rature.'),
       p('« Ordre de mission n° 7. Collecte de porteurs, secteur Valombre-Nord. Effectif à transporter : douze sujets. Priorité : sujets jeunes. Les sujets récalcitrants seront sédatés. Les accompagnants ne seront pas embarqués. » En bas, une signature à l’encre bleue, ample, sûre d’elle : capitaine A. Rousset.'),
       p('Vous connaissez cette voix. Vous l’avez sur une cassette. « Le reste est négociable. » Maintenant, vous avez aussi son écriture.', flag('verite_ferrand')),
@@ -506,7 +534,7 @@ export const chapterR5: Scene[] = [
       },
       {
         id: 'ambulancier',
-        text: '[Ancien ambulancier] « Une cellule sanitaire de 2019. Le loquet du bac trois coince, je parie. » Parler métier.',
+        text: '[Ambulancier] « Une cellule sanitaire de 2019. Le loquet du bac trois coince, je parie. » Parler métier.',
         kind: 'talk',
         requires: [background('ambulancier')],
         effects: [set('r5_merel_aide'), give('bandage', 2), xp(15)],
@@ -590,7 +618,8 @@ export const chapterR5: Scene[] = [
       p('La sirène tient longtemps. Puis elle faiblit, s’étrangle, s’arrête. Vous ne saurez jamais ce qui s’est passé ensuite derrière la chaîne de l’ambulance.', SIRENE),
       say('kaz', '« Il a payé sa ration », dit Kaz. Il ne fait pas de blague, pour une fois.', all(SIRENE, withUs('kaz'), notFlag('r5_merel_informe'))),
       say('kaz', '« Il voulait juste que quelqu’un vienne », dit Kaz. Il ne fait pas de blague, pour une fois.', all(SIRENE, withUs('kaz'), flag('r5_merel_informe'))),
-      p('Personne ne se retourne. Ou alors, tout le monde, et personne ne le dit.', not(SIRENE)),
+      p('Personne ne se retourne. Ou alors, tout le monde, et personne ne le dit.', all(not(SIRENE), not(SEUL))),
+      p('Vous ne vous retournez pas. Il n’y a personne pour vous en faire reproche.', all(not(SIRENE), SEUL)),
     ],
     onEnter: [when(all(notFlag('r5_combinaisons_tuees'), flag('r5_merel_aide')), [set('r5_sirene'), xp(15)])],
     choices: [{ id: 'suite', text: 'Marcher vers le brouillard.', kind: 'move', next: 'r5_fin' }],

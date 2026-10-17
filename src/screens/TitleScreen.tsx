@@ -93,9 +93,10 @@ export function TitleScreen() {
           <Button label={t('title.new')} icon="plus" variant={last ? 'secondary' : 'primary'} onPress={() => openSaves('new')} />
           <Button label={t('title.load')} icon="save" variant="secondary" onPress={() => openSaves('load')} disabled={!slots?.some((s) => s.status !== 'empty')} />
           <View style={{ flexDirection: 'row', gap: space.sm }}>
+            <Button label={t('title.memories')} icon="star" variant="ghost" style={{ flex: 1 }} onPress={() => go('memories')} />
             <Button label={t('title.settings')} icon="gear" variant="ghost" style={{ flex: 1 }} onPress={() => go('settings')} />
-            <Button label={t('title.mockups')} icon="grid" variant="ghost" style={{ flex: 1 }} onPress={() => go('gallery')} />
           </View>
+          <Button label={t('title.mockups')} icon="grid" variant="ghost" compact onPress={() => go('gallery')} />
           {error && <Text style={[type.uiSmall, { color: colors.rustBright, textAlign: 'center' }]}>{error}</Text>}
         </FadeIn>
 

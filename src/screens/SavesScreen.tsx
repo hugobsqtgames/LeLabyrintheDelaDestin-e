@@ -17,7 +17,7 @@ import { Icon } from '../ui/icons';
 import { colors, fonts, radius, space, type } from '../ui/theme';
 import type { EmblemId } from '../engine/types';
 
-type Pending = { kind: 'overwrite-new' | 'overwrite-copy' | 'delete'; slot: number } | null;
+type Pending = { kind: 'overwrite-new' | 'overwrite-copy' | 'delete' | 'restore'; slot: number } | null;
 
 
 function formatDate(ts?: number): string {
@@ -28,7 +28,7 @@ function formatDate(ts?: number): string {
 }
 
 export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
-  const { saves, model, back, go, loadGame, setPendingSlot, feedback, content, lang } = useStore();
+  const { saves, model, back, go, loadGame, restoreBeforeRelay, setPendingSlot, startFromChapter, feedback, content, lang } = useStore();
   const t = useT();
   const mode = model.savesMode;
   const [slots, setSlots] = useState<SlotInfo[] | null>(initialSlots ?? null);
@@ -53,7 +53,15 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
     };
   }, [saves, initialSlots]);
 
-  const chooseNew = (slot: number) => {
+  const chooseNew = async (slot: number) => {
+    // « Rejouer un chapitre » : la partie repart du début du chapitre choisi.
+    if (model.pendingChapter) {
+      setBusy(true);
+      const res = await startFromChapter(model.pendingChapter, slot);
+      setBusy(false);
+      if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
+      return;
+    }
     setPendingSlot(slot);
     go('create');
   };
@@ -99,6 +107,11 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
       await saves.remove(p.slot);
       setMessage(t('saves.deleted', { slot: p.slot }));
       await refresh();
+    } else if (p.kind === 'restore') {
+      setBusy(true);
+      const res = await restoreBeforeRelay(p.slot);
+      setBusy(false);
+      if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
     } else if (p.kind === 'overwrite-new') {
       chooseNew(p.slot);
     } else {
@@ -114,7 +127,11 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
           {t(`saves.title.${mode}`)}
         </Text>
       </View>
-      <Text style={[type.bodySmall, { marginBottom: space.lg }]}>{t(`saves.hint.${mode}`)}</Text>
+      <Text style={[type.bodySmall, { marginBottom: space.lg }]}>
+        {mode === 'new' && model.pendingChapter
+          ? t('saves.hint.chapter', { title: content.chapters.find((c) => c.id === model.pendingChapter)?.title ?? '' })
+          : t(`saves.hint.${mode}`)}
+      </Text>
       <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xl }}>
         {!slots && <Text style={type.bodySmall}>{t('saves.reading')}</Text>}
         {slots?.map((s) => {
@@ -167,6 +184,9 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
                 {mode === 'copy' && !current && (
                   <Button label={s.status === 'empty' ? t('saves.copyHere') : t('saves.overwrite')} compact variant="secondary" style={{ flex: 1 }} loading={busy} onPress={() => onSlot(s)} />
                 )}
+                {mode === 'load' && s.relaySnapshot && (
+                  <Button label={t('saves.beforeRelay')} compact variant="secondary" icon="back" onPress={() => setPending({ kind: 'restore', slot: s.slot })} />
+                )}
                 {s.status !== 'empty' && !current && (
                   <Button label={t('saves.delete')} compact variant="ghost" icon="trash" onPress={() => setPending({ kind: 'delete', slot: s.slot })} />
                 )}
@@ -180,10 +200,10 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
 
       <ConfirmDialog
         visible={!!pending}
-        danger
-        title={pending?.kind === 'delete' ? t('saves.confirmDelete') : t('saves.confirmOverwrite')}
+        danger={pending?.kind !== 'restore'}
+        title={pending?.kind === 'delete' ? t('saves.confirmDelete') : pending?.kind === 'restore' ? t('saves.confirmRestore') : t('saves.confirmOverwrite')}
         message={t(`saves.confirm.${pending?.kind ?? 'delete'}`, { slot: pending?.slot ?? '' })}
-        confirmLabel={pending?.kind === 'delete' ? t('saves.deleteForever') : t('saves.overwrite')}
+        confirmLabel={pending?.kind === 'delete' ? t('saves.deleteForever') : pending?.kind === 'restore' ? t('saves.restore') : t('saves.overwrite')}
         onConfirm={confirm}
         onCancel={() => setPending(null)}
       />

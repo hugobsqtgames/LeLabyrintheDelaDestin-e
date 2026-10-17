@@ -16,10 +16,19 @@ import { addChronicle, addNotice, clamp } from './util';
 /** Nombre de piles que l'on peut prendre sur le corps. */
 export const BODY_LOOT_MAX = 3;
 
-/** Compagnons présents capables de reprendre la route, dans l'ordre de la fiche. */
+/** Drapeaux posés par la relève (lus par le récit : épilogues, hommage). */
+export const RELAY_FLAGS = ['releve', 'releve_kaz', 'releve_maelle', 'releve_ines', 'releve_theo', 'releve_nour'];
+
+/**
+ * Compagnons présents capables de reprendre la route, dans l'ordre de la
+ * fiche. Les plus jeunes (dernier recours) ne sont proposés que s'il n'y a
+ * personne d'autre.
+ */
 export function relayCandidates(content: GameContent, state: GameState): HeroSheet[] {
   if (state.ending?.kind !== 'death') return [];
-  return Object.values(content.heroes).filter((h) => state.companions[h.character] === 'companion');
+  const present = Object.values(content.heroes).filter((h) => state.companions[h.character] === 'companion');
+  const adults = present.filter((h) => !h.lastResort);
+  return adults.length ? adults : present;
 }
 
 export function canRelay(content: GameContent, state: GameState): boolean {
@@ -54,6 +63,11 @@ export function relayLevel(content: GameContent, state: GameState, sheet: HeroSh
   const byJourney = 1 + Math.floor((number * (LEVEL_MAX - 1)) / total);
   const ceiling = Math.max(sheet.level, state.player.level);
   return clamp(Math.min(byJourney, ceiling), sheet.level, LEVEL_MAX);
+}
+
+/** Ce que serait le compagnon s'il reprenait la route maintenant (fiche consultable avant la mort). */
+export function heroPreview(content: GameContent, state: GameState, sheet: HeroSheet): PlayerCharacter {
+  return buildPlayer(content, state, sheet);
 }
 
 function buildPlayer(content: GameContent, state: GameState, sheet: HeroSheet): PlayerCharacter {
@@ -118,6 +132,7 @@ export function takeOver(content: GameContent, state: GameState, hero: Character
     currentScene: resume,
     hero,
     companions: { ...state.companions, [hero]: 'hero' },
+    flags: { ...state.flags, releve: true, [`releve_${hero}`]: true },
     fallen: [
       ...state.fallen,
       {

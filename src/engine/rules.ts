@@ -124,6 +124,18 @@ export function formatClock(content: GameContent, hours: number): string {
 }
 
 /** Temps restant avant l'embarquement, en heures (négatif : en retard). */
+/**
+ * Retard sur la route : écart entre l'horloge et l'heure à laquelle un
+ * voyageur « à l'heure » entame le chapitre en cours. Au-delà de quelques
+ * heures, arriver à l'écluse avant l'aube devient difficile.
+ */
+export function lateness(content: GameContent, state: { chapter: string; clock: number }): { hours: number; level: 'ok' | 'tight' | 'late' } {
+  const due = content.chapters.find((c) => c.id === state.chapter)?.due;
+  if (due === undefined) return { hours: 0, level: 'ok' };
+  const hours = state.clock - due;
+  return { hours, level: hours > 9 ? 'late' : hours > 5 ? 'tight' : 'ok' };
+}
+
 export function hoursLeft(clock: number): number {
   return DEPARTURE_HOUR - clock;
 }

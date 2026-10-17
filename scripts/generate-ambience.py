@@ -3,7 +3,8 @@
 Génère les ambiances sonores du jeu (boucles sans couture), puis les encode
 en AAC (.m4a) avec ffmpeg.
 
-    python3 scripts/generate-ambience.py
+    python3 scripts/generate-ambience.py            # toutes les pistes
+    python3 scripts/generate-ambience.py marais     # une seule
 
 Tout est synthétisé : bruit mis en forme dans le domaine fréquentiel (donc
 périodique, la boucle est parfaite), drones, gouttes, cloches lointaines,
@@ -12,6 +13,7 @@ Dépendances : numpy, ffmpeg.
 """
 import os
 import subprocess
+import sys
 import tempfile
 import wave
 
@@ -168,6 +170,125 @@ def combat(rng):
     return x
 
 
+def wire_wind(rng):
+    """Vent dans les câbles : sifflements tenus, lentement modulés."""
+    x = np.zeros(N)
+    for k, (f, cyc, ph) in enumerate([(620, 3, 0.4), (931, 5, 2.1), (1243, 2, 4.0)]):
+        x += tone(f, 1.0) * lfo(cyc, ph, 1.0) * (0.5 + 0.5 * lfo(7 + k, ph * 2, 0.6))
+    return x / (np.abs(x).max() + 1e-9)
+
+
+def metal_groan(rng, dur=2.5, amp=0.1):
+    """Long grincement de tôle : partiels inharmoniques qui glissent."""
+    tt = np.arange(int(dur * SR)) / SR
+    f0 = rng.uniform(140, 220)
+    glide = 1 + 0.08 * np.sin(np.pi * tt / dur) + 0.01 * rng.standard_normal(len(tt)).cumsum() / 300
+    s = sum(a * np.sin(2 * np.pi * np.cumsum(f0 * p * glide) / SR) for p, a in [(1, 1), (2.31, 0.5), (3.97, 0.3), (6.2, 0.15)])
+    env = np.sin(np.pi * tt / dur) ** 3
+    return amp * s * env
+
+
+def clank(rng, amp=0.15):
+    """Choc métallique lointain (rail, tampon de wagon)."""
+    dur = 1.6
+    tt = np.arange(int(dur * SR)) / SR
+    f0 = rng.uniform(300, 480)
+    s = sum(a * np.sin(2 * np.pi * f0 * p * tt) * np.exp(-tt * (3 + p * 1.5)) for p, a in [(1, 1), (1.47, 0.6), (2.83, 0.4), (4.1, 0.2)])
+    L = int(0.01 * SR)
+    s[:L] += rng.standard_normal(L) * np.exp(-np.arange(L) / (L / 5)) * 0.8
+    return amp * s / (np.abs(s).max() + 1e-9)
+
+
+def bark(rng, amp=0.08):
+    """Aboiement lointain : formant bref, étouffé."""
+    dur = 0.28
+    tt = np.arange(int(dur * SR)) / SR
+    f = rng.uniform(380, 460) * (1 + 0.3 * np.sin(np.pi * tt / dur))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    s = np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.3 * np.sin(3 * ph)
+    s *= np.sin(np.pi * tt / dur) ** 0.6 * np.exp(-tt * 6)
+    s = np.convolve(s, np.ones(6) / 6, mode='same')  # étouffé par la distance
+    return amp * s
+
+
+def croak(rng, amp=0.06):
+    """Coassement : train d'impulsions graves."""
+    n = rng.integers(3, 7)
+    rate = rng.uniform(18, 30)
+    f0 = rng.uniform(180, 320)
+    dur = n / rate + 0.1
+    tt = np.arange(int(dur * SR)) / SR
+    pulses = np.maximum(0, np.sin(2 * np.pi * rate * tt)) ** 4
+    s = np.sin(2 * np.pi * f0 * tt) * pulses * np.exp(-tt * 2)
+    return amp * s
+
+
+def bubble(rng, amp=0.08):
+    """Bulle qui crève à la surface : sinus montant, très bref."""
+    dur = rng.uniform(0.05, 0.12)
+    tt = np.arange(int(dur * SR)) / SR
+    f0 = rng.uniform(150, 500)
+    f = f0 * (1 + 2.5 * tt / dur)
+    return amp * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt / dur * 4)
+
+
+def moan(rng, dur=6.0, amp=0.06):
+    """Plainte lointaine : voyelle tenue qui retombe."""
+    tt = np.arange(int(dur * SR)) / SR
+    f = rng.uniform(150, 190) * (1.1 - 0.2 * tt / dur + 0.02 * np.sin(2 * np.pi * 5 * tt))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    s = np.sin(ph) + 0.4 * np.sin(2 * ph) + 0.2 * np.sin(3 * ph) + 0.1 * np.sin(5 * ph)
+    return amp * s * np.sin(np.pi * tt / dur) ** 2
+
+
+def faubourgs(rng):
+    x = 0.3 * shaped_noise(rng, 40, 600, -0.8) * lfo(3, 1.2, 0.6)
+    x += 0.07 * wire_wind(rng)
+    x += 0.08 * shaped_noise(rng, 1800, 5000) * lfo(4, 0.7, 0.9)
+    x += tone(36.7, 0.04)
+    for at in [2.5, 14.0, 23.5]:
+        place(x, metal_groan(rng, rng.uniform(2.0, 3.5), 0.09), at)
+    for at in [8.0, 8.9, 27.0]:
+        place(x, clank(rng, 0.12), at)
+    for at in [19.0, 19.45, 20.3]:
+        place(x, bark(rng, 0.07), at)
+    place(x, clicks(rng, 7, 0.05), 11.5)
+    return x
+
+
+def marais(rng):
+    x = 0.4 * shaped_noise(rng, 25, 160, -1.2) * lfo(2, 0.8, 0.4)
+    x += tone(43.2, 0.08) + tone(43.6, 0.07) + tone(64.8, 0.025)
+    # roseaux : bruit aigu en rafales
+    x += 0.12 * shaped_noise(rng, 2500, 7000) * lfo(5, 0.3, 1.0) * lfo(3, 2.0, 0.7)
+    # insectes : stridulation lointaine
+    tt = t
+    x += 0.012 * tone(4200, 1.0) * (np.sin(2 * np.pi * 480 * tt / DUR) > 0.3) * lfo(2, 3.0, 1.0)
+    for k in range(10):
+        place(x, croak(rng, rng.uniform(0.03, 0.07)), rng.uniform(0, DUR))
+    for k in range(5):
+        at = rng.uniform(0, DUR)
+        for j in range(rng.integers(2, 6)):
+            place(x, bubble(rng, rng.uniform(0.04, 0.1)), at + j * rng.uniform(0.08, 0.3))
+    place(x, moan(rng, 6.5, 0.05), 17.0)
+    return x
+
+
+def barrage(rng):
+    # grondement du déversoir : bruit large et grave, très dense
+    x = 0.6 * shaped_noise(rng, 30, 1200, -0.9) * (0.85 + 0.15 * np.sin(2 * np.pi * 6 * t / DUR))
+    x += 0.15 * shaped_noise(rng, 1500, 4500) * lfo(3, 0.5, 0.5)
+    # bourdon du transformateur : 50 Hz, 100 Hz, harmoniques impaires
+    hum = tone(50, 0.06) + tone(100, 0.07) + tone(150, 0.025) + tone(200, 0.02) + tone(300, 0.01)
+    x += hum * (0.85 + 0.15 * lfo(4, 1.0, 1.0))
+    # résonance métallique (conduites)
+    for at in [6.0, 21.0]:
+        place(x, metal_groan(rng, 4.0, 0.06), at)
+    place(x, clank(rng, 0.08), 13.5)
+    place(x, bell(196, 5, 0.04), 28.0)
+    return x
+
+
 def write_wav(path, x):
     x = x - x.mean()
     x = 0.7 * x / (np.abs(x).max() + 1e-9)
@@ -181,9 +302,25 @@ def write_wav(path, x):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    tracks = {'ville': city, 'carrieres': carrieres, 'port': port, 'ecluse': ecluse, 'combat': combat}
+    tracks = {
+        'ville': city,
+        'carrieres': carrieres,
+        'port': port,
+        'ecluse': ecluse,
+        'combat': combat,
+        'faubourgs': faubourgs,
+        'marais': marais,
+        'barrage': barrage,
+    }
+    # `python3 scripts/generate-ambience.py marais barrage` : seulement ces pistes.
+    only = set(sys.argv[1:])
+    unknown = only - tracks.keys()
+    if unknown:
+        sys.exit(f'pistes inconnues : {", ".join(sorted(unknown))}')
     with tempfile.TemporaryDirectory() as tmp:
         for i, (name, fn) in enumerate(tracks.items()):
+            if only and name not in only:
+                continue
             rng = np.random.default_rng(100 + i)
             wav = os.path.join(tmp, f'{name}.wav')
             write_wav(wav, fn(rng))

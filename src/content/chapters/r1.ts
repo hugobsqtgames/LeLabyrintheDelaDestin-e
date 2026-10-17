@@ -36,6 +36,9 @@ import {
 const C = 'r1';
 const THEO_CAPTIF = companionIs('theo', 'captured');
 const SEUL = all(notWithUs('maelle'), notWithUs('theo'), notWithUs('kaz'), notWithUs('ines'), notWithUs('nour'));
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
 
 export const chapterR1: Scene[] = [
   // -------------------------------------------------------------------------
@@ -55,6 +58,7 @@ export const chapterR1: Scene[] = [
       p('Sur la route haute, de l’autre côté du verger, des traces de pneus larges dans la boue, fraîches de ce matin. Un camion lourd, qui a pris le chemin le plus sûr. Celui des Ferrailleurs. Théo est dans la cage, sur le plateau, et chaque heure l’éloigne un peu plus.', THEO_CAPTIF),
       p('Théo s’est accroupi au bord de l’eau. Il compte les rangées de pommiers et les reporte sur son carnet, une croix pour chaque arbre.', withUs('theo')),
       p('Inès plonge la crosse de son arbalète dans l’eau, la ressort, regarde la ligne de vase. « Jusqu’à la taille. Le fond est mou. »', withUs('ines')),
+      p('Vous plongez la crosse de votre arbalète dans l’eau et vous regardez la ligne de vase : jusqu’à la taille, et le fond est mou. Avec Malik, dans les galeries inondées sous les Carrières, la règle était simple. On tâte avant de poser son poids, et on ne parle pas.', INES_HEROS),
       p('Kaz regarde l’eau comme on regarde un vieil ennemi. « Elle ne bouge pas. Une eau qui ne bouge pas, ça veut dire qu’il n’y a plus personne pour ouvrir les vannes. »', withUs('kaz')),
       p('Personne à vos côtés face à l’eau. Personne pour vous tenir la main si le fond se dérobe.', SEUL),
     ],
@@ -71,6 +75,14 @@ export const chapterR1: Scene[] = [
         kind: 'talk', time: 0.5,
         visibleIf: [withUs('kaz')],
         effects: [set('r1_kaz_eau'), rel('kaz', 1)],
+        next: 'r1_remous',
+      },
+      {
+        id: 'kaz_heros',
+        text: '[Vous, Kaz] Lire l’eau vous-même, comme votre père vous l’a appris.',
+        kind: 'explore', time: 0.5,
+        visibleIf: [KAZ_HEROS],
+        effects: [xp(10)],
         next: 'r1_remous',
       },
       {
@@ -91,6 +103,7 @@ export const chapterR1: Scene[] = [
       p('L’eau est froide au point de couper le souffle. Vous avancez à petits pas, en tâtant le fond du pied avant d’y mettre votre poids.', notFlag('r1_kaz_eau')),
       p('Au bout de vingt mètres, vous les voyez. Pas eux : leurs traces. Des cercles qui s’élargissent à la surface, sans vent ni poisson pour les faire. Une bulle qui crève. Une ondulation lente qui remonte une rangée, s’arrête, repart. Ils sont là-dessous, couchés dans la vase, et ils attendent qu’une jambe passe à leur portée.', notFlag('r1_kaz_eau')),
       say('kaz', '« Regarde la surface, pas le fond. » Kaz marche devant, l’eau à mi-cuisse, et montre du doigt une ligne de piquets qui dépasse à peine. « Les vieux fossés de drainage suivent les clôtures. Eux, ils descendent dans les fossés parce que c’est plus profond. Nous, on marche sur les talus entre deux. » Il crache. « Mon père curait des fossés comme ça. Il serait content de savoir que ça sert encore. »', flag('r1_kaz_eau')),
+      p('Vous savez où regarder. Les vieux fossés de drainage suivent les clôtures, et c’est là qu’ils se couchent, parce que c’est plus profond. Vous marchez donc sur les talus entre deux, en suivant la ligne de piquets. Votre père curait des fossés comme ceux-là. Il serait content de savoir que ça sert encore.', KAZ_HEROS),
       p('Vous contournez les remous un par un, en silence. Une fois, une main pâle affleure à un mètre de vous, ouverte, comme pour cueillir quelque chose, puis redescend.'),
       p('Nour compte vos pas à voix basse. Elle s’arrête à cent douze, quand le toit apparaît.', withUs('nour')),
     ],
@@ -156,8 +169,8 @@ export const chapterR1: Scene[] = [
     text: [
       p('Quand vous rouvrez les yeux, vous êtes sur le dos, dans l’herbe mouillée d’un talus. Le ciel est blanc. Vous avez le goût de la vase dans la gorge et une douleur sourde partout.'),
       say('maelle', '« Ne bouge pas. » Maëlle serre un bandage autour de votre bras. Ses mains sont rouges de froid. « Tu as perdu connaissance une minute. Une longue minute. »', withUs('maelle')),
-      say('kaz', '« Je t’ai sorti par le col, comme un chiot », dit Kaz. Il est trempé jusqu’aux épaules. « Tu pèses plus lourd qu’un chiot. »', withUs('kaz')),
-      say('ines', '« Ils sont morts », dit Inès en rechargeant son arbalète. Elle ne dit rien d’autre. Elle n’a pas besoin.', withUs('ines')),
+      say('kaz', '« Par le col, comme un chiot », dit Kaz. Il est trempé jusqu’aux épaules. « Tu pèses plus lourd qu’un chiot. »', withUs('kaz')),
+      say('ines', '« Ils sont morts », dit Inès en rechargeant son arbalète. Elle ne dit rien d’autre. Elle n’en a pas besoin.', withUs('ines')),
       p('Vous ne vous rappelez pas avoir rampé jusque-là. Votre sac est ouvert, à moitié vide : ce qui en est tombé est resté au fond.', SEUL),
     ],
     onEnter: [hurt(4, 'les Noyés du verger'), take('ration', 1)],
@@ -189,6 +202,7 @@ export const chapterR1: Scene[] = [
     title: 'Le toit',
     kind: 'story',
     checkpoint: true,
+    illustration: 'vergers',
     text: [
       p('La ferme est une longère de pierre dont l’eau a avalé le rez-de-chaussée. Les volets du premier flottent, arrachés. Sur le toit, contre la cheminée, une femme maigre et droite tient un petit garçon sur ses genoux, et une valise de cuir sous son bras, comme on tient une rampe.'),
       p('Autour de la maison, les remous tournent. Lentement. Patiemment. Ils ont tout leur temps.'),
@@ -300,7 +314,7 @@ export const chapterR1: Scene[] = [
     choices: [
       {
         id: 'verite',
-        text: 'Lui dire ce que vous avez entendu à la radio du port : le tri à la grille, les porteurs achetés.',
+        text: 'Lui dire ce que vous avez entendu sur l’enregistrement de la capitainerie : le tri à la grille, les porteurs achetés.',
         kind: 'talk',
         visibleIf: [flag('verite_ferrand')],
         effects: [set('r1_claire_prevenue'), journal('Vous avez prévenu Claire Delmas : à l’écluse, on trie à la grille.', false)],
@@ -320,7 +334,7 @@ export const chapterR1: Scene[] = [
     id: 'r1_claire_verite',
     chapter: C,
     location: 'vergers',
-    title: 'Ce que dit la radio',
+    title: 'Ce que dit Rousset',
     kind: 'story',
     text: [
       p('Vous le lui dites à voix basse, par-dessus l’eau. Le capitaine Rousset. Les porteurs payés en places sur le pont inférieur. « Le reste est négociable. »'),
@@ -405,7 +419,7 @@ export const chapterR1: Scene[] = [
     title: 'Descendre du toit',
     kind: 'story',
     text: [
-      p('Vous poussez la barque du côté de la grange en comptant dans votre tête. Vingt pas. La rame entre dans l’eau sans un clapotis. Derrière la maison, les remous continuent leur ronde sans vous voir. La coque touche les ardoises. Claire fait glisser Jules vers vous.', flag('r1_par_barque')),
+      p('Vous poussez la barque vers la ferme, à petits coups de rame, en comptant dans votre tête. La rame entre dans l’eau sans un clapotis. Derrière la maison, les remous continuent leur ronde sans vous voir. La coque touche les ardoises. Claire fait glisser Jules vers vous.', flag('r1_par_barque')),
       p('La corde siffle, s’enroule autour de la cheminée, et tient. Vous la tendez autour du tronc du grand pommier jusqu’à ce qu’elle vibre comme une corde de piano. Claire y accroche la ceinture de son fils et le pousse dans le vide. Jules glisse au-dessus de l’eau, les jambes repliées, sans un cri, et atterrit dans vos bras.', flag('r1_par_corde')),
       p('Vous avez déjà vu des fermes comme celle-ci, du temps des crues de printemps, avec des familles sur le toit et des vaches qui nageaient en rond. La procédure vous revient d’un coup : une ligne de vie, l’enfant d’abord, la mère ensuite, personne ne se met à l’eau sans y être attaché. Les Noyés n’y changent rien. Ils ne sont qu’un courant de plus.', flag('r1_par_pompier')),
       p('La cloche du Berger tinte au fond du verger, accrochée à une branche, agitée par la ficelle que vous tirez de loin. Les remous s’arrêtent. Puis, un par un, ils s’en vont vers le son, en ligne, comme un troupeau. Vous avez dix minutes, peut-être moins.', flag('r1_par_cloche')),
@@ -452,7 +466,8 @@ export const chapterR1: Scene[] = [
       p('Nour a porté le métronome tout le long, serré contre son ventre. Elle a remonté le mécanisme sans demander. Il bat doucement dans l’herbe. Nour compte les coups, et Jules compte avec elle. Pour la première fois, Nour sourit à un adulte. C’est à Claire.', flag('r1_nour_metronome')),
       p('La valise est restée sur le toit, contre la cheminée, à côté de l’écharpe rouge. Claire ne s’est pas retournée une seule fois. Dans sa poche, il y a une seule partition, pliée en huit.', flag('r1_valise_laissee')),
       p('Claire n’a plus de valise. Elle regarde ses mains vides comme si elles appartenaient à quelqu’un d’autre. Quelques partitions détrempées s’accrochent encore aux branches basses des pommiers.', flag('r1_valise_perdue')),
-      say('maelle', 'Maëlle s’accroupit devant Jules, lui fait boire de l’eau par petites gorgées, regarde ses yeux, ses ongles, ses mains. « Il n’a rien. Il a soif, c’est tout. Il a été bien gardé. »', withUs('maelle')),
+      p('Maëlle s’accroupit devant Jules, lui fait boire de l’eau par petites gorgées, regarde ses yeux, ses ongles, ses mains. « Il n’a rien. Il a soif, c’est tout. Il a été bien gardé. »', withUs('maelle')),
+      p('Vous vous accroupissez devant Jules. De l’eau par petites gorgées, les yeux, les ongles, les mains : il n’a rien, il a soif, c’est tout. Il a le même air buté que Théo à six ans, quand il refusait de pleurer chez le médecin. Vous le dites à Claire : il a été bien gardé.', MAELLE_HEROS),
       say('claire', '« Ce matin, un camion est passé sur la route haute. Il y avait une cage sur le plateau. Un garçon dedans, avec un dessin au feutre sur la main. Il nous a regardés tout le temps qu’il a mis à passer. » Elle vous dévisage. « Vous le connaissez. »', THEO_CAPTIF),
       say('claire', '« On part devant. Jules marche vite quand il veut, et je ne veux plus attendre nulle part. » Elle se relève, droite, maigre, et lui prend la main. « On se reverra à Morvan. Je vous garderai une place dans la file. »'),
       p('Jules vous fait un dernier salut, à l’envers, et ils s’en vont sur la route haute, la femme et l’enfant, deux silhouettes qui rapetissent entre les pommiers.'),
@@ -507,7 +522,8 @@ export const chapterR1: Scene[] = [
     kind: 'story',
     text: [
       p('Le terrain remonte doucement vers la route. L’eau recule, laisse une boue grise, puis de l’herbe. Ici, les pommiers ont les pieds au sec, et certains portent encore les pommes de l’automne dernier, ridées, sucrées, que personne n’a cueillies. Des guêpes ivres tournent autour des fruits tombés.'),
-      p('Kaz s’arrête au sommet de la pente et regarde en arrière, vers l’eau. « La digue n’a pas cédé toute seule. Elle a cédé parce que le barrage de Vaulx ne régule plus rien depuis que la centrale est morte. Chaque crue passe tout droit. » Il hausse les épaules. « Un jour il faudra que quelqu’un aille rallumer ce barrage. Pas moi. Enfin, pas aujourd’hui. »', withUs('kaz')),
+      p('Kaz s’arrête au sommet de la pente et regarde en arrière, vers l’eau. « La digue n’a pas cédé toute seule. Elle a cédé parce que le barrage de Vaulx ne régule plus rien depuis que la centrale est morte. Chaque crue passe tout droit. » Il hausse les épaules. « Un jour, il faudra que quelqu’un aille rallumer ce barrage. Pas moi. Enfin, pas aujourd’hui. »', withUs('kaz')),
+      p('Au sommet de la pente, vous vous retournez vers l’eau. Cette digue n’a pas cédé toute seule : le barrage de Vaulx ne régule plus rien depuis que sa centrale est morte, et chaque crue passe tout droit. Vous y avez fait deux ans de maintenance, avant l’écluse. Vous savez exactement où il faudrait poser les mains.', KAZ_HEROS),
       p('Inès mange une pomme tombée en trois bouchées, trognon compris. « Malik disait que les pommes de l’année d’avant sont les meilleures. Il disait n’importe quoi. Celle-là est bonne. »', withUs('ines')),
       p('La route haute est déserte. Les traces du camion y sont nettes, régulières. Elles mènent vers le viaduc, comme vous.', THEO_CAPTIF),
     ],
@@ -529,8 +545,8 @@ export const chapterR1: Scene[] = [
     title: 'Fin du chapitre 5',
     kind: 'chapterEnd',
     text: [
-      p('Vous faites halte sur le bord de la route haute, là où le verger s’arrête et où commence le bitume. Vous faites sécher vos chaussettes sur une borne kilométrique et vous mangez sans parler. Derrière vous, l’eau brune et les pommiers en fleur. Devant, la route qui monte vers le grand viaduc de la rocade, dont on devine déjà les piles grises dans la brume.'),
-      p('Loin devant, sur la route, deux silhouettes, une grande et une petite. Elles ne se retournent pas. Elles n’ont pas besoin.', flag('delmas_sauves')),
+      p('Vous vous arrêtez au bord de la route haute, là où le verger finit et où commence le bitume. Vous faites sécher vos chaussettes sur une borne kilométrique et vous mangez sans parler. Derrière vous, l’eau brune et les pommiers en fleur. Devant, la route qui monte vers le grand viaduc de la rocade, dont on devine déjà les piles grises dans la brume.'),
+      p('Loin devant, sur la route, deux silhouettes, une grande et une petite. Elles ne se retournent pas. Elles n’en ont pas besoin.', flag('delmas_sauves')),
       p('Vous ne regardez pas en arrière, vers le toit. Vous savez très bien ce que vous y verriez.', flag('delmas_abandonnes')),
       p('Les traces du camion continuent vers le viaduc. Quelque part devant, Théo compte peut-être les kilomètres, lui aussi.', THEO_CAPTIF),
       p('Il reste {reste} avant l’aube du septième.'),
@@ -552,7 +568,7 @@ export const DOCUMENTS_R1: DocumentDef[] = [
       'Ne viens pas. Je sais que tu voudrais venir. Il n’y a plus de trains, de toute façon, et tu as les petits.\n\n' +
       'Je reste avec les arbres. Ils fleuriront en avril, il n’y aura personne pour les tailler, et ils fleuriront quand même. Ça me console plus que ça ne devrait.\n\n' +
       'Si quelqu’un lit cette lettre avant toi : il y a des pommes séchées dans le bocal, prenez-les. Laissez la chaise devant la fenêtre.\n\n' +
-      'Ton papa,\nLucien Garnier',
+      'Ton papa,\nGaston Garnier',
   },
 ];
 

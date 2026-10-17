@@ -32,6 +32,7 @@ import { Sheet } from '../../ui/components/Sheet';
 import { Badge, Bar, Button, FadeIn, Label } from '../../ui/components/primitives';
 import { Icon, type IconName } from '../../ui/icons';
 import { colors, CONTINUOUS, fonts, MAX_SCALE_UI, radius, space, TOUCH, type, NATIVE_DRIVER } from '../../ui/theme';
+import { ContextHint } from '../../ui/components/ContextHint';
 
 const INTENT_ICON: Record<string, IconName> = {
   attack: 'sword',
@@ -211,6 +212,7 @@ export function CombatView({ game }: { game: GameState }) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top + space.sm, paddingBottom: dockH + chrome.bottom }}>
+        <ContextHint id="combat" style={{ marginBottom: space.md }} />
         <Label color={colors.blood}>{t('combat.turn', { n: combat.turn })}</Label>
         <Text style={[type.h1, { marginTop: 4, marginBottom: space.md }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
           {scene?.title}

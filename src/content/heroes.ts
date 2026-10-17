@@ -5,7 +5,7 @@
  */
 import type { BackgroundDef, HeroSheet, ProfileDef } from '../engine/types';
 
-export const HERO_PROFILES: Record<'eclusier' | 'infirmiere' | 'passeuse', ProfileDef> = {
+export const HERO_PROFILES: Record<'eclusier' | 'infirmiere' | 'passeuse' | 'cartographe' | 'compteuse', ProfileDef> = {
   eclusier: {
     id: 'eclusier',
     name: 'Éclusier',
@@ -82,9 +82,60 @@ export const HERO_PROFILES: Record<'eclusier' | 'infirmiere' | 'passeuse', Profi
     startingEquipment: {},
     art: 'eclaireur',
   },
+  // Dernier recours : les plus jeunes ne reprennent la route que s'il n'y a plus personne d'autre.
+  cartographe: {
+    id: 'cartographe',
+    name: 'Cartographe',
+    tagline: 'Connaître le chemin avant de le prendre.',
+    description: 'Quinze ans, des cartes plein la tête. Théo n’a jamais voulu se battre ; il sait par où passer pour ne pas avoir à le faire.',
+    bonuses: {},
+    family: 'eclaireur',
+    hidden: true,
+    skill: {
+      name: 'Le bon angle',
+      description: 'Théo frappe là où il l’a vu faire : un coup qui ne rate jamais, critique renforcé (×2,6 sur une cible distraite ou étourdie) et saignement.',
+      staminaCost: 4,
+      cooldown: 3,
+    },
+    skill2: {
+      name: 'Raccourci',
+      description: 'Théo se glisse par un passage qu’il est seul à avoir vu : esquive garantie au prochain coup, et la prochaine attaque compte comme une embuscade.',
+      staminaCost: 4,
+      cooldown: 4,
+      level: 4,
+    },
+    startingItems: {},
+    startingEquipment: {},
+    art: 'eclaireur',
+  },
+  compteuse: {
+    id: 'compteuse',
+    name: 'Compteuse',
+    tagline: 'Compter. Attendre. Trouver la faille.',
+    description: 'Douze ans, sortie d’une cage. Nour compte tout : les pas, les secondes, les Muets. Elle ne gagne pas les combats, elle les détourne.',
+    bonuses: {},
+    family: 'technicien',
+    hidden: true,
+    skill: {
+      name: 'Le bon moment',
+      description: 'Nour a compté leurs gestes : un caillou, un cri au bon moment, et tous les ennemis sont distraits deux tours (ils n’agissent plus et subissent +30 % de dégâts).',
+      staminaCost: 5,
+      cooldown: 4,
+    },
+    skill2: {
+      name: 'Bouteille de gaz',
+      description: 'Une bouteille de camping lancée dans un feu de fortune : 6 à 10 dégâts à tous les ennemis, qui s’embrasent.',
+      staminaCost: 5,
+      cooldown: 5,
+      level: 4,
+    },
+    startingItems: {},
+    startingEquipment: {},
+    art: 'technicien',
+  },
 };
 
-export const HERO_BACKGROUNDS: Record<'eclusier' | 'infirmiere' | 'passeuse', BackgroundDef> = {
+export const HERO_BACKGROUNDS: Record<'eclusier' | 'infirmiere' | 'passeuse' | 'porteur' | 'rescapee', BackgroundDef> = {
   eclusier: {
     id: 'eclusier',
     name: 'Ancien éclusier',
@@ -112,6 +163,26 @@ export const HERO_BACKGROUNDS: Record<'eclusier' | 'infirmiere' | 'passeuse', Ba
     advantage: '+1 aux jets de Discrétion.',
     drawback: 'Ne se fie à personne : les inconnus l’aident moins volontiers.',
     checkModifiers: { discretion: 1 },
+    hidden: true,
+  },
+  porteur: {
+    id: 'porteur',
+    name: 'Porteur',
+    description: 'Le sang de Théo résiste à la Fièvre : c’est pour ça que l’Institut le cherche.',
+    advantage: '+1 aux jets d’Astuce : il lit le terrain comme une carte.',
+    drawback: 'Quinze ans et maigre : charge transportable −2 kg.',
+    capacityModifier: -2,
+    checkModifiers: { astuce: 1 },
+    hidden: true,
+  },
+  rescapee: {
+    id: 'rescapee',
+    name: 'Rescapée des cages',
+    description: 'Des semaines dans une cage de la casse Lenoir. Elle a appris à ne pas faire de bruit.',
+    advantage: '+2 aux jets de Discrétion.',
+    drawback: 'Douze ans : charge transportable −3 kg, −1 aux jets de Force.',
+    capacityModifier: -3,
+    checkModifiers: { discretion: 2, force: -1 },
     hidden: true,
   },
 };
@@ -155,5 +226,33 @@ export const HEROES: Record<string, HeroSheet> = {
     items: { arbalete: 1, carreau: 8, couteau: 1, corde: 1 },
     equipment: { ranged: 'arbalete', melee: 'couteau' },
     emblem: 'boussole',
+  },
+  theo: {
+    character: 'theo',
+    name: 'Théo',
+    lastResort: true,
+    profile: 'cartographe',
+    background: 'porteur',
+    stats: { force: 1, discretion: 3, survie: 2, astuce: 4 },
+    growth: ['astuce', 'discretion', 'survie'],
+    level: 1,
+    perks: [],
+    items: { couteau: 1, ration: 1 },
+    equipment: { melee: 'couteau' },
+    emblem: 'boussole',
+  },
+  nour: {
+    character: 'nour',
+    name: 'Nour',
+    lastResort: true,
+    profile: 'compteuse',
+    background: 'rescapee',
+    stats: { force: 1, discretion: 4, survie: 2, astuce: 3 },
+    growth: ['discretion', 'astuce', 'survie'],
+    level: 1,
+    perks: [],
+    items: { chiffons: 1, alcool: 1 },
+    equipment: {},
+    emblem: 'corbeau',
   },
 };

@@ -4,20 +4,10 @@
  * Un test vérifie que chaque clé utilisée existe dans toutes les langues.
  */
 import { useStore } from '../store/GameStore';
-import { EN } from './en';
-import { FR } from './fr';
 import type { Lang } from './lang';
+import { type Params, translate } from './translate';
 
-export type Dict = Record<string, string>;
-export const DICTS: Record<Lang, Dict> = { fr: FR, en: EN };
-
-export type Params = Record<string, string | number>;
-
-export function translate(lang: Lang, key: string, params?: Params): string {
-  const raw = DICTS[lang][key] ?? FR[key] ?? key;
-  if (!params) return raw;
-  return raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m));
-}
+export { DICTS, type Dict, type Params, translate } from './translate';
 
 export type T = (key: string, params?: Params) => string;
 
@@ -35,6 +25,8 @@ const PERSISTENCE_KEYS: Record<string, string> = {
   'Restaurable depuis la copie de secours.': 'persist.backup',
   'Sauvegarde invalide.': 'persist.invalid',
   'Sauvegarde créée par une version plus récente du jeu.': 'persist.newer',
+  'Aucun état avant relève pour cet emplacement.': 'persist.noRelay',
+  'Ce chapitre n’a pas encore été atteint.': 'persist.noChapter',
 };
 
 export function translateSaveMessage(lang: Lang, message: string): string {

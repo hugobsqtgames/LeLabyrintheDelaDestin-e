@@ -43,7 +43,16 @@ const CIBLE_NOUR = all(notWithUs('theo'), withUs('nour'));
 const CIBLE_MOI = all(notWithUs('theo'), notWithUs('nour'));
 const SEUL = all(notWithUs('maelle'), notWithUs('theo'), notWithUs('kaz'), notWithUs('ines'), notWithUs('nour'));
 const INDICE = any(flag('r7_talus'), flag('r7_pension_vue'), flag('r7_indice_ecole'), flag('r7_indice_marche'));
-const FLAIR_GENERIQUE = all(notFlag('r7_flair_maelle'), notFlag('r7_flair_nour'), notFlag('r7_flair_amb'));
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
+const FLAIR_GENERIQUE = all(
+  notFlag('r7_flair_maelle'),
+  notFlag('r7_flair_nour'),
+  notFlag('r7_flair_amb'),
+  notFlag('r7_flair_maelle_vous'),
+  notFlag('r7_flair_ines_vous'),
+);
 
 export const chapterR7: Scene[] = [
   // -------------------------------------------------------------------------
@@ -56,11 +65,13 @@ export const chapterR7: Scene[] = [
     title: 'Le mur de Brennes',
     kind: 'story',
     checkpoint: true,
+    illustration: 'brennes',
     text: [
-      p('Le brouillard des tourbières se déchire d’un coup, comme un rideau qu’on tire, et Brennes est là : un clocher trapu, des toits d’ardoise, et tout autour un mur fait de ce que la route a laissé. Des remorques de camion couchées bout à bout, des sacs de sable, des portières soudées, des herses agricoles dents tournées vers l’extérieur.'),
+      p('Vu de près, Brennes tient en peu de choses : un clocher trapu, des toits d’ardoise, et tout autour un mur fait de ce que la route a laissé. Des remorques de camion couchées bout à bout, des sacs de sable, des portières soudées, des herses agricoles dents tournées vers l’extérieur.'),
       p('Sur le mur, des silhouettes et des fusils de chasse. Et, chose que vous n’aviez pas vue depuis des mois, une fumée de cheminée qui sent le poireau.'),
       p('Au-dessus du portail, une banderole peinte à la main : « BRENNES — ICI ON S’ENTRAIDE ». Les lettres ont été repassées plusieurs fois. Quelqu’un y tient.'),
       say('kaz', '« Brennes. J’ai fait passer leurs péniches de betteraves à l’écluse d’en bas, dans le temps. Ils avaient un maire qui parlait trop. » Il plisse les yeux vers le mur. « Ils en ont peut-être encore un. »', withUs('kaz')),
+      p('Brennes. Vous avez fait passer leurs péniches de betteraves à l’écluse d’en bas, dans le temps. Ils avaient un maire qui parlait trop. Irena disait qu’il serrait les mains comme on pèse des légumes. Ils en ont peut-être encore un.', KAZ_HEROS),
       p('Nour s’est arrêtée. Elle compte les fusils à voix basse. « Sept. » Puis elle compte les fenêtres de la mairie, et elle ne dit pas pourquoi.', withUs('nour')),
       p('Personne ne marche à côté de vous. La fumée de cheminée vous serre la gorge plus que le brouillard ne l’a jamais fait.', SEUL),
     ],
@@ -114,7 +125,7 @@ export const chapterR7: Scene[] = [
     kind: 'story',
     text: [
       p('Le portail est une benne à ordures montée sur des roues de brouette. On la fait rouler pour vous. Derrière, une rue pavée, des enfants qui se taisent en vous voyant, et un homme qui vient à votre rencontre les deux mains tendues.'),
-      p('Les sentinelles vous ont vus ramper sur le talus. Elles ne disent rien, mais deux canons vous suivent jusqu’au portail, et le sourire de l’homme qui vous accueille arrive une demi-seconde après lui.', flag('r7_surpris')),
+      p('Les sentinelles ont repéré votre manège sur le talus. Elles ne disent rien, mais deux canons vous suivent jusqu’au portail, et le sourire de l’homme qui vous accueille arrive une demi-seconde après lui.', flag('r7_surpris')),
       p('La soixantaine, un gilet de laine boutonné jusqu’en haut, des lunettes de presbyte pendues à un cordon. Il serre votre main entre les deux siennes, longtemps, chaudement. Pendant qu’il la serre, ses yeux font le tour de votre cou.'),
       say('vautrin', '« Bertrand Vautrin. Maire de Brennes avant, et encore maintenant, faute de candidats. » Il rit de sa propre plaisanterie. « Bienvenue. Ici, on ne demande pas aux gens d’où ils viennent. On leur demande s’ils ont faim. »'),
       p('Il serre ensuite la main de Théo. Plus longtemps. Il pose l’autre main sur l’épaule du garçon, paternel, et son pouce glisse sous le col du blouson, juste un peu, juste là où est la cicatrice. Théo recule d’un pas. Vautrin sourit comme si de rien n’était.', THEO),
@@ -339,7 +350,7 @@ export const chapterR7: Scene[] = [
       p('Vautrin sert lui-même. Il passe entre les tables avec une louche et un mot pour chacun. Sur le passe-plat, deux marmites : une grande, en fonte, et une petite, émaillée bleue, posée à part sur un réchaud.'),
       p('Quand votre tour vient, il plonge la louche dans la marmite bleue pour le bol de Théo. « Pour le jeune homme, la meilleure. Il a besoin de forces, à son âge. » Les autres bols, il les remplit à la grande, sans y penser.', THEO),
       p('Quand votre tour vient, il remplit le bol de Nour à la marmite bleue. « Pour la petite demoiselle, la meilleure. » Il le pose devant elle avec un clin d’œil. Les autres bols viennent de la grande.', CIBLE_NOUR),
-      p('Quand votre tour vient, il remplit votre bol à la marmite bleue, comme pour personne d’autre dans la salle. « Pour notre invité, la meilleure. » Il reste debout à côté de vous, la louche à la main. « Après le repas, un petit contrôle sanitaire. Une formalité. On ne laisse pas entrer la Fièvre, à Brennes. »', CIBLE_MOI),
+      p('Quand votre tour vient, il remplit votre bol à la marmite bleue, comme pour personne d’autre dans la salle. « Pour qui vient de loin, la meilleure. » Il reste debout à côté de vous, la louche à la main. « Après le repas, un petit contrôle sanitaire. Une formalité. On ne laisse pas entrer la Fièvre, à Brennes. »', CIBLE_MOI),
       p('Cette fois, il s’assoit en face de vous. Il ne mange pas. Il vous regarde manger.', flag('r7_mefiance')),
       p('La soupe fume. Elle a une odeur de soupe. Presque.'),
     ],
@@ -353,6 +364,22 @@ export const chapterR7: Scene[] = [
         next: 'r7_soupe_eventee',
       },
       {
+        id: 'maelle_vous',
+        text: '[Vous, Maëlle] Sentir le bol avant que quiconque y touche.',
+        kind: 'explore', time: 0.5,
+        visibleIf: [MAELLE_HEROS],
+        effects: [set('r7_flair_maelle_vous'), xp(10)],
+        next: 'r7_soupe_eventee',
+      },
+      {
+        id: 'ines_vous',
+        text: '[Vous, Inès] Ne pas manger ce que vous n’avez pas vu cuire. Jamais.',
+        kind: 'explore', time: 0.5,
+        visibleIf: [INES_HEROS],
+        effects: [set('r7_flair_ines_vous'), xp(10)],
+        next: 'r7_soupe_eventee',
+      },
+      {
         id: 'nour',
         text: 'Écouter Nour, qui vous tire par la manche en comptant les marmites.',
         kind: 'talk', time: 0.5,
@@ -362,7 +389,7 @@ export const chapterR7: Scene[] = [
       },
       {
         id: 'ambulancier',
-        text: '[Ancien ambulancier] Tremper le bout de la langue : vous connaissez ce goût de sirop.',
+        text: '[Ambulancier] Tremper le bout de la langue : vous connaissez ce goût de sirop.',
         kind: 'explore', time: 0.5,
         requires: [background('ambulancier')],
         effects: [set('r7_flair_amb'), xp(10)],
@@ -404,6 +431,8 @@ export const chapterR7: Scene[] = [
     text: [
       say('maelle', '« Chloral », souffle Maëlle en reposant le bol. « Ou un sirop pour dormir, de pharmacie. Ça sent la poire trop mûre. On en donnait aux vieux, à l’hôpital, pour qu’ils ne se lèvent pas la nuit. » Elle regarde Vautrin. « Celui-là est dosé pour qu’on ne se lève pas du tout. »', flag('r7_flair_maelle')),
       say('nour', '« Il a servi trente et un bols à la grande marmite, chuchote Nour. Un seul à la petite. Et lui, il ne mange pas. »', flag('r7_flair_nour')),
+      p('Vous reposez le bol sans y avoir touché. Chloral, ou un sirop pour dormir, de pharmacie : ça sent la poire trop mûre. À l’hôpital, on en donnait aux vieux pour qu’ils ne se lèvent pas la nuit. Celui-ci est dosé pour qu’on ne se lève pas du tout.', flag('r7_flair_maelle_vous')),
+      p('Sous la ville, c’était la première règle des passeurs : ne rien avaler qu’on n’a pas vu cuire. Vous l’aviez apprise à Malik, la première fois que vous l’avez emmené sous la ville. Vous regardez Vautrin. Lui non plus ne mange pas. Et la marmite bleue a un reflet huileux qui sent la poire.', flag('r7_flair_ines_vous')),
       p('Le goût vous revient d’un coup, d’avant : la poire trop mûre, l’amertume au fond. Le sirop qu’on donnait à la cuillère aux patients agités, à l’arrière de l’ambulance. Celui-ci est dosé pour un cheval.', flag('r7_flair_amb')),
       p('Le bol de la marmite bleue a un reflet huileux et une odeur de poire trop mûre. Une soupe de poireaux ne sent pas la poire.', FLAIR_GENERIQUE),
       p('Vous faites semblant. La cuillère monte et descend, et la soupe finit sous la table, dans la gamelle d’un vieux chien qui s’endort presque aussitôt, les pattes en l’air.'),
@@ -466,6 +495,7 @@ export const chapterR7: Scene[] = [
       say('vautrin', '« Allons, allons. Personne ne va se faire mal. C’est un malentendu. » Il écarte les bras vers la foule. « Ces gens ont marché, ils sont fatigués, ils voient des complots partout. Nous, à Brennes, nous protégeons nos enfants. Rentrez chez vous. »'),
       p('Personne ne rentre. La maîtresse est là, les bras croisés très fort. Mme Ribot est là, appuyée sur sa canne. Ils attendent. Ils attendent quelque chose depuis longtemps, peut-être, sans avoir jamais su quoi.'),
       say('kaz', '« Je connais ces gens, souffle Kaz. Ils ne sont pas méchants. Ils ont peur. Donne-leur une raison d’avoir moins peur de nous que de lui. »', withUs('kaz')),
+      p('Vous connaissez ces gens. Vous avez bu leur cidre à l’écluse d’en bas, du temps des péniches. Ils ne sont pas méchants. Ils ont peur. Il faut leur donner une raison d’avoir moins peur de vous que de lui.', KAZ_HEROS),
     ],
     choices: [
       {
@@ -557,7 +587,7 @@ export const chapterR7: Scene[] = [
     title: 'Les jardins',
     kind: 'story',
     text: [
-      p('Vous coupez par les potagers, entre les rangs de poireaux et les tuteurs de haricots, plié en deux sous les draps qui sèchent. Derrière, des cris, un sifflet, des portes qui claquent. Devant, le talus de la voie et la marquise de la gare.'),
+      p('Vous coupez par les potagers, entre les rangs de poireaux et les tuteurs de haricots, le dos courbé sous les draps qui sèchent. Derrière, des cris, un sifflet, des portes qui claquent. Devant, le talus de la voie et la marquise de la gare.'),
       p('Kaz porte Théo sur son dos comme un sac de grain. Théo a les yeux ouverts et il ne lâche pas son cou.', all(THEO, flag('r7_drogue'), withUs('kaz'))),
       p('Le milicien du quai a entendu le sifflet. Il a jeté sa cigarette et il attend, le fusil épaulé, au bout du banc.'),
     ],
@@ -578,7 +608,7 @@ export const chapterR7: Scene[] = [
       },
       {
         id: 'ramper_guette',
-        text: 'Ramper le long du talus jusqu’au quai, sous les yeux d’un garde qui vous attend depuis le matin.',
+        text: 'Ramper le long du talus jusqu’au quai, sous les yeux d’un garde qui vous guette depuis votre arrivée.',
         kind: 'stealth', time: 0.5,
         visibleIf: [flag('r7_mefiance')],
         check: { stat: 'discretion', difficulty: 10, success: 'r7_fuite_ok', failure: 'r7_milice_gare' },
@@ -592,7 +622,7 @@ export const chapterR7: Scene[] = [
     location: 'brennes',
     title: 'Le quai',
     kind: 'combat',
-    text: [p('Le milicien du quai tire en l’air, puis lâche le chien de la gare, un griffon noir qui ne vous a jamais vus et qui vous déteste déjà.')],
+    text: [p('Le milicien du quai tire en l’air, puis lâche le chien de la gare, un griffon noir qui ne vous connaît pas et qui vous déteste déjà.')],
     encounter: {
       enemies: ['pillard', 'chien'],
       canFlee: true,
@@ -629,7 +659,7 @@ export const chapterR7: Scene[] = [
     title: 'Hors les murs',
     kind: 'story',
     text: [
-      p('Vous revenez à vous dans le fossé, au pied du mur, côté voie ferrée. On vous a jetés dehors comme on sort les ordures, après vous avoir vidé les poches.'),
+      p('Vous revenez à vous dans le fossé, au pied du mur, côté voie ferrée. La milice a vidé vos poches, puis vous a fait passer de l’autre côté du mur, comme on sort les ordures.'),
       p('Maëlle nettoie l’entaille de votre arcade avec un coin de chiffon. Elle a un œil qui gonfle, elle aussi. « Ils n’ont pas osé nous garder, dit-elle. Ils n’ont même pas osé nous tuer. Ce sont des boutiquiers. »', withUs('maelle')),
       p('Théo est assis sur un rail, entier. Il a les genoux sous le menton et regarde le mur. Personne ne l’a emmené. C’est la seule victoire de l’après-midi, et c’est la seule qui compte.', THEO),
       p('Sur le rempart, le garde de la salle des fêtes vous regarde vous relever. Il hésite, puis il lance par-dessus les sacs de sable un bocal de haricots qui roule jusqu’à vos pieds sans se briser.'),
@@ -640,7 +670,7 @@ export const chapterR7: Scene[] = [
       give('ration', 1),
       set('brennes_fuite'),
       when(flag('r7_porteurs_liberes'), [questFx('q_brennes', 'completed')], [questFx('q_brennes', 'failed')]),
-      journal('Rossés par la milice de Brennes et jetés hors des murs.'),
+      journal('La milice de Brennes a vidé vos poches et vous a mis à la porte du village, à coups de crosse.'),
     ],
     choices: [{ id: 'quai', text: 'Se relever et marcher jusqu’au quai de la gare, de l’extérieur du mur.', kind: 'move', time: 0.5, next: 'r7_fin' }],
   },
@@ -658,6 +688,7 @@ export const chapterR7: Scene[] = [
       p('Vautrin ouvre la bouche. Rien ne sort. Pour la première fois, il ne trouve pas le mot gentil.'),
       p('C’est Mme Ribot qui parle. « Bertrand. Mon petit-fils Lucas. Tu nous as dit qu’il était parti à l’Institut se faire soigner. Il n’était pas malade, Lucas. » Elle ne crie pas. Personne ne crie. Quelqu’un ôte le fusil des mains d’un milicien, doucement, comme on reprend un couteau à un enfant.'),
       say('kaz', '« Je t’ai connu, Vautrin, quand tu vendais tes betteraves au poids, le pouce sur la balance. » Kaz crache par terre. « Tu n’as pas changé de métier. »', withUs('kaz')),
+      say('moi', '« Je t’ai connu, Vautrin, quand tu vendais tes betteraves au poids, le pouce sur la balance. » Vous crachez par terre. « Tu n’as pas changé de métier. »', KAZ_HEROS),
       p('Théo, à côté de vous, a remis son col en place. Il regarde Vautrin sans haine. C’est pire.', THEO),
       p('Une heure plus tard, Bertrand Vautrin quitte Brennes à pied par le portail-benne, une valise à la main, son gilet de laine boutonné jusqu’en haut. Personne ne le frappe. Personne ne lui dit au revoir. Dans l’école, la maîtresse décroche la feuille des visites médicales et la brûle dans le poêle.'),
       p('Le village vous remplit les sacs sans qu’on ait rien demandé : du pain de seigle, des haricots, des bandes propres. Mme Ribot vous prend le visage entre ses mains sèches et ne dit rien du tout.'),

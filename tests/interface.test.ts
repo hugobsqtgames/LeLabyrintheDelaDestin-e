@@ -102,6 +102,7 @@ describe('traductions', () => {
 
 describe('ambiance sonore', () => {
   const regionOf = (id: string) => C.locations[C.scenes[id]?.location]?.region;
+  const locationOf = (id: string) => C.scenes[id]?.location;
   it('suit la région, le combat et la fin', () => {
     const s = start();
     expect(trackFor({ route: 'title', game: null }, C.regions, regionOf)).toBe('ville');
@@ -109,6 +110,17 @@ describe('ambiance sonore', () => {
     expect(trackFor({ route: 'game', game: enterScene(C, s, 'c2_ossuaire') }, C.regions, regionOf)).toBe('carrieres');
     expect(trackFor({ route: 'game', game: enterScene(C, s, 'c1_super_combat') }, C.regions, regionOf)).toBe('combat');
     expect(trackFor({ route: 'gallery', game: s }, C.regions, regionOf)).toBeNull();
+  });
+  it('donne aux lieux marquants leur propre ambiance', () => {
+    const s = start();
+    const at = (scene: string) => trackFor({ route: 'game', game: enterScene(C, s, scene) }, C.regions, regionOf, locationOf);
+    expect(at('fb_sortie')).toBe('faubourgs');
+    expect(at('fb_triage')).toBe('faubourgs');
+    expect(at('fb_remblai')).toBe('faubourgs');
+    expect(at('r6_digue')).toBe('marais');
+    expect(at('r4_couronnement')).toBe('barrage');
+    expect(at('c2_ossuaire')).toBe('carrieres');
+    expect(trackFor({ route: 'game', game: s }, C.regions, regionOf, locationOf)).toBe('ville');
   });
 });
 

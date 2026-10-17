@@ -11,13 +11,13 @@ import { recap } from '../engine/summary';
 import type { ChapterDef, GameState } from '../engine/types';
 import { useT } from '../i18n';
 import { type Tab, useGame, useStore } from '../store/GameStore';
-import { Backdrop } from '../ui/components/Glass';
+import { Backdrop, Glass } from '../ui/components/Glass';
 import { ChromeContext, ClockChip, TabBar, TopBar, useChrome } from '../ui/components/Hud';
-import { Layer, Sheet } from '../ui/components/Sheet';
+import { ConfirmDialog, Layer, Sheet } from '../ui/components/Sheet';
 import { Tutorial } from '../ui/components/Tutorial';
-import { Button, Label, Screen, Segmented } from '../ui/components/primitives';
+import { Button, FadeIn, Label, Screen, Segmented } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
-import { type AuraName, colors, fonts, MAX_SCALE_UI, NATIVE_DRIVER, space, type } from '../ui/theme';
+import { type AuraName, colors, fonts, MAX_SCALE_UI, NATIVE_DRIVER, radius, space, type } from '../ui/theme';
 import { ArchivesView } from './game/ArchivesView';
 import { CharacterView } from './game/CharacterView';
 import { ChronicleView } from './game/ChronicleView';
@@ -42,11 +42,23 @@ function auraFor(game: GameState, chapters: ChapterDef[]): AuraName {
   return chapterAura(chapters.find((c) => c.id === game.chapter));
 }
 
+/** « Précédemment » : les faits marquants du chapitre précédent (chronique), au plus trois. */
+function previouslyFor(game: GameState, chapter: string, chapters: ChapterDef[]): string[] {
+  const i = chapters.findIndex((c) => c.id === chapter);
+  if (i <= 0) return [];
+  const prev = chapters[i - 1].id;
+  return game.chronicle
+    .filter((e) => e.major && e.chapter === prev)
+    .slice(-3)
+    .map((e) => e.text);
+}
+
 /** Carton plein écran au début de chaque chapitre. */
-function ChapterTransition({ chapter, onDone }: { chapter: ChapterDef; onDone: () => void }) {
+function ChapterTransition({ chapter, previously = [], onDone }: { chapter: ChapterDef; previously?: string[]; onDone: () => void }) {
   const { reduceMotion } = useStore();
   const t = useT();
   const [v] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  const previouslyCount = useRef(previously.length);
   // Rappel stable : un nouveau rendu de l'écran ne doit pas relancer le carton.
   const done = useRef(onDone);
   useEffect(() => {
@@ -55,7 +67,8 @@ function ChapterTransition({ chapter, onDone }: { chapter: ChapterDef; onDone: (
   useEffect(() => {
     const seq = Animated.sequence([
       Animated.timing(v, { toValue: 1, duration: reduceMotion ? 0 : 900, useNativeDriver: NATIVE_DRIVER }),
-      Animated.delay(reduceMotion ? 2600 : 2200),
+      // Plus long quand le carton rappelle ce qui s'est passé.
+      Animated.delay((reduceMotion ? 2600 : 2200) + (previouslyCount.current ? 2600 : 0)),
       Animated.timing(v, { toValue: 2, duration: reduceMotion ? 0 : 700, useNativeDriver: NATIVE_DRIVER }),
     ]);
     seq.start(({ finished }) => finished && done.current());
@@ -77,9 +90,48 @@ function ChapterTransition({ chapter, onDone }: { chapter: ChapterDef; onDone: (
           </Text>
           <View style={styles.transitionRule} />
           <Text style={[type.label, { textAlign: 'center' }]}>{chapter.region}</Text>
+          {previously.length > 0 && (
+            <View style={styles.previously}>
+              <Label color={colors.textDim}>{t('transition.previously')}</Label>
+              {previously.map((line, i) => (
+                <Text key={i} style={styles.previouslyLine} maxFontSizeMultiplier={MAX_SCALE_UI}>
+                  {line}
+                </Text>
+              ))}
+            </View>
+          )}
         </Animated.View>
       </Pressable>
     </Animated.View>
+  );
+}
+
+/** Bandeau discret quand un succès vient d'être débloqué. */
+function AchievementToast({ title, onDone }: { title: string; onDone: () => void }) {
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const done = useRef(onDone);
+  useEffect(() => {
+    done.current = onDone;
+  });
+  useEffect(() => {
+    const id = setTimeout(() => done.current(), 3800);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <View style={[styles.toastWrap, { top: insets.top + 8 }]} pointerEvents="box-none">
+      <Pressable onPress={onDone} accessibilityRole="alert" accessibilityLabel={`${t('achievement.unlocked')} : ${title}`}>
+        <FadeIn>
+          <Glass radius={radius.pill} tone="strong" style={styles.toast}>
+            <Icon name="star" size={16} color={colors.amber} />
+            <Text style={[type.label, { color: colors.amber }]}>{t('achievement.unlocked')}</Text>
+            <Text style={[type.ui, { fontFamily: fonts.uiBold, flexShrink: 1 }]} numberOfLines={1}>
+              {title}
+            </Text>
+          </Glass>
+        </FadeIn>
+      </Pressable>
+    </View>
   );
 }
 
@@ -169,7 +221,8 @@ export function GameScreen({
   tutorialStep?: number;
 }) {
   const game = useGame();
-  const { model, content, setTab, go, openSaves, closeGame, dismissRecap, setSettings } = useStore();
+  const { model, content, setTab, go, openSaves, closeGame, dismissRecap, setSettings, restoreBeforeRelay, dismissUnlocked } = useStore();
+  const [confirmRestore, setConfirmRestore] = useState(false);
   const t = useT();
   const [paused, setPaused] = useState(initialPaused);
   const [topH, setTopH] = useState(110);
@@ -252,6 +305,17 @@ export function GameScreen({
               }}
             />
           )}
+          {model.slot !== null && game.fallen.length > 0 && (
+            <Button
+              label={t('pause.beforeRelay')}
+              icon="back"
+              variant="secondary"
+              onPress={() => {
+                setPaused(false);
+                setConfirmRestore(true);
+              }}
+            />
+          )}
           <Button
             label={t('title.settings')}
             icon="gear"
@@ -272,7 +336,21 @@ export function GameScreen({
         </View>
       </Sheet>
 
+      <ConfirmDialog
+        visible={confirmRestore}
+        title={t('saves.confirmRestore')}
+        message={t('saves.confirm.restore', { slot: model.slot ?? '' })}
+        confirmLabel={t('saves.restore')}
+        onCancel={() => setConfirmRestore(false)}
+        onConfirm={() => {
+          setConfirmRestore(false);
+          if (model.slot !== null) restoreBeforeRelay(model.slot).catch(() => undefined);
+        }}
+      />
+
       <RecapSheet game={game} visible={model.recap && !transitionChapter && !paused && model.settings.tutorialDone} onClose={dismissRecap} />
+
+      {model.unlocked.length > 0 && !transitionChapter && <AchievementToast key={model.unlocked[0].id} title={model.unlocked[0].title} onDone={dismissUnlocked} />}
 
       {!model.settings.tutorialDone && !transitionChapter && !paused && (
         <Tutorial topHeight={topH} initialStep={tutorialStep} onDone={() => setSettings({ tutorialDone: true })} />
@@ -280,7 +358,7 @@ export function GameScreen({
 
       {transitionChapter && (
         <Layer visible animation="none" onRequestClose={() => setTransition(null)}>
-          <ChapterTransition chapter={transitionChapter} onDone={() => setTransition(null)} />
+          <ChapterTransition chapter={transitionChapter} previously={previouslyFor(game, transitionChapter.id, content.chapters)} onDone={() => setTransition(null)} />
         </Layer>
       )}
     </Screen>
@@ -288,6 +366,10 @@ export function GameScreen({
 }
 
 const styles = StyleSheet.create({
+  previously: { marginTop: space.xl, gap: 6, maxWidth: 340, alignItems: 'center' },
+  previouslyLine: { fontFamily: fonts.bodyItalic, fontSize: 15, lineHeight: 21, color: colors.textDim, textAlign: 'center' },
+  toastWrap: { position: 'absolute', left: space.lg, right: space.lg, alignItems: 'center', zIndex: 50 },
+  toast: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.sm },
   topLayer: { position: 'absolute', top: 0, left: 0, right: 0 },
   bottomLayer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   saveError: { backgroundColor: 'rgba(255,84,104,0.25)', marginHorizontal: space.md, borderRadius: 12, paddingHorizontal: space.md, paddingVertical: 6 },

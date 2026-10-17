@@ -22,6 +22,7 @@ import { chapterR8, DIARY_R8, DOCUMENTS_R8 } from './chapters/r8';
 import { chapterR9, DIARY_R9, DOCUMENTS_R9 } from './chapters/r9';
 import { chapterR10, DIARY_R10, DOCUMENTS_R10 } from './chapters/r10';
 import { ENEMIES } from './enemies';
+import { ACHIEVEMENTS } from './achievements';
 import { HERO_BACKGROUNDS, HERO_PROFILES, HEROES } from './heroes';
 import { scenes } from './helpers';
 import { ITEMS } from './items';
@@ -78,6 +79,7 @@ export const CONTENT: GameContent = {
   profiles: { ...PROFILES, ...HERO_PROFILES },
   backgrounds: { ...BACKGROUNDS, ...HERO_BACKGROUNDS },
   heroes: HEROES,
+  achievements: ACHIEVEMENTS,
   perks: PERKS,
   recipes: RECIPES,
   documents: { ...DOCUMENTS, ...docs([...DOCUMENTS_FB, ...DOCUMENTS_R1, ...DOCUMENTS_R2, ...DOCUMENTS_R3, ...DOCUMENTS_R4, ...DOCUMENTS_R5, ...DOCUMENTS_R6, ...DOCUMENTS_R7, ...DOCUMENTS_R8, ...DOCUMENTS_R9, ...DOCUMENTS_R10]) },

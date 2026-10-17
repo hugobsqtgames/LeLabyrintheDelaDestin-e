@@ -8,6 +8,7 @@ import {
   all,
   any,
   background,
+  companionIs,
   diary,
   doc,
   flag,
@@ -35,6 +36,9 @@ const C = 'fb';
 const SEUL = all(notWithUs('maelle'), notWithUs('theo'), notWithUs('kaz'), notWithUs('ines'));
 const REGISTRE_LU: Condition = { type: 'document', doc: 'doc_fb_registre' };
 const ARMAND_AIDE_PAR = any(flag('fb_jambe_soignee'), flag('fb_citerne_reglee'), flag('fb_poele_repare'), flag('fb_odette'));
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
 
 export const chapterFB: Scene[] = [
   // -------------------------------------------------------------------------
@@ -48,10 +52,11 @@ export const chapterFB: Scene[] = [
     kind: 'story',
     checkpoint: true,
     text: [
-      p('L’aqueduc vous recrache dans un fossé de ronces, au pied d’un mur de pierres sèches. Le jour tombe. Après trois jours sous la ville, l’air libre a un goût de fer et d’herbe mouillée, et le ciel paraît trop grand.'),
+      p('L’aqueduc vous recrache dans un fossé de ronces, au pied d’un mur de pierres sèches. Le jour tombe. Après des heures sous la ville, l’air libre a un goût de fer et d’herbe mouillée, et le ciel paraît trop grand.'),
       p('Derrière le mur commence le cimetière Saint-Lazare. Des cyprès noirs, des croix de travers, des caveaux de famille dont les portes de fonte bâillent. Au-delà, on devine les talus de la gare de triage, puis la pente qui descend vers le port.'),
       p('Entre les tombes, des silhouettes. Huit, peut-être plus. Elles se tiennent debout dans les allées sans bouger, la tête un peu penchée, comme des gens venus fleurir une tombe et qui auraient oublié laquelle. Le vent vous apporte le cliquetis de leurs dents.'),
       say('ines', '« Huit. Deux près de la chapelle, trois dans l’allée centrale, le reste vers le portail nord. » Elle a compté sans tourner la tête.', withUs('ines')),
+      p('Vous avez compté avant même de lever la tête. Huit : deux près de la chapelle, trois dans l’allée centrale, le reste vers le portail nord. Malik disait qu’on ne traverse rien qu’on n’a pas compté d’abord. Sous les Carrières, il avait raison. Ici aussi.', INES_HEROS),
       say('kaz', '« Les morts qui gardent les morts », murmure Kaz. « Ça a une certaine logique. »', withUs('kaz')),
       p('Théo s’est accroupi contre le mur. Il regarde le cimetière comme il regarde tout : pour en faire une carte.', withUs('theo')),
       p('Théo n’est pas là. Vous vous surprenez à chercher sa silhouette derrière vous, avant de vous rappeler qu’il est resté avec les Veilleurs, à l’abri sous les os de Saint-Roch.', all(flag('theo_veilleurs'), notWithUs('theo'))),
@@ -118,7 +123,7 @@ export const chapterFB: Scene[] = [
       p('Un coup vous jette contre une stèle. Vous rampez, sans savoir vers où, jusqu’à une porte de fonte entrouverte. Vous la tirez derrière vous et vous restez là, dans le noir et l’odeur de pierre froide.', SEUL),
       p('Dehors, les dents claquent contre la porte. Puis, très lentement, elles s’éloignent. Dans la bousculade, une partie de vos provisions est restée dans l’allée.'),
     ],
-    onEnter: [take('ration', 1), heal(3), journal('Les Muets du cimetière vous ont repoussé jusque dans un caveau.', false)],
+    onEnter: [take('ration', 1), heal(3), journal('Les Muets du cimetière ont forcé une retraite jusque dans un caveau.', false)],
     choices: [{ id: 'attendre', text: 'Attendre que le cliquetis se soit éloigné.', kind: 'rest', time: 1.5, next: 'fb_caveau' }],
   },
   {
@@ -185,6 +190,7 @@ export const chapterFB: Scene[] = [
     title: 'La gare de triage',
     kind: 'story',
     checkpoint: true,
+    illustration: 'triage',
     text: [
       p('La gare de triage est une mer de rails. Trente voies côte à côte, des rangées de wagons-citernes gris immobiles depuis quatorze mois, et la brume qui monte des fossés jusqu’aux essieux. Le ballast crisse à chaque pas. Ça sent l’huile froide et la terre retournée.'),
       p('Et dans le silence, un bruit. Un coup sourd, métallique, régulier. Puis un autre. Quelque chose cogne contre la paroi d’une citerne, de l’intérieur, avec une patience terrible.'),
@@ -224,11 +230,12 @@ export const chapterFB: Scene[] = [
       p('Il vous fait monter par un escalier de fer. La cabine est longue et étroite. Une rangée de grands leviers à poignées rouges et bleues, un tableau de la gare où plus aucune ampoule ne s’allume, un calendrier arrêté au mois de la Fièvre. Sur la vitre, une photo de femme, coincée dans le joint.'),
       p('L’homme a soixante-dix ans, une casquette de la SNCF vissée sur le crâne et une jambe allongée sur une chaise, emmaillotée dans un chiffon qui sent mauvais. Il tient sa carabine comme on tient une canne.'),
       say('armand', '« Armand Vidal, aiguilleur, trente-huit ans de maison. Assieds-toi. Pas là, c’est la chaise d’Odette. » Il tapote la vitre en direction des voies. « Le 6142, c’était le fret de Lyon. Il est jamais reparti. Je l’attends quand même. Faut bien que quelqu’un l’attende. »'),
-      say('armand', '« Hélène ? Ses cloches passent par ici, des fois. Elle me laisse de l’eau au pied de l’escalier. Si elle t’envoie, c’est que t’es pas trop mauvais. »', flag('fb_veilleurs_nommes')),
+      say('armand', '« Hélène ? Ses cloches passent par ici, des fois. Elle me laisse de l’eau au pied de l’escalier. Si elle t’envoie, c’est que t’as pas trop mauvais fond. »', flag('fb_veilleurs_nommes')),
       p('Le coup sourd, encore. Les vitres vibrent.'),
       say('armand', '« Ça, c’est Lucien. Mon chef de manœuvre. Il est monté vérifier une citerne, le dernier jour, et il est tombé dedans, avec la fièvre. Il cogne depuis l’hiver. Moi, j’ai pas le cœur. Et il les attire, tu comprends. Chaque nuit, ils sont un peu plus nombreux autour du poste. »'),
       say('maelle', '« Votre jambe. » Ce n’est pas une question. Maëlle a déjà soulevé le chiffon. « Ce n’est pas une morsure. C’est sale, et personne ne s’en est occupé. »', all(withUs('maelle'), notFlag('fb_jambe_soignee'))),
       p('Maëlle regarde la ligne rouge qui remonte vers le genou d’Armand. Elle a porté la même, il n’y a pas si longtemps. Elle ne dit rien, mais elle a déjà ouvert son sac.', all(withUs('maelle'), flag('maelle_mordue'), notFlag('fb_jambe_soignee'))),
+      p('Vous avez vu la jambe avant même qu’il vous fasse asseoir : la ligne rouge qui remonte vers le genou, l’odeur sous le chiffon. Des années de nuits à l’hôpital ne s’effacent pas en quatorze mois. Vos mains savent déjà ce qu’il faut faire.', all(MAELLE_HEROS, notFlag('fb_jambe_soignee'))),
       p('Le poêle ronfle. Pour la première fois depuis longtemps, sans doute, il fait chaud dans le poste.', flag('fb_poele_repare')),
     ],
     onEnter: [questFx('q_armand', 'active', 'rencontre'), journal('Au poste d’aiguillage du triage vit Armand Vidal, un vieil aiguilleur qui parle aux trains.', false)],
@@ -239,6 +246,14 @@ export const chapterFB: Scene[] = [
         kind: 'talk', time: 1,
         visibleIf: [withUs('maelle'), notFlag('fb_jambe_soignee')],
         effects: [set('fb_jambe_soignee'), set('fb_soin_maelle'), rel('maelle', 1), when(has('bandage'), [take('bandage', 1)])],
+        next: 'fb_jambe',
+      },
+      {
+        id: 'jambe_maelle_heros',
+        text: '[Vous, Maëlle] Vous occuper vous-même de la jambe d’Armand.',
+        kind: 'item', time: 1,
+        visibleIf: [MAELLE_HEROS, notFlag('fb_jambe_soignee')],
+        effects: [set('fb_jambe_soignee'), xp(10), when(has('bandage'), [take('bandage', 1)])],
         next: 'fb_jambe',
       },
       {
@@ -331,6 +346,7 @@ export const chapterFB: Scene[] = [
     text: [
       p('Il faut ouvrir. Armand serre sa casquette entre ses dents pendant que la lame passe, et il ne crie pas. Le pus coule, jaune et épais, avec une odeur de fruit pourri. Ensuite, de l’alcool, des compresses, une bande bien serrée.'),
       say('maelle', '« Un clou rouillé, sur le ballast. Trois semaines sans soins. Encore une, et c’était la jambe. Encore deux, et c’était vous. » Elle noue la bande d’un geste sec. « Vous la gardez surélevée. Et vous buvez. De l’eau. »', flag('fb_soin_maelle')),
+      p('Un clou rouillé, sur le ballast, trois semaines sans soins. Vous nouez la bande d’un geste sec, comme à l’hôpital, et vous lui dites de garder la jambe surélevée et de boire de l’eau. Il obéit. Les patients obéissent toujours à ce ton-là.', MAELLE_HEROS),
       say('armand', '« Odette disait toujours que j’étais douillet. » Il essuie ses yeux avec le dos de la main. « Elle aurait été déçue. »'),
     ],
     onEnter: [rel('armand', 2), xp(20), journal('Vous avez soigné la jambe infectée d’Armand.', false)],
@@ -371,6 +387,7 @@ export const chapterFB: Scene[] = [
       p('La citerne est sur la voie 12, au milieu d’une rame de six. Sa paroi grise est bosselée de l’intérieur, des dizaines de petites bosses rondes, à hauteur d’homme. Le dôme de chargement, sur le dessus, est fermé par un volant de fonte. À chaque coup, la rouille tombe en neige fine sur le ballast.'),
       say('kaz', '« Le volant du dôme se dévisse à la main. La vanne de vidange, en bas, c’est trop petit pour lui. » Il pose la paume sur la paroi, et le coup suivant la fait trembler. « Mais regarde la voie : elle descend vers la voie de garage. Si on desserre les freins à vis et qu’on décroche le wagon, il roule tout seul jusqu’au butoir. Là-bas, il cognera pour personne. »', withUs('kaz')),
       p('Les freins à vis sont serrés sur chaque essieu. La voie descend en pente douce vers le fond de la gare, où l’on devine dans la brume les butoirs de la voie de garage.', notWithUs('kaz')),
+      p('Vous posez la paume sur la paroi, et le coup suivant vous remonte dans le bras. Des freins à vis, des attelages, une pente douce : trente ans d’écluse vous ont appris à faire bouger ce qui pèse sans jamais forcer. Décrocher le wagon, le laisser rouler jusqu’au butoir. Là-bas, il ne cognera pour personne.', KAZ_HEROS),
       p('Là-haut, à la fenêtre du poste, la silhouette d’Armand ne bouge pas.'),
     ],
     choices: [
@@ -378,7 +395,7 @@ export const chapterFB: Scene[] = [
         id: 'rouler',
         text: 'Desserrer les freins, décrocher la citerne et la pousser vers la voie de garage.',
         kind: 'explore', time: 1,
-        requires: [any(withUs('kaz'), profile('technicien'))],
+        requires: [any(withUs('kaz'), KAZ_HEROS, profile('technicien'))],
         check: {
           stat: 'force',
           difficulty: 8,
@@ -398,6 +415,18 @@ export const chapterFB: Scene[] = [
           success: 'fb_citerne_ok',
           failure: 'fb_citerne_combat',
           successEffects: [rel('ines', 1)],
+        },
+      },
+      {
+        id: 'ines_heros',
+        text: '[Vous, Inès] Dévisser le dôme sans un bruit, reculer de trois pas, et viser l’ouverture.',
+        kind: 'stealth', time: 0.5,
+        visibleIf: [INES_HEROS],
+        check: {
+          stat: 'discretion',
+          difficulty: 8,
+          success: 'fb_citerne_ok',
+          failure: 'fb_citerne_combat',
         },
       },
       { id: 'ouvrir', text: 'Dévisser le dôme et l’attendre, arme à la main.', kind: 'fight', time: 0.5, next: 'fb_citerne_combat' },
@@ -464,7 +493,7 @@ export const chapterFB: Scene[] = [
     text: [
       p('Les freins se desserrent avec un cri de rouille. Vous arc-boutez les épaules contre le tampon, et la citerne s’ébranle, d’un centimètre, puis d’un mètre. Elle s’en va dans la brume en grinçant, de plus en plus vite. Longtemps après, un choc lourd : le butoir. Puis, très loin, de petits coups, presque rien.', flag('fb_lucien_eloigne')),
       p('À la fenêtre du poste, Armand a ôté sa casquette.', flag('fb_lucien_eloigne')),
-      p('Lucien est étendu sur le ballast, le visage contre les cailloux. Un badge plastifié pend encore à son bleu de travail : L. Marchetti, chef de manœuvre. Armand descend l’escalier de fer marche par marche, sur sa mauvaise jambe, avec une bâche de wagon sous le bras.', notFlag('fb_lucien_eloigne')),
+      p('Lucien est étendu sur le ballast, le visage contre les cailloux. Un badge plastifié pend encore à son bleu de travail : L. Bellanger, chef de manœuvre. Armand descend l’escalier de fer marche par marche, sur sa mauvaise jambe, avec une bâche de wagon sous le bras.', notFlag('fb_lucien_eloigne')),
       say('armand', '« Trente ans qu’on travaillait ensemble. Il m’a jamais appelé autrement que “l’ancien”. » Il étend la bâche sur le corps et la cale avec des pierres de ballast. « Merci de l’avoir fait à ma place. »', notFlag('fb_lucien_eloigne')),
       p('Le silence qui suit est si vaste qu’on entend la brume goutter des wagons.'),
     ],
@@ -565,6 +594,7 @@ export const chapterFB: Scene[] = [
       p('La patrouille ne se promène plus. Les deux hommes fouillent le ballast à la lampe, tournés vers le triage, là d’où le coup de feu est venu.', flag('fb_patrouille_alertee')),
       say('ines', '« Deux dans la grue, deux sur la voie. Ils mettent quatre minutes pour monter et redescendre. Ils ne regardent jamais sous les wagons. » Elle a compté trois fois avant de parler.', withUs('ines')),
       p('Kaz regarde la grue. Il connaît ces gens-là ; il a dû leur payer à boire, avant. Il ne dit rien.', withUs('kaz')),
+      p('Vous regardez la grue. Vous connaissez ces gens-là. Vous leur avez payé à boire, avant, du temps où vous deviez encore de l’argent à Gaspard, et l’un d’eux vous a sûrement vu perdre aux cartes. Mieux vaut qu’ils ne vous voient pas ce matin.', KAZ_HEROS),
       p('Dans la cabine de la grue, une grande silhouette se lève et pose sur son épaule une clé à molette d’un mètre. Vous connaissez cette carrure.', flag('kaz_refuse')),
       p('La ration volée à Armand pèse dans votre sac. Elle pèse plus lourd qu’une ration.', flag('fb_armand_vole')),
     ],
@@ -670,7 +700,7 @@ export const chapterFB: Scene[] = [
       p('C’est Inès qui vous trouve dans le fossé. Elle ne dit rien. Elle vous essuie le visage avec sa manche.', all(withUs('ines'), notWithUs('kaz'))),
       p('Vous restez dans l’eau froide jusqu’à ce que la lumière revienne. Personne ne vient. C’est déjà une forme de chance.', all(notWithUs('kaz'), notWithUs('ines'))),
     ],
-    onEnter: [take('ration', 1), take('cartouche', 2), heal(2), journal('Une patrouille de Ferrailleurs vous a laissé pour mort sur le remblai.', false)],
+    onEnter: [take('ration', 1), take('cartouche', 2), heal(2), journal('Une patrouille de Ferrailleurs a failli vous tuer sur le remblai.', false)],
     choices: [{ id: 'descendre', text: 'Se traîner jusqu’aux quais.', kind: 'move', time: 1, next: 'fb_fin' }],
   },
   {

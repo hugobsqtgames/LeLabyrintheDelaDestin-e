@@ -10,6 +10,7 @@ import { applyEffects } from '../engine/effects';
 import { addItem, equip } from '../engine/inventory';
 import { choose, enterScene, newGame } from '../engine/narrative';
 import type { CharacterDraft, GameContent, GameState } from '../engine/types';
+import { absorbGame, emptyMeta } from '../engine/meta';
 import { serialize } from '../persistence/schema';
 import type { AppModel, SavesMode, Tab } from '../store/GameStore';
 import { DEFAULT_SETTINGS } from '../store/settings';
@@ -127,6 +128,7 @@ export function buildMockups(content: GameContent = CONTENT): Mockup[] {
       { type: 'companion', character: 'ines', status: 'away' },
       { type: 'companion', character: 'maelle', status: 'away' },
       { type: 'companion', character: 'kaz', status: 'away' },
+      { type: 'companion', character: 'theo', status: 'captured' },
     ]);
     return enterScene(C, s, 'c2_mort_berger');
   })();
@@ -192,6 +194,13 @@ export function buildMockups(content: GameContent = CONTENT): Mockup[] {
 
   const savesModel = (mode: SavesMode): Partial<AppModel> => ({ route: 'saves', savesMode: mode });
 
+  // Mémoires construites à partir de vraies parties (maquettes ci-dessus).
+  const memories = (() => {
+    let meta = emptyMeta();
+    for (const g of [start, midGame(), combat, boss, ending]) meta = absorbGame(meta, C, g, null, C.achievements, Date.UTC(2026, 9, 12)).meta;
+    return meta;
+  })();
+
   return [
     { id: 'title', title: 'Écran titre', caption: 'Emblème animé, reprise de la dernière partie, menu principal.', model: { route: 'title' } },
     { id: 'create-id', title: 'Création · identité', caption: 'Nom validé en direct et choix d’un emblème.', model: { route: 'create' }, screenProps: { create: { initialDraft: { ...DEMO_DRAFT, profile: null, background: null, allocated: { force: 0, discretion: 0, survie: 0, astuce: 0 } }, initialStep: 0 } } },
@@ -221,6 +230,8 @@ export function buildMockups(content: GameContent = CONTENT): Mockup[] {
     { id: 'tutorial', title: 'Tutoriel · les choix', caption: 'Visite guidée au premier lancement : récit, choix et probabilités, bandeau, horloge, chaque onglet. Rejouable dans les paramètres.', model: game(start, 'story', { settings: { ...DEFAULT_SETTINGS, tutorialDone: false } }), screenProps: { game: { intro: false, tutorialStep: 2 } } },
     { id: 'tutorial-tab', title: 'Tutoriel · un onglet', caption: 'Chaque étape ouvre l’onglet qu’elle présente et l’entoure dans la barre.', model: game(midGame(), 'inventory', { settings: { ...DEFAULT_SETTINGS, tutorialDone: false } }), screenProps: { game: { intro: false, tutorialStep: 7 } } },
     { id: 'relay', title: 'Relève · un compagnon reprend la route', caption: 'À la mort du héros, un compagnon jouable prend le relais avec sa propre fiche ; fouille du corps limitée à trois objets.', model: game(relay), screenProps: { game: { intro: false } } },
+    { id: 'memories', title: 'Mémoires · succès', caption: 'Succès, visages rencontrés, codex des ennemis et chapitres : tout vient de vraies parties.', model: { route: 'memories', meta: memories } },
+    { id: 'story-paper', title: 'Récit sur papier', caption: 'Option de lecture : encre sombre sur page claire.', model: game(kazDoor, 'story', { settings: { ...DEFAULT_SETTINGS, tutorialDone: true, paperReading: true } }), screenProps: { game: { intro: false } } },
     { id: 'death', title: 'Mort définitive', caption: 'Épitaphe, récapitulatif, recommencer sans écraser.', model: game(death), screenProps: { game: { intro: false } } },
     { id: 'ending', title: 'Fin · L’Accord', caption: 'Épilogue conditionné par les choix, alliés, bilan.', model: game(ending), screenProps: { game: { intro: false } } },
   ];

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useT } from '../i18n';
+import { cancelReminders, enableReminders, REMINDER_DELAY_HOURS, remindersSupported } from '../notifications/reminders';
 import { deviceLanguage } from '../i18n/lang';
 import { type LanguageSetting, useStore } from '../store/GameStore';
 import { Body, Button, IconButton, Label, Panel, Screen, SectionTitle, Segmented } from '../ui/components/primitives';
@@ -40,8 +41,9 @@ export function SettingsScreen() {
   const t = useT();
   const s = model.settings;
   const [tutorialQueued, setTutorialQueued] = useState(false);
+  const [reminderError, setReminderError] = useState(false);
   const replayTutorial = () => {
-    setSettings({ tutorialDone: false });
+    setSettings({ tutorialDone: false, hintsSeen: [] });
     // En pleine partie, on y retourne tout de suite ; sinon il s'ouvrira à la prochaine.
     if (model.game && model.prevRoute === 'game') back();
     else setTutorialQueued(true);
@@ -136,10 +138,34 @@ export function SettingsScreen() {
             </Pressable>
           ))}
         </View>
-        <Panel style={{ marginTop: space.md }}>
-          <Body style={{ fontSize: 18 * s.textScale, lineHeight: 29 * s.textScale }}>{t('settings.sample')}</Body>
+        <Panel style={{ marginTop: space.md, paddingVertical: space.xs }}>
+          <Toggle label={t('settings.paper')} detail={t('settings.paperHint')} value={s.paperReading} onChange={(v) => setSettings({ paperReading: v })} />
         </Panel>
+        <View style={[styles.sample, s.paperReading && { backgroundColor: colors.paper }]}>
+          <Body style={{ fontSize: 18 * s.textScale, lineHeight: 29 * s.textScale, color: s.paperReading ? colors.paperInk : colors.text }}>{t('settings.sample')}</Body>
+        </View>
         <Text style={[type.uiSmall, { marginTop: space.sm }]}>{t('settings.dynamicType', { n: MAX_SCALE_READING })}</Text>
+
+        <SectionTitle>{t('settings.notifications')}</SectionTitle>
+        <Panel style={{ paddingVertical: space.xs }}>
+          <Toggle
+            label={t('settings.reminders')}
+            detail={!remindersSupported ? t('settings.remindersWeb') : reminderError ? t('settings.remindersDenied') : t('settings.remindersHint', { h: REMINDER_DELAY_HOURS })}
+            value={s.reminders}
+            disabled={!remindersSupported}
+            onChange={async (v) => {
+              setReminderError(false);
+              if (!v) {
+                setSettings({ reminders: false });
+                cancelReminders();
+                return;
+              }
+              const ok = await enableReminders(t('settings.reminders'));
+              if (ok) setSettings({ reminders: true });
+              else setReminderError(true);
+            }}
+          />
+        </Panel>
 
         <SectionTitle>{t('settings.help')}</SectionTitle>
         <Panel style={{ gap: space.sm }}>
@@ -160,6 +186,7 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  sample: { marginTop: space.md, padding: space.lg, borderRadius: radius.lg, backgroundColor: 'rgba(255,248,240,0.05)' },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: TOUCH + 16, paddingVertical: space.sm },
   sep: { height: StyleSheet.hairlineWidth * 2, backgroundColor: colors.line },

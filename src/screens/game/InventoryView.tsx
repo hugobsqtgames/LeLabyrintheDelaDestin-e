@@ -35,6 +35,7 @@ import { Sheet } from '../../ui/components/Sheet';
 import { Badge, Bar, Button, Label, Panel, PressableCard, SectionTitle, Segmented } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_UI, radius, space, type } from '../../ui/theme';
+import { ContextHint } from '../../ui/components/ContextHint';
 
 const FILTERS: { id: string; cats: ItemCategory[] }[] = [
   { id: 'all', cats: [] },
@@ -181,6 +182,7 @@ export function InventoryView({ game }: { game: GameState }) {
             { id: 'craft', label: t('craft.title'), badge: craftable || undefined },
           ]}
         />
+        <ContextHint id={mode === 'craft' ? 'workshop' : 'bag'} style={{ marginTop: space.md }} />
         {mode === 'craft' ? (
           <Workshop game={game} />
         ) : (

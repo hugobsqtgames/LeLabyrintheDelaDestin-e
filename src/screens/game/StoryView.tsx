@@ -22,8 +22,9 @@ import { Layer, Sheet } from '../../ui/components/Sheet';
 import { Button, FadeIn, IconButton, Label, Panel, withAlpha } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, type } from '../../ui/theme';
+import { ContextHint } from '../../ui/components/ContextHint';
 
-function DialogueLine({ block, game, scale }: { block: TextBlock; game: GameState; scale: number }) {
+function DialogueLine({ block, game, scale, paper }: { block: TextBlock; game: GameState; scale: number; paper?: boolean }) {
   const { content } = useStore();
   const isMe = block.speaker === 'moi' || (!!game.hero && block.speaker === game.hero);
   const ch = !isMe && block.speaker ? content.characters[block.speaker] : null;
@@ -33,14 +34,22 @@ function DialogueLine({ block, game, scale }: { block: TextBlock; game: GameStat
     <View style={[styles.dialogue, isMe && styles.dialogueMe]}>
       {!isMe && (block.speaker && PORTRAITS[block.speaker] ? <Portrait id={block.speaker} size={36} /> : <View style={[styles.initials, { backgroundColor: color }]} />)}
       <View style={{ flex: 1, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-        <Text style={[type.label, { color, marginBottom: 5 }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
+        <Text style={[type.label, { color: paper ? colors.paperInk : color, marginBottom: 5 }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
           {name}
         </Text>
-        <Glass radius={radius.lg} tone={isMe ? 'clear' : 'default'} style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem, { borderLeftColor: isMe ? 'transparent' : color }]}>
-          <Text style={[styles.dialogueText, { fontSize: 17 * scale, lineHeight: 26 * scale }]} maxFontSizeMultiplier={MAX_SCALE_READING}>
-            {block.text}
-          </Text>
-        </Glass>
+        {paper ? (
+          <View style={[styles.bubble, styles.bubblePaper, isMe ? styles.bubbleMe : styles.bubbleThem, { borderLeftColor: isMe ? 'transparent' : color }]}>
+            <Text style={[styles.dialogueText, { color: colors.paperInk, fontSize: 17 * scale, lineHeight: 26 * scale }]} maxFontSizeMultiplier={MAX_SCALE_READING}>
+              {block.text}
+            </Text>
+          </View>
+        ) : (
+          <Glass radius={radius.lg} tone={isMe ? 'clear' : 'default'} style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem, { borderLeftColor: isMe ? 'transparent' : color }]}>
+            <Text style={[styles.dialogueText, { fontSize: 17 * scale, lineHeight: 26 * scale }]} maxFontSizeMultiplier={MAX_SCALE_READING}>
+              {block.text}
+            </Text>
+          </Glass>
+        )}
       </View>
       {isMe && <PlayerPortrait profile={game.player.profile} size={36} />}
     </View>
@@ -191,6 +200,7 @@ export function StoryView({ game }: { game: GameState }) {
   const { width } = useWindowDimensions();
   const scene = content.scenes[game.currentScene];
   const scale = model.settings.textScale;
+  const paper = model.settings.paperReading;
   const blocks = useMemo(() => (scene ? visibleText(content, game, scene) : []), [content, game, scene]);
   const views = useMemo(() => choiceViews(content, game), [content, game]);
   // Le choix sélectionné n'est valable que pour le tour où il a été fait.
@@ -316,20 +326,22 @@ export function StoryView({ game }: { game: GameState }) {
             </Panel>
           )}
 
-          {blocks.map((b, i) => (
-            <FadeIn key={`${scene.id}-${i}`} delay={Math.min(i, 6) * 80}>
-              {b.speaker ? (
-                <DialogueLine block={b} game={game} scale={scale} />
-              ) : (
-                <Text
-                  style={[styles.paragraph, i === 0 && styles.lead, { fontSize: (i === 0 ? 19.5 : 18) * scale, lineHeight: (i === 0 ? 31 : 29) * scale }]}
-                  maxFontSizeMultiplier={MAX_SCALE_READING}
-                >
-                  {b.text}
-                </Text>
-              )}
-            </FadeIn>
-          ))}
+          <View style={paper ? styles.paperPage : undefined}>
+            {blocks.map((b, i) => (
+              <FadeIn key={`${scene.id}-${i}`} delay={Math.min(i, 6) * 80}>
+                {b.speaker ? (
+                  <DialogueLine block={b} game={game} scale={scale} paper={paper} />
+                ) : (
+                  <Text
+                    style={[styles.paragraph, i === 0 && styles.lead, paper && { color: colors.paperInk }, { fontSize: (i === 0 ? 19.5 : 18) * scale, lineHeight: (i === 0 ? 31 : 29) * scale }]}
+                    maxFontSizeMultiplier={MAX_SCALE_READING}
+                  >
+                    {b.text}
+                  </Text>
+                )}
+              </FadeIn>
+            ))}
+          </View>
 
           {groundItems.length > 0 && (
             <Panel tone="danger" style={[styles.inline, { marginTop: space.md }]}>
@@ -345,6 +357,7 @@ export function StoryView({ game }: { game: GameState }) {
             <Label>{t('story.whatNow')}</Label>
             <View style={styles.rule} />
           </View>
+          {timed && !selected && <ContextHint id="timed" style={{ marginBottom: space.sm }} />}
           {timed && !selected && <TimerBar ms={msLeft} total={timed.seconds * 1000} label={t('story.timed')} />}
           <View style={{ gap: space.sm + 2 }}>
             {views.map((v, i) => (
@@ -394,6 +407,8 @@ const styles = StyleSheet.create({
   dialogueMe: { paddingLeft: space.xxl },
   initials: { width: 36, height: 36, borderRadius: 18 },
   bubble: { paddingVertical: space.md, paddingHorizontal: space.md + 2, borderLeftWidth: 2 },
+  bubblePaper: { borderRadius: radius.lg, backgroundColor: 'rgba(27,23,20,0.06)' },
+  paperPage: { backgroundColor: colors.paper, borderRadius: radius.lg, paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.xs, marginBottom: space.md },
   bubbleThem: { borderBottomLeftRadius: 6 },
   bubbleMe: { borderBottomRightRadius: 6, borderLeftWidth: 0 },
   dialogueText: { fontFamily: fonts.bodyItalic, color: colors.text },

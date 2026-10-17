@@ -7,6 +7,8 @@
  *    et une rafale d'autosauvegardes n'écrit que l'état le plus récent.
  *  - Au chargement : somme de contrôle, migration, validation, puis repli sur
  *    la copie de secours si la sauvegarde principale est corrompue.
+ *  - Avant une relève, l'état de la mort est mis de côté (`:releve`) : le
+ *    joueur peut y revenir s'il regrette son choix de compagnon ou d'objets.
  */
 import { ensureConsistency } from '../engine/narrative';
 import type { GameContent, GameState } from '../engine/types';
@@ -17,7 +19,12 @@ export const SLOT_COUNT = 3;
 const PREFIX = 'labyrinthe:v1';
 export const slotKey = (slot: number) => `${PREFIX}:slot:${slot}`;
 export const backupKey = (slot: number) => `${PREFIX}:slot:${slot}:bak`;
+export const relayKey = (slot: number) => `${PREFIX}:slot:${slot}:releve`;
 export const SETTINGS_KEY = `${PREFIX}:settings`;
+/** Début de chapitre de la dernière partie qui l'a atteint (« Rejouer un chapitre »). */
+export const chapterKey = (chapter: string) => `${PREFIX}:chapitre:${chapter}`;
+/** Progression hors partie : succès, codex, personnages rencontrés, fins vues. */
+export const META_KEY = `${PREFIX}:meta`;
 
 export interface SlotInfo {
   slot: number;
@@ -25,6 +32,8 @@ export interface SlotInfo {
   summary?: SaveSummary;
   savedAt?: number;
   error?: string;
+  /** Un état « avant la relève » est disponible pour cet emplacement. */
+  relaySnapshot?: boolean;
 }
 
 export interface LoadResult {
@@ -92,8 +101,28 @@ export class SaveManager {
       } else {
         out.push({ slot, status: 'ok', summary: parsed.envelope!.summary, savedAt: parsed.envelope!.savedAt });
       }
+      const last = out[out.length - 1];
+      if (last.status === 'ok') {
+        const snap = await this.storage.getItem(relayKey(slot)).catch(() => null);
+        if (snap && parse(snap).ok) last.relaySnapshot = true;
+      }
     }
     return out;
+  }
+
+  /** Met de côté l'état d'une mort, juste avant la relève (passe par la file d'écriture). */
+  saveRelaySnapshot(slot: number, state: GameState): Promise<void> {
+    const text = serialize(this.content, state, this.clock());
+    this.queue = this.queue.catch(() => undefined).then(() => this.storage.setItem(relayKey(slot), text));
+    return this.queue;
+  }
+
+  /** Recharge l'état mis de côté avant la dernière relève. */
+  async loadRelaySnapshot(slot: number): Promise<LoadResult> {
+    await this.flush();
+    const parsed = parse(await this.storage.getItem(relayKey(slot)).catch(() => null));
+    if (!parsed.ok) return { ok: false, error: 'Aucun état avant relève pour cet emplacement.' };
+    return this.decode(parsed.envelope!);
   }
 
   private decode(envelope: SaveEnvelope): LoadResult {
@@ -182,7 +211,48 @@ export class SaveManager {
       .then(async () => {
         await this.storage.removeItem(slotKey(slot));
         await this.storage.removeItem(backupKey(slot));
+        await this.storage.removeItem(relayKey(slot));
       });
+    return this.queue;
+  }
+
+  /** Mémorise l'état au début d'un chapitre (remplace le précédent). */
+  saveChapterStart(chapter: string, state: GameState): Promise<void> {
+    const text = serialize(this.content, state, this.clock());
+    this.queue = this.queue.catch(() => undefined).then(() => this.storage.setItem(chapterKey(chapter), text));
+    return this.queue;
+  }
+
+  async loadChapterStart(chapter: string): Promise<LoadResult> {
+    await this.flush();
+    const parsed = parse(await this.storage.getItem(chapterKey(chapter)).catch(() => null));
+    if (!parsed.ok) return { ok: false, error: 'Ce chapitre n’a pas encore été atteint.' };
+    return this.decode(parsed.envelope!);
+  }
+
+  /** Chapitres dont un début a été mémorisé. */
+  async chapterStarts(chapters: string[]): Promise<string[]> {
+    const out: string[] = [];
+    for (const c of chapters) {
+      const raw = await this.storage.getItem(chapterKey(c)).catch(() => null);
+      if (raw && parse(raw).ok) out.push(c);
+    }
+    return out;
+  }
+
+  /** Données JSON libres (progression hors partie). `null` si absentes ou illisibles. */
+  async loadJson(key: string): Promise<unknown> {
+    try {
+      const raw = await this.storage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  saveJson(key: string, value: unknown): Promise<void> {
+    const text = JSON.stringify(value);
+    this.queue = this.queue.catch(() => undefined).then(() => this.storage.setItem(key, text));
     return this.queue;
   }
 

@@ -5,7 +5,8 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { visibleText } from '../../engine/narrative';
-import { BODY_LOOT_MAX, bodyItems, bodyRecoverable, questItems, relayCandidates, relayLevel, takeOver } from '../../engine/relay';
+import { BODY_LOOT_MAX, bodyItems, bodyRecoverable, questItems, relayCandidates, relayLevel } from '../../engine/relay';
+import { ConfirmDialog } from '../../ui/components/Sheet';
 import { formatPlaytime, summarize } from '../../engine/summary';
 import type { CharacterId, GameState, ItemId } from '../../engine/types';
 import { useT } from '../../i18n';
@@ -17,6 +18,7 @@ import { useChrome } from '../../ui/components/Hud';
 import { Badge, Button, FadeIn, Label, Panel, SectionTitle, Tile, withAlpha } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, space, type } from '../../ui/theme';
+import { ContextHint } from '../../ui/components/ContextHint';
 
 const STATUS_COLOR: Record<string, string> = {
   companion: colors.mossBright,
@@ -125,11 +127,12 @@ export function EndingView({ game }: { game: GameState }) {
 
 /** La relève : choisir le compagnon qui reprend la route, puis fouiller le corps. */
 function RelayPanel({ game }: { game: GameState }) {
-  const { content, update, setTab, feedback } = useStore();
+  const { content, relayTakeOver, setTab, feedback } = useStore();
   const t = useT();
   const candidates = relayCandidates(content, game);
   const [hero, setHero] = useState<CharacterId>(candidates[0].character);
   const [picks, setPicks] = useState<ItemId[]>([]);
+  const [confirming, setConfirming] = useState(false);
   const recoverable = bodyRecoverable(content, game);
   const body = bodyItems(content, game);
   const kept = questItems(content, game);
@@ -143,6 +146,7 @@ function RelayPanel({ game }: { game: GameState }) {
   return (
     <FadeIn delay={250}>
       <SectionTitle>{t('relay.title')}</SectionTitle>
+      <ContextHint id="relay" style={{ marginBottom: space.sm }} />
       <Panel style={{ gap: space.md }}>
         <Text style={type.bodySmall}>{t('relay.intro', { name: game.player.name })}</Text>
         <Label>{t('relay.choose')}</Label>
@@ -221,13 +225,26 @@ function RelayPanel({ game }: { game: GameState }) {
           label={t('relay.go', { name: heroName })}
           icon="chevron"
           accessibilityHint={t('relay.goA11y', { name: heroName })}
-          onPress={() => {
-            feedback('success');
-            update((g) => takeOver(content, g, hero, picks));
-            setTab('story');
-          }}
+          onPress={() => setConfirming(true)}
         />
       </Panel>
+      <ConfirmDialog
+        visible={confirming}
+        title={t('relay.confirmTitle', { name: heroName })}
+        message={
+          recoverable && body.length
+            ? t('relay.confirmBody', { name: heroName, items: picks.length ? picks.map((id) => content.items[id]?.name ?? id).join(', ') : t('relay.confirmNothing'), fallen: game.player.name })
+            : t('relay.confirmBodyLost', { name: heroName, fallen: game.player.name })
+        }
+        confirmLabel={t('relay.confirmGo')}
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          feedback('success');
+          relayTakeOver(hero, picks);
+          setTab('story');
+        }}
+      />
     </FadeIn>
   );
 }

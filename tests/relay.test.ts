@@ -90,3 +90,17 @@ describe('relève en situation réelle', () => {
     expect(checked).toBeGreaterThan(0);
   });
 });
+
+describe('relève : les plus jeunes en dernier recours', () => {
+  it('Théo et Nour ne sont proposés que s’il ne reste personne d’autre', () => {
+    const both = dying({ companions: { kaz: 'companion', theo: 'companion', nour: 'companion' } });
+    expect(relayCandidates(C, both).map((h) => h.character)).toEqual(['kaz']);
+    const young = dying({ companions: { theo: 'companion', nour: 'companion', kaz: 'dead' } });
+    expect(relayCandidates(C, young).map((h) => h.character).sort()).toEqual(['nour', 'theo']);
+    const n = takeOver(C, young, 'theo');
+    expect(n.player.name).toBe('Théo');
+    expect(n.player.profile).toBe('cartographe');
+    expect(n.flags.releve).toBe(true);
+    expect(n.flags.releve_theo).toBe(true);
+  });
+});

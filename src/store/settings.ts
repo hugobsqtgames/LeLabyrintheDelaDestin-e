@@ -15,6 +15,12 @@ export interface Settings {
   language: LanguageSetting;
   /** Tutoriel d'accueil déjà vu (remis à false par « Revoir le tutoriel »). */
   tutorialDone: boolean;
+  /** Récit imprimé sur papier clair (encre sombre) plutôt que sur fond de nuit. */
+  paperReading: boolean;
+  /** Rappel local de reprise (opt-in). */
+  reminders: boolean;
+  /** Astuces contextuelles déjà fermées. */
+  hintsSeen: string[];
 }
 
-export const DEFAULT_SETTINGS: Settings = { reduceMotion: false, haptics: true, textScale: 1, lastSlot: 0, timedChoices: true, volume: 0.5, language: 'auto', tutorialDone: false };
+export const DEFAULT_SETTINGS: Settings = { reduceMotion: false, haptics: true, textScale: 1, lastSlot: 0, timedChoices: true, volume: 0.5, language: 'auto', tutorialDone: false, paperReading: false, reminders: false, hintsSeen: [] };

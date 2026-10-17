@@ -43,6 +43,14 @@ const MAELLE_ICI = withUs('maelle');
 const INES_ICI = withUs('ines');
 const NOUR_ICI = withUs('nour');
 const COLOSSE_TUE = all(notFlag('cloche_utilisee'), notFlag('kaz_sacrifice'), notFlag('vanne_auto'));
+/** Relève : le compagnon est devenu le personnage joué (`withUs` est alors faux pour lui). */
+const KAZ_JOUE = companionIs('kaz', 'hero');
+const MAELLE_JOUE = companionIs('maelle', 'hero');
+const INES_JOUE = companionIs('ines', 'hero');
+const THEO_JOUE = companionIs('theo', 'hero');
+const NOUR_JOUE = companionIs('nour', 'hero');
+/** Le personnage joué est resté à la manivelle (fin du Gardien) : pas d’épilogue « à bord » pour lui. */
+const PAS_GARDIEN = notFlag('joueur_gardien');
 
 /**
  * Épilogues des compagnons et des personnages croisés : leur sort dépend de
@@ -77,6 +85,16 @@ function epilogueCompagnons(lieu: 'barge' | 'terre'): { text: string; if?: Condi
       ? { text: 'Nour a demandé à voir les cages vides de la cale. Elle les a regardées longtemps, puis elle a demandé qu’on les jette par-dessus bord. On l’a fait. Elle et Théo ne se quittent plus.', if: NOUR_ICI }
       : { text: 'Nour apprend à lire avec les enfants de l’ossuaire. Elle est déjà meilleure que tout le monde au calcul mental. Elle a gardé la clé de sa cage autour du cou.', if: NOUR_ICI },
     { text: 'Nour est arrivée à l’ossuaire avec les autres prisonniers de la casse. Hélène l’a inscrite dans le registre à la colonne « entrées ». C’est la seule colonne qui compte.', if: companionIs('nour', 'away') },
+    // La relève : le compagnon qui a fini le voyage à la place du protagoniste
+    aBord
+      ? { text: 'Kaz a fini le voyage à la place de la personne qui l’avait commencé. Il ne s’en vante pas. Le soir, sur le pont arrière, il dit parfois un nom au fleuve, à voix basse, et il attend, comme si le fleuve allait répondre.', if: all(flag('releve_kaz'), PAS_GARDIEN) }
+      : { text: 'Kaz a fini le voyage à la place de la personne qui l’avait commencé. Il a remis en marche une vieille écluse à bras sur le canal des Tanneurs. Sur la roue, il a gravé un nom, à l’endroit où l’on pose la main.', if: flag('releve_kaz') },
+    aBord
+      ? { text: 'Maëlle a fini le voyage à la place de la personne qui l’avait commencé. À bord, elle tient l’infirmerie et le registre des doses. Elle n’a jamais dit merci à personne. Elle a dit le nom de quelqu’un, une fois, en refermant le registre.', if: all(flag('releve_maelle'), PAS_GARDIEN) }
+      : { text: 'Maëlle a fini le voyage à la place de la personne qui l’avait commencé. Elle a ouvert une infirmerie entre deux murs de crânes, et elle a donné au premier lit le nom de quelqu’un qui n’est pas arrivé jusque-là.', if: flag('releve_maelle') },
+    { text: 'Inès a fini le voyage à la place de la personne qui l’avait commencé. Sur la dernière page du carnet de Malik, sous l’écriture de son frère, elle a ajouté une ligne : la date, l’écluse, et un nom qu’elle ne dit à personne.', if: all(flag('releve_ines'), PAS_GARDIEN) },
+    { text: 'Théo a fini le voyage à la place de la personne qui l’avait commencé. Sur toutes ses cartes, depuis, il y a une petite croix au bord d’un chemin, à l’endroit exact où elle est tombée.', if: all(flag('releve_theo'), PAS_GARDIEN) },
+    { text: 'Nour a fini le voyage à la place de la personne qui l’avait commencé. Elle a neuf ans. Elle sait combien de pas il y avait entre l’endroit où tout s’est arrêté et l’écluse de Morvan. Elle ne le dit à personne.', if: all(flag('releve_nour'), PAS_GARDIEN) },
   ];
 }
 
@@ -86,6 +104,7 @@ function epilogueMonde(): { text: string; if?: Condition }[] {
     { text: 'Odilon sonne toujours les cloches, chaque soir à sept heures, pour ceux qui marchent encore dans la ville.', if: flag('odilon_aide') },
     { text: 'Les cloches de Saint-Clair n’ont plus jamais sonné. Personne ne sait ce qu’est devenu le vieil homme du clocher.', if: flag('odilon_vole') },
     { text: 'Les Veilleurs ont tenu. L’eau est claire, les enfants récitent toujours leurs tables, et Hélène Vasseur a ajouté votre nom en marge de son registre.', if: flag('veilleurs_allies') },
+    { text: 'Juste au-dessus de votre nom, dans la marge du registre, Hélène en a écrit un autre : celui de la personne qui a commencé le voyage. Elle a tracé une seule flèche entre les deux.', if: all(flag('veilleurs_allies'), flag('releve')) },
     { text: 'Gaspard Lenoir tient une buvette sur le Pont de Fer. Il ne vend plus que de l’essence et de mauvais café. Il dit à qui veut l’entendre qu’il a été roulé par plus voleur que lui.', if: all(flag('gaspard_epargne'), notFlag('gaspard_temoigne')) },
     { text: 'Gaspard Lenoir a témoigné, pour une fois sous serment. Il paraît qu’il en est presque fier.', if: flag('gaspard_temoigne') },
     { text: 'La famille Delmas a survécu. Le petit Jules a gardé l’habitude de vous saluer d’un geste militaire, chaque fois qu’il vous croise.', if: flag('aide_famille') },
@@ -117,6 +136,8 @@ function mareeScene(voie: 'accord' | 'force'): Scene {
       p('Pour quitter l’écluse, la Destinée doit descendre dans le bassin et attendre que les portes aval s’ouvrent. Le courant de Vaulx est arrivé jusqu’ici : dans la maison de l’éclusier, au bord du chemin, les moteurs des vannes peuvent tourner seuls. Lentement. Et la maison est là où la horde arrivera en premier.', flag('courant_retabli')),
       p('Six minutes de moteur, ou douze de manivelle si le courant saute. Quelqu’un doit tenir la porte.', flag('courant_retabli')),
       say('kaz', '« C’est mon métier, ça. » Kaz retrousse ses manches. « Trente ans que je tourne des manivelles d’écluse. Je sais faire ça les yeux fermés. »', all(KAZ_ICI, relMin('kaz', 4))),
+      p('Douze minutes. Vous les connaissez par cœur. Trente ans de manivelles d’écluse, dont six ici, à Morvan, dans cette maison aux volets bleus. Vous savez combien de tours il faut, et combien de temps tiennent des bras de votre âge.', KAZ_JOUE),
+      p('Une morsure ne vous changera pas. Vous êtes peut-être le seul, sur cette berge, que la horde ne peut pas transformer. Elle peut quand même vous tuer.', THEO_JOUE),
       p('À la tête de la marée avance une silhouette énorme, en tenue anti-émeute noire, casque et jambières. Le Colosse. Il marche droit vers la maison de l’éclusier.'),
     ],
     onEnter:
@@ -167,7 +188,19 @@ function mareeScene(voie: 'accord' | 'force'): Scene {
         id: 'moi',
         text: 'Prendre vous-même la manivelle.',
         kind: 'sacrifice',
+        visibleIf: [not(KAZ_JOUE)],
         warning: 'Vous ne monterez pas à bord.',
+        effects: [set('joueur_gardien')],
+        next: 'c4_fin_gardien',
+      },
+      {
+        // Kaz joué : son propre sacrifice passe par la fin du Gardien (companion('kaz', 'dead') serait ignoré).
+        id: 'moi_kaz',
+        text: '[Vous, Kaz] Prendre la manivelle. C’est votre métier, et c’est votre écluse.',
+        kind: 'sacrifice',
+        visibleIf: [KAZ_JOUE],
+        warning: 'Vous ne monterez pas à bord.',
+        effects: [set('joueur_gardien'), journal('Vous êtes resté à la manivelle de votre écluse, à Morvan.')],
         next: 'c4_fin_gardien',
       },
       {
@@ -213,10 +246,16 @@ export const chapter4: Scene[] = [
       p('Vous marchez toute la nuit sur le chemin de halage, sous des peupliers qui grincent dans le vent. Le fleuve coule à votre gauche, large et noir. À droite, des champs de colza retournés à la friche, et des fermes aux volets clos.'),
       p('Théo marche devant, comme toujours, une carte dans la tête.', THEO_ICI),
       p('Maëlle ne lâche pas la main de son fils, même quand le chemin se rétrécit.', all(MAELLE_ICI, THEO_ICI)),
+      p('Vous ne lâchez pas la main de votre fils, même quand le chemin se rétrécit.', all(MAELLE_JOUE, THEO_ICI)),
+      p('Vous connaissez ce chemin. Six ans d’écluse à Morvan, avant la Fièvre : chaque peuplier, chaque borne, chaque ornière. Le dimanche, Irena vous apportait le café ici, dans un thermos à fleurs.', KAZ_JOUE),
+      p('Vous ouvrez la marche, l’arbalète à la hanche, comme sous la terre. Le carnet de Malik bat contre vos côtes à chaque pas.', INES_JOUE),
+      p('Vous marchez devant, une carte dans la tête. Ce chemin de halage, vous l’avez déjà dessiné trois fois sans l’avoir jamais vu.', THEO_JOUE),
+      p('Vous comptez vos pas à voix basse. Vous avez perdu le compte une fois, le jour où tout s’est arrêté. Vous avez recommencé à zéro.', NOUR_JOUE),
       p('Kaz porte le sac le plus lourd, et ne se plaint pas.', KAZ_ICI),
       p('Inès ouvre la marche avec son arbalète, comme sous la terre.', INES_ICI),
       p('Nour ne dit rien. Elle compte ses pas à voix basse.', NOUR_ICI),
       p('Personne ne marche à vos côtés. Le bruit de vos pas est le seul bruit humain à des kilomètres.', all(not(THEO_ICI), not(KAZ_ICI), not(INES_ICI), not(NOUR_ICI), not(MAELLE_ICI))),
+      p('Vous pensez à la personne qui a commencé ce voyage et qui ne le finira pas. Elle aurait su quoi faire, à l’écluse. Ou peut-être pas. Vous marchez pour deux, maintenant, et le sac a le poids de deux.', flag('releve')),
       p('Vers quatre heures du matin, le chemin est coupé. Une horde traverse le halage d’un champ à l’autre, lentement, comme un troupeau qui va boire. Des dizaines de silhouettes, à cent mètres devant vous.'),
     ],
     onEnter: [step('q_destinee', 'ecluse')],
@@ -288,8 +327,14 @@ export const chapter4: Scene[] = [
       p('Devant l’écluse, une double grille de barbelés. Et devant la grille, une foule. Soixante, quatre-vingts personnes peut-être, venues de partout, avec des valises, des enfants, des chiens, des vieillards dans des brouettes. Ils attendent depuis la nuit.'),
       p('Sur une plateforme, un homme en combinaison grise parle dans un mégaphone : le capitaine Rousset. « Les porteurs et leurs familles, à gauche. Test sanguin obligatoire. Les autres, nous sommes désolés. Capacité limitée. » Il répète. Il répète encore.'),
       p('À côté de lui, une femme en blouse blanche, les bras croisés, regarde la foule comme on regarde une salle d’attente bondée. La docteure Sorel.'),
+      p('Morvan. Les volets bleus de la maison, c’est vous qui les avez repeints, l’été d’avant la Fièvre. Personne ici ne le sait. Sur la plateforme, des inconnus en gris se servent de votre écluse comme d’un guichet.', KAZ_JOUE),
+      p('« Les porteurs, à gauche. » Vous pensez à la dernière page du carnet de Malik. Il avait raison sur tout. Il n’est pas là pour le voir.', INES_JOUE),
+      p('La voix de la radio. Peut-être aussi la main qui a tapé la réponse de l’Institut, celle que vous avez gardée pliée au fond de votre sac pendant des mois. Vous êtes ici pour la suite de la réponse.', MAELLE_JOUE),
+      p('Vous remontez votre col sur l’épaule gauche. Rousset ne vous a pas encore vu. Pour l’instant.', THEO_JOUE),
+      p('Vous regardez la grille, les barbelés, les hommes en gris. Ils ressemblent aux autres. Ceux qui voulaient vous acheter. Vous comptez les gardes : six.', NOUR_JOUE),
       p('Les lampadaires du quai sont allumés. Le courant que vous avez rendu au barrage de Vaulx est arrivé jusqu’ici, et personne, dans cette foule, ne sait d’où il vient.', flag('courant_retabli')),
       p('Un camion arrive par la route du pont, klaxon bloqué. Sur le plateau, des cages. Dans une cage, Théo. Il vous voit. Il détourne la tête.', THEO_GASPARD),
+      p('Des cages, encore. Malik les avait vues au port, et il en est mort. Vous les regardez rouler vers la barge, et vos doigts trouvent tout seuls la détente de l’arbalète.', all(INES_JOUE, THEO_GASPARD)),
     ],
     routes: [{ if: clock(DEPARTED_HOUR + 0.01), to: 'c4_quai_vide' }],
     onEnter: [when(clock(DEPARTURE_HOUR + 0.5), [set('en_retard'), journal('Vous êtes arrivé à l’écluse après l’aube.', false)]), timeAtLeast(DEPARTURE_HOUR), step('q_destinee', 'choix'), heal(4)],
@@ -394,6 +439,7 @@ export const chapter4: Scene[] = [
       p('La maison aux volets bleus est vide. Sur la table de la cuisine, un bol de café moisi et un calendrier arrêté au mois de mars d’il y a deux ans. Dans la pièce du fond, le mécanisme des vannes : une grande roue de fonte, une manivelle, un cliquet d’arrêt rongé par la rouille.'),
       p('Le courant est coupé. Pour ouvrir les portes aval, il faudra tourner la manivelle à la main, longtemps. À moins de bloquer le cliquet de façon à ce que le poids de l’eau fasse le travail tout seul, le moment venu.'),
       say('kaz', '« Un coin de bois sous le cliquet, et une goupille à retirer au dernier moment, murmure Kaz. Les anciens faisaient ça quand ils étaient trop saouls pour tourner la roue. »', KAZ_ICI),
+      p('Vous posez la main sur la roue de fonte. Vous la reconnaissez au toucher. Un coin de bois sous le cliquet, une goupille à retirer au dernier moment : les anciens faisaient ça quand ils étaient trop saouls pour tourner. Vous l’avez fait, une fois, le soir de l’enterrement d’Irena.', KAZ_JOUE),
     ],
     onEnter: [set('vu_maison'), set('sait_vanne')],
     choices: [
@@ -404,6 +450,15 @@ export const chapter4: Scene[] = [
         time: 1,
         visibleIf: [KAZ_ICI],
         effects: [set('vanne_preparee'), rel('kaz', 1), xp(20)],
+        next: 'c4_maison_ok',
+      },
+      {
+        id: 'kaz_hero',
+        text: '[Vous, Kaz] Préparer le cliquet vous-même. Vous connaissez cette roue.',
+        kind: 'explore',
+        time: 1,
+        visibleIf: [KAZ_JOUE],
+        effects: [set('vanne_preparee'), xp(20)],
         next: 'c4_maison_ok',
       },
       {
@@ -532,6 +587,8 @@ export const chapter4: Scene[] = [
       p('On vous fait entrer dans une tente de triage, à côté de la grille. Anaïs Sorel est assise sur une caisse de matériel médical, une tasse de café froid entre les mains. Elle a la quarantaine, des cernes jusqu’au milieu des joues, et une voix que vous reconnaissez tout de suite : celle de la radio.'),
       say('sorel', '« C’est vous. L’appel de la capitainerie. » Elle vous détaille. « Vous avez fait tout le chemin. »', flag('sorel_contactee')),
       say('sorel', '« Les porteurs représentent un humain sur dix mille. Leur sang contient des anticorps que personne d’autre ne produit. Sur l’île Ferrand, nous avons un laboratoire, des généraux qui attendent, et un vaccin qui ne marche pas encore. Avec vingt porteurs, je peux le faire marcher. Avec vingt porteurs, je peux sauver tous ceux qui sont derrière cette grille, et des millions d’autres. »'),
+      p('Elle parle de vingt porteurs comme d’un chiffre. Vous, vous pensez à un seul, qui dessine des cartes et qui dort mal. Vous êtes infirmière : vous savez ce que c’est, un chiffre. Vous savez aussi ce que c’est, un fils.', MAELLE_JOUE),
+      p('Elle dit « porteurs » sans baisser les yeux. Elle ne sait pas que celui qui l’écoute en est un.', THEO_JOUE),
       say('sorel', '« Le capitaine pense que la fin justifie les moyens. Je pensais qu’il avait tort. Je ne sais plus. Convainquez-moi. »'),
     ],
     choices: [
@@ -548,7 +605,25 @@ export const chapter4: Scene[] = [
         text: 'Lui montrer la dernière page du carnet de Malik.',
         kind: 'talk',
         once: true,
+        visibleIf: [not(INES_JOUE)],
         requires: [has('carnet_malik')],
+        effects: [rel('sorel', 1)],
+      },
+      {
+        id: 'carnet_ines',
+        text: '[Vous, Inès] Lui lire vous-même la dernière page du carnet de votre frère, mort pour l’avoir écrite.',
+        kind: 'talk',
+        once: true,
+        visibleIf: [INES_JOUE],
+        requires: [has('carnet_malik')],
+        effects: [rel('sorel', 2)],
+      },
+      {
+        id: 'maelle',
+        text: '[Vous, Maëlle] Lui parler d’infirmière à médecin, puis de mère à… à qui, au juste ?',
+        kind: 'talk',
+        once: true,
+        visibleIf: [MAELLE_JOUE],
         effects: [rel('sorel', 1)],
       },
       {
@@ -584,11 +659,27 @@ export const chapter4: Scene[] = [
         effects: [rel('sorel', 2)],
       },
       {
+        id: 'nour_hero',
+        text: '[Vous, Nour] Raconter la cage vous-même, avec les chiffres : combien de jours, combien d’enfants, combien de pas jusqu’au camion.',
+        kind: 'talk',
+        once: true,
+        visibleIf: [NOUR_JOUE],
+        effects: [rel('sorel', 2)],
+      },
+      {
         id: 'theo',
         text: 'Présenter Théo. Pas comme un échantillon : comme Théo.',
         kind: 'talk',
         once: true,
         visibleIf: [THEO_ICI],
+        effects: [rel('sorel', 1), set('sorel_connait_theo')],
+      },
+      {
+        id: 'theo_hero',
+        text: '[Vous, Théo] Baisser le col de votre pull et lui montrer la cicatrice. Pas comme un échantillon : comme vous.',
+        kind: 'talk',
+        once: true,
+        visibleIf: [THEO_JOUE],
         effects: [rel('sorel', 1), set('sorel_connait_theo')],
       },
       { id: 'grille', text: 'Retourner à la grille.', kind: 'move', next: 'c4_sorel_bilan' },
@@ -617,9 +708,13 @@ export const chapter4: Scene[] = [
       p('Le capitaine Rousset descend de sa plateforme quand vous approchez. Il a la cinquantaine, les cheveux en brosse, un bouclier anti-émeute posé contre la jambe. Deux gardes en combinaison grise encadrent la porte de la grille.'),
       say('rousset', '« Je connais cette tête-là. La tête de quelqu’un qui a quelque chose à me vendre ou quelque chose à me reprocher. » Il regarde Théo. Il voit la cicatrice avant même que Théo ait bougé. « Ah. Les deux, alors. »', THEO_ICI),
       say('rousset', '« Une plaque des Ferrailleurs. » Il sourit sans joie. « Un passager payé. Montez avec la livraison. »', flag('passage_gaspard')),
-      say('rousset', '« Pas de porteur, pas de passage. C’est simple, c’est triste, c’est le protocole. »', all(not(THEO_ICI), notFlag('passage_gaspard'))),
+      say('rousset', '« Je connais cette tête-là. » Il vous regarde, et ses yeux descendent tout de suite vers votre épaule gauche, que le col ne cache plus. « Ah. Le porteur vient tout seul, maintenant. C’est nouveau. »', THEO_JOUE),
+      say('rousset', '« Pas de porteur, pas de passage. C’est simple, c’est triste, c’est le protocole. »', all(not(THEO_ICI), not(THEO_JOUE), notFlag('passage_gaspard'))),
+      p('Rousset regarde Théo, puis vous. Il reconnaît une mère quand il en voit une. « Le protocole prévoit les familles », dit-il, comme on accorde une faveur.', all(MAELLE_JOUE, THEO_ICI)),
       p('Derrière vous, la foule s’est tue. Tout le monde écoute.'),
       p('Théo vous regarde. Il ne dit rien. Il attend de voir ce que vous allez faire de lui.', THEO_ICI),
+      p('Votre mère vous regarde. Elle attend de voir ce que vous allez faire de vous.', all(THEO_JOUE, MAELLE_ICI)),
+      p('Tout le monde, ici, a un avis sur ce que vaut votre sang. C’est à vous de décider ce que vous en faites.', THEO_JOUE),
     ],
     choices: [
       {
@@ -639,12 +734,29 @@ export const chapter4: Scene[] = [
         next: 'c4_accord',
       },
       {
+        id: 'accord_theo',
+        text: '[Vous, Théo] Proposer l’Accord vous-même : vous embarquez comme volontaire, sous la protection de Sorel, et tout le groupe avec vous.',
+        kind: 'negotiate',
+        visibleIf: [THEO_JOUE],
+        requires: [relMin('sorel', 4)],
+        next: 'c4_accord',
+      },
+      {
         id: 'livrer',
         text: 'Livrer Théo au capitaine contre des places pour le groupe.',
         kind: 'sacrifice',
         visibleIf: [THEO_ICI],
         warning: 'Il n’y aura pas de retour en arrière.',
         effects: [set('theo_livre'), companion('theo', 'captured'), questFx('q_theo', 'failed'), rel('theo', -10)],
+        next: 'c4_fin_prix',
+      },
+      {
+        id: 'livrer_theo',
+        text: '[Vous, Théo] Vous livrer au capitaine, sans conditions, contre des places pour le groupe.',
+        kind: 'sacrifice',
+        visibleIf: [THEO_JOUE],
+        warning: 'Il n’y aura pas de retour en arrière.',
+        effects: [set('theo_se_livre'), journal('Vous vous êtes livré au capitaine Rousset contre des places pour le groupe.')],
         next: 'c4_fin_prix',
       },
       {
@@ -678,11 +790,14 @@ export const chapter4: Scene[] = [
     title: 'L’Accord',
     kind: 'story',
     text: [
-      say('moi', '« Théo monte à bord. Pas dans une cage, pas dans un registre de livraison : comme passager. Il donnera son sang si et quand il le décidera, sous la responsabilité de la docteure Sorel. Ceux qui l’accompagnent montent avec lui. Et les cages des Ferrailleurs ne vous rapporteront plus une seule place. »'),
+      say('moi', '« Théo monte à bord. Pas dans une cage, pas dans un registre de livraison : comme passager. Il donnera son sang si et quand il le décidera, sous la responsabilité de la docteure Sorel. Ceux qui l’accompagnent montent avec lui. Et les cages des Ferrailleurs ne vous rapporteront plus une seule place. »', not(THEO_JOUE)),
+      say('moi', '« Je monte à bord. Pas dans une cage, pas dans un registre de livraison : comme passager. Je donnerai mon sang si et quand je le déciderai, sous la responsabilité de la docteure Sorel. Ceux qui m’accompagnent montent avec moi. Et les cages des Ferrailleurs ne vous rapporteront plus une seule place. »', THEO_JOUE),
+      p('Vous posez la main sur l’épaule de votre fils. L’autre épaule. Vous ne la retirerez pas.', MAELLE_JOUE),
       say('rousset', '« Et pourquoi j’accepterais ça ? »'),
       say('sorel', '« Parce que sans moi, capitaine, il n’y a pas de vaccin. » Sorel s’est avancée à côté de vous. Sa voix ne tremble plus. « Et parce que j’ai entendu la cassette, comme la moitié de votre équipage, qui écoute en ce moment même derrière la cloison. »'),
       p('Rousset regarde ses gardes. Ses gardes regardent leurs chaussures. Il comprend avant de l’avoir décidé.'),
-      say('theo', '« J’y vais », dit Théo. Il le dit à vous, pas à Rousset. « Mais pas comme un colis. »'),
+      say('theo', '« J’y vais », dit Théo. Il le dit à vous, pas à Rousset. « Mais pas comme un colis. »', not(THEO_JOUE)),
+      p('Vous ne regardez pas Rousset. Vous regardez la foule derrière la grille. « Pas comme un colis », dites-vous encore, plus bas, pour vous.', THEO_JOUE),
       say('rousset', '« Embarquez. » Un seul mot, et il remonte sur sa plateforme sans se retourner.'),
     ],
     onEnter: [questFx('q_theo', 'completed', 'choix'), rel('theo', 2), xp(80), journal('L’Accord est conclu : Théo embarque comme passager libre, sous la protection de Sorel.')],
@@ -757,12 +872,15 @@ export const chapter4: Scene[] = [
       p('Un fil de fer tiré depuis la passerelle, un claquement sourd dans la maison de l’éclusier, et les portes s’ouvrent toutes seules sous le poids du fleuve. La horde arrive sur un quai vide. Personne n’a eu à rester.', flag('vanne_auto')),
       p('Le Colosse gît en travers du chemin de halage, et la horde, privée de son chef, s’est égaillée dans les peupliers.', COLOSSE_TUE),
       p('Sur la berge, la maison de l’éclusier disparaît sous la marée grise. Jusqu’au dernier moment, vous entendez la manivelle grincer. Puis plus rien. Kaz a tenu ses douze minutes.', flag('kaz_sacrifice')),
-      p('Trois jours plus tard, la barge accoste à l’île Ferrand. Théo descend la passerelle le premier, sans menottes, sans escorte, la main de la docteure Sorel posée sur son épaule. Pas l’épaule gauche. L’autre.'),
-      p('Sorel tient parole. Les porteurs de l’île ont désormais une chambre, un nom sur la porte et le droit de dire non. Théo dit oui, trois fois par semaine, pour une prise de sang. Le reste du temps, il dessine la carte de l’île.'),
+      p('Trois jours plus tard, la barge accoste à l’île Ferrand. Théo descend la passerelle le premier, sans menottes, sans escorte, la main de la docteure Sorel posée sur son épaule. Pas l’épaule gauche. L’autre.', not(THEO_JOUE)),
+      p('Sorel tient parole. Les porteurs de l’île ont désormais une chambre, un nom sur la porte et le droit de dire non. Théo dit oui, trois fois par semaine, pour une prise de sang. Le reste du temps, il dessine la carte de l’île.', not(THEO_JOUE)),
+      p('Trois jours plus tard, la barge accoste à l’île Ferrand. Vous descendez la passerelle le premier, sans menottes, sans escorte, la main de la docteure Sorel posée sur votre épaule. Pas l’épaule gauche. L’autre.', THEO_JOUE),
+      p('Sorel tient parole. Les porteurs de l’île ont désormais une chambre, un nom sur la porte et le droit de dire non. Vous dites oui, trois fois par semaine, pour une prise de sang. Le reste du temps, vous dessinez la carte de l’île.', THEO_JOUE),
       p('Six mois plus tard, le premier lot de vaccin quitte le laboratoire. On l’appelle le lot T, et personne ne dit pourquoi.'),
       ...epilogueCompagnons('barge'),
       ...epilogueMonde(),
-      p('Vous, {nom}, vous avez un lit, une fenêtre sur la mer, et un travail : escorter les barges qui remontent le fleuve chercher les autres. Il y en a encore beaucoup. Il y en aura toujours.'),
+      p('Vous, {nom}, vous avez un lit, une fenêtre sur la mer, et un travail : escorter les barges qui remontent le fleuve chercher les autres. Il y en a encore beaucoup. Il y en aura toujours.', not(THEO_JOUE)),
+      p('Vous, {nom}, vous avez une chambre, un nom sur la porte et une fenêtre sur la mer. Chaque barge qui remonte le fleuve chercher les autres emporte une de vos cartes. Toujours la même, toujours un peu plus juste.', THEO_JOUE),
     ],
     choices: [],
   },
@@ -782,6 +900,7 @@ export const chapter4: Scene[] = [
       p('À bord, la foule de la grille a tout envahi : les coursives, les cales, le pont supérieur. Quatre-vingts couchettes pour deux cents personnes. On dort à tour de rôle, on partage tout, on se dispute pour tout.', flag('foule_soulevee')),
       p('La docteure Sorel est restée à bord. Elle a pris la parole devant tout le monde, le premier soir, pour dire ce qu’elle savait, et ce qu’elle avait accepté de ne pas savoir. Puis elle a ouvert son laboratoire aux porteurs, et elle leur a demandé, cette fois.', any(flag('sorel_alliee'), relMin('sorel', 4))),
       p('Théo dort dans le poste de pilotage, roulé dans une couverture, à côté de vous. Il ne sait pas encore s’il donnera son sang. Il a le temps de décider. C’est tout ce qu’il demandait.', THEO_ICI),
+      p('Vous dormez dans le poste de pilotage, dans une couverture qui sent le gasoil. Vous ne savez pas encore si vous donnerez votre sang. Vous avez le temps de décider. C’est tout ce que vous demandiez.', THEO_JOUE),
       p('L’île Ferrand vous attend à trois jours de navigation. Personne ne sait comment l’Institut accueillera une barge mutinée. Vous verrez bien. Vous avez vu pire.'),
       ...epilogueCompagnons('barge'),
       ...epilogueMonde(),
@@ -798,13 +917,20 @@ export const chapter4: Scene[] = [
     ending: 'fin_gardien',
     text: [
       p('Vous fermez la porte de la maison de l’éclusier derrière vous et vous poussez l’armoire contre. Puis vous prenez la manivelle à deux mains, et vous tournez.'),
+      p('Le bois de la poignée est usé à l’endroit exact de vos paumes. Six ans à Morvan. Vous n’avez jamais tourné aussi vite, et jamais aussi bien.', KAZ_JOUE),
+      p('Par la fenêtre, vous voyez votre mère sur le pont. Elle ne vous cherche pas des yeux : elle vous a trouvé tout de suite. Vous levez la main. Elle garde la sienne sur sa bouche.', all(THEO_JOUE, MAELLE_ICI)),
       p('Un tour. Dix tours. Cent tours. Par la fenêtre, vous voyez la Destinée descendre lentement dans le bassin. Vous voyez Théo, sur le pont, qui vous cherche des yeux. Vous levez la main. Il lève la sienne.', THEO_ICI),
       p('Par la fenêtre, vous voyez la Destinée descendre lentement dans le bassin, chargée de tous ceux qui n’auraient jamais dû monter, et qui montent quand même.', not(THEO_ICI)),
+      p('Les dents qui cliquettent derrière la porte ne vous changeront pas. Elles ne le savent pas. Elles frappent quand même.', THEO_JOUE),
       p('Les coups contre la porte commencent à la quatrième minute. Le cliquetis des dents, à travers le bois, comme une pluie de grêle. L’armoire recule d’un centimètre, puis d’un autre.'),
       p('À la douzième minute, les portes aval s’ouvrent dans un grondement d’eau. La barge glisse vers le fleuve libre. Vous lâchez la manivelle. Vos mains saignent. Vous vous asseyez par terre, dos à l’armoire, et vous écoutez l’eau.'),
+      p('Vous pensez à Irena. Elle disait que vous finiriez dans cette maison, à force de ne jamais vouloir la quitter. Elle avait raison, à quelques années près.', KAZ_JOUE),
+      p('Vous pensez à la personne qui a commencé ce voyage. Elle aussi est restée en arrière pour que d’autres avancent. Vous avez fini le travail. C’est une façon de lui rendre la main.', flag('releve')),
       ...epilogueCompagnons('barge'),
       ...epilogueMonde(),
       p('Sur l’île Ferrand, dans le hall du laboratoire, il y a une plaque de cuivre. Théo l’a fait graver avec le premier argent qu’on lui a donné : « {nom}, gardien de l’écluse de Morvan. Douze minutes. »', THEO_ICI),
+      p('Quelqu’un a soudé une manivelle tordue sur le parapet de l’écluse de Morvan. Dessous, gravé au poinçon : « Kaz. Éclusier. Six ans ici, douze minutes de plus. »', all(KAZ_JOUE, not(THEO_ICI))),
+      p('Sur l’île Ferrand, dans le hall du laboratoire, il y a une plaque de cuivre. Maëlle l’a fait graver avec le premier argent qu’on lui a donné : « Théo, gardien de l’écluse de Morvan. Douze minutes. » Elle passe devant chaque matin. Elle ne s’arrête jamais. Elle ralentit.', all(THEO_JOUE, MAELLE_ICI)),
     ],
     choices: [],
   },
@@ -818,11 +944,19 @@ export const chapter4: Scene[] = [
     text: [
       p('Rousset fait signe à ses gardes. Ils prennent Théo par les bras. Il ne se débat pas. Il vous regarde, simplement, jusqu’à ce que la porte de la cabine médicale se referme sur lui.', flag('theo_livre')),
       p('Maëlle hurle. C’est le premier son qu’elle émet depuis Valombre. Elle se jette sur les gardes, et ils la font monter à bord avec son fils, parce que le protocole prévoit les familles. Elle ne vous adressera plus jamais la parole.', all(flag('theo_livre'), MAELLE_ICI)),
+      p('Vous ne criez pas. Vous montez à bord derrière votre fils, parce que le protocole prévoit les familles. Il ne vous adresse pas la parole de tout le voyage. Vous ne lui en voulez pas.', all(flag('theo_livre'), MAELLE_JOUE)),
+      p('Rousset fait signe à ses gardes. Ils vous prennent par les bras. Vous ne vous débattez pas. Vous regardez le groupe monter à bord, un par un, jusqu’à ce que la porte de la cabine médicale se referme sur vous.', flag('theo_se_livre')),
+      p('Maëlle ne hurle pas. Elle a compris que vous l’aviez décidé. Elle monte à bord, parce que le protocole prévoit les familles, et elle s’assoit devant la porte de la cabine.', all(flag('theo_se_livre'), MAELLE_ICI)),
       p('Vous montrez la plaque de Gaspard. On vous fait monter à bord avec la livraison. Dans le camion, il y a des cages. Dans une cage, il y a Théo. Il ne vous regarde pas. Il ne vous regardera plus jamais.', all(flag('passage_gaspard'), companionIs('theo', 'captured'))),
-      p('Vous montrez la plaque de Gaspard. On vous fait monter à bord avec la livraison, sans poser de questions. Les cages du camion sont vides : vous les avez ouvertes au gué de la Sauldre. Théo, lui, n’est pas monté. Il vous a regardé tendre la plaque, et il est reparti sur le halage.', all(flag('passage_gaspard'), not(companionIs('theo', 'captured')))),
-      p('On vous donne une couchette sur le pont inférieur, une couverture, une gamelle de soupe chaude. La première depuis des mois. Elle a un goût de fer.'),
-      p('À l’île Ferrand, le vaccin marchera, ou ne marchera pas. Vous ne le saurez pas tout de suite. Vous saurez seulement qu’un garçon qui dessinait des cartes sur les murs d’une pharmacie vit désormais dans une pièce sans fenêtre, avec un numéro sur la porte.'),
-      p('Vous êtes en vie. Vous êtes à bord. Vous avez payé le prix du passage, et ce n’est pas vous qui l’avez payé.'),
+      p('Vous montrez la plaque de Gaspard. On vous fait monter à bord avec la livraison, sans poser de questions. Les cages du camion sont vides : vous les avez ouvertes au gué de la Sauldre. Théo, lui, n’est pas monté. Il vous a regardé tendre la plaque, et il est reparti sur le halage.', all(flag('passage_gaspard'), not(companionIs('theo', 'captured')), not(THEO_JOUE))),
+      p('Vous montrez la plaque de Gaspard, celle qu’on a payée avec vous. On vous fait monter à bord avec la livraison, sans poser de questions. Personne ne regarde votre épaule.', all(flag('passage_gaspard'), THEO_JOUE, notFlag('theo_se_livre'))),
+      p('On vous donne une couchette sur le pont inférieur, une couverture, une gamelle de soupe chaude. La première depuis des mois. Elle a un goût de fer.', notFlag('theo_se_livre')),
+      p('À l’île Ferrand, le vaccin marchera, ou ne marchera pas. Vous ne le saurez pas tout de suite. Vous saurez seulement qu’un garçon qui dessinait des cartes sur les murs d’une pharmacie vit désormais dans une pièce sans fenêtre, avec un numéro sur la porte.', all(notFlag('theo_se_livre'), not(THEO_JOUE))),
+      p('Vous êtes en vie. Vous êtes à bord. Vous avez payé le prix du passage, et ce n’est pas vous qui l’avez payé.', all(notFlag('theo_se_livre'), not(THEO_JOUE))),
+      p('On vous donne une pièce sans fenêtre, un numéro sur la porte, une gamelle de soupe chaude. Elle a un goût de fer.', flag('theo_se_livre')),
+      p('À l’île Ferrand, le vaccin marchera, ou ne marchera pas. Vous le saurez avant tout le monde : c’est dans votre bras qu’on le cherche. Sur le mur de la pièce, avec un clou, vous avez commencé une carte.', flag('theo_se_livre')),
+      p('Ceux qui comptaient pour vous sont à bord. Vous avez payé le prix du passage. Cette fois, c’est vous qui l’avez payé.', flag('theo_se_livre')),
+      p('Vous êtes en vie. Vous êtes à bord. Quelqu’un a payé votre passage avec une cage, et c’est la vôtre qui est restée vide.', all(notFlag('theo_se_livre'), THEO_JOUE)),
     ],
     choices: [],
   },
@@ -885,7 +1019,9 @@ export const chapter4: Scene[] = [
       p('Théo vous attend à la grille. Il a grandi, on dirait, en une semaine. Il vous montre la carte qu’il a commencée : toutes les Carrières, galerie par galerie, avec des étoiles pour les caches et des croix pour les dangers.', flag('theo_veilleurs')),
       p('Théo marche à côté de vous jusqu’à la grille. Hélène Vasseur l’attend. Elle lui tend une médaille de Saint-Roch, et il la passe à son cou sans un mot.', THEO_ICI),
       p('Maëlle dirige l’infirmerie de l’ossuaire. Elle a enfin dormi une nuit entière.', any(MAELLE_ICI, companionIs('maelle', 'away'))),
-      p('Hélène tient parole : Théo n’est pas une marchandise, ici. Il est un Veilleur parmi d’autres. Les Veilleurs fabriquent leur propre sérum, avec du matériel volé à l’hôpital Delorme et l’aide de Sœur Prudence. Ça ne marche pas. Pas encore. Un jour, peut-être.'),
+      p('Vous dirigez l’infirmerie de l’ossuaire. Vous avez enfin dormi une nuit entière.', MAELLE_JOUE),
+      p('Hélène tient parole : ici, vous n’êtes pas une marchandise. Vous êtes un Veilleur parmi d’autres. Vous donnez votre sang quand vous le voulez, pour un sérum qui ne marche pas encore. Un jour, peut-être.', THEO_JOUE),
+      p('Hélène tient parole : Théo n’est pas une marchandise, ici. Il est un Veilleur parmi d’autres. Les Veilleurs fabriquent leur propre sérum, avec du matériel volé à l’hôpital Delorme et l’aide de Sœur Prudence. Ça ne marche pas. Pas encore. Un jour, peut-être.', not(THEO_JOUE)),
       p('Odilon Brac est descendu vivre avec eux. Il sonne les cloches de l’ossuaire, chaque soir, pour les enfants.', flag('odilon_aide')),
       ...epilogueCompagnons('terre').filter((b) => !b.text.startsWith('Maëlle a ouvert')),
       ...epilogueMonde(),

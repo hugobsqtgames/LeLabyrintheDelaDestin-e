@@ -2,10 +2,11 @@
  * Fiche du personnage : portrait, tuiles de vitalité (« bento »),
  * caractéristiques, compétences de combat, atouts et relations.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { armorValue, choosePerk, effectiveStat, equipmentBonuses, maxHp, maxStamina, spendStatPoint } from '../../engine/character';
 import { capacity, currentWeight } from '../../engine/inventory';
+import { heroPreview } from '../../engine/relay';
 import { LEVEL_MAX, STAT_IDS, STAT_MAX, xpToNext } from '../../engine/rules';
 import type { CompanionStatus, GameState, PerkId } from '../../engine/types';
 import { useT } from '../../i18n';
@@ -14,9 +15,11 @@ import { EmblemBadge } from '../../ui/art/Emblems';
 import { PlayerPortrait, Portrait, PORTRAITS } from '../../ui/art/Portraits';
 import { Glass } from '../../ui/components/Glass';
 import { useChrome } from '../../ui/components/Hud';
+import { Sheet } from '../../ui/components/Sheet';
 import { Badge, Bar, Label, Panel, SectionTitle, Tile } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_UI, radius, space, TOUCH, type } from '../../ui/theme';
+import { ContextHint } from '../../ui/components/ContextHint';
 
 const STATUS_COLOR: Record<CompanionStatus, string> = {
   unknown: colors.textFaint,
@@ -46,12 +49,14 @@ export function CharacterView({ game }: { game: GameState }) {
   const bg = content.backgrounds[p.background];
   const bonus = equipmentBonuses(content, game);
   const people = Object.entries(game.companions).filter(([, s]) => s !== 'unknown');
+  const [preview, setPreview] = useState<string | null>(null);
   const atMax = p.level >= LEVEL_MAX;
   const hpMax = maxHp(content, game);
   const stMax = maxStamina(content, game);
 
   return (
     <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top + space.xs, paddingBottom: chrome.bottom }}>
+      {p.unspentStatPoints + p.unspentPerks > 0 && <ContextHint id="levelup" style={{ marginBottom: space.md }} />}
       <Glass radius={radius.xl} style={styles.hero}>
         <PlayerPortrait profile={p.profile} size={112} shape="tall" />
         <View style={{ flex: 1, gap: 4 }}>
@@ -225,6 +230,13 @@ export function CharacterView({ game }: { game: GameState }) {
                   <Text style={[type.label, { fontSize: 10, marginTop: 5 }]}>{t(relationKey(rel))}</Text>
                 </View>
               )}
+              {status === 'companion' && content.heroes[id] && (
+                <Pressable onPress={() => setPreview(id)} accessibilityRole="button" style={styles.heroLink} hitSlop={6}>
+                  <Icon name="person" size={14} color={colors.violet} />
+                  <Text style={[type.uiSmall, { color: colors.violet, fontFamily: fonts.uiBold, flex: 1 }]}>{t('char.heroSheet')}</Text>
+                  <Icon name="chevron" size={14} color={colors.violet} />
+                </Pressable>
+              )}
               {status === 'companion' && ch.combatAssist && (
                 <Text style={[type.uiSmall, { fontSize: 12.5, color: colors.ice }]}>{t('char.assist', { text: ch.combatAssist.text, n: ch.combatAssist.every })}</Text>
               )}
@@ -232,11 +244,81 @@ export function CharacterView({ game }: { game: GameState }) {
           );
         })}
       </View>
+      <HeroPreviewSheet game={game} id={preview} onClose={() => setPreview(null)} />
     </ScrollView>
   );
 }
 
+/** Fiche de relève : ce que serait ce compagnon s'il devait reprendre la route. */
+function HeroPreviewSheet({ game, id, onClose }: { game: GameState; id: string | null; onClose: () => void }) {
+  const { content } = useStore();
+  const t = useT();
+  const sheet = id ? content.heroes[id] : null;
+  const hero = sheet ? heroPreview(content, game, sheet) : null;
+  const prof = sheet ? content.profiles[sheet.profile] : null;
+  const bg = sheet ? content.backgrounds[sheet.background] : null;
+  return (
+    <Sheet visible={!!sheet} onClose={onClose} title={sheet ? t('char.heroSheetOf', { name: sheet.name }) : ''}>
+      {sheet && hero && prof && bg && (
+        <View style={{ gap: space.md }}>
+          <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
+            <Portrait id={sheet.character} size={64} shape="squircle" />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[type.ui, { fontFamily: fonts.uiBold }]}>
+                {prof.name} · {t('relay.level', { n: hero.level })}
+              </Text>
+              <Text style={[type.uiSmall, { fontStyle: 'italic' }]}>{prof.tagline}</Text>
+            </View>
+          </View>
+          <Text style={type.bodySmall}>{t(sheet.lastResort ? 'char.heroLastResort' : 'char.heroIntro', { name: sheet.name })}</Text>
+          <View style={styles.previewStats}>
+            {(Object.keys(hero.stats) as (keyof typeof hero.stats)[]).map((s) => (
+              <View key={s} style={styles.previewStat}>
+                <Text style={type.label}>{content.statLabels[s]}</Text>
+                <Text style={[type.number, { fontSize: 22 }]}>{hero.stats[s]}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={{ gap: 4 }}>
+            <Label>{t('char.skills')}</Label>
+            <Text style={type.bodySmall}>
+              <Text style={{ fontFamily: fonts.uiBold, color: colors.text }}>{prof.skill.name}</Text> — {prof.skill.description}
+            </Text>
+            {prof.skill2 && (
+              <Text style={type.bodySmall}>
+                <Text style={{ fontFamily: fonts.uiBold, color: colors.text }}>{prof.skill2.name}</Text> ({t('relay.level', { n: prof.skill2.level })}) — {prof.skill2.description}
+              </Text>
+            )}
+          </View>
+          {hero.perks.length > 0 && (
+            <View style={{ gap: 4 }}>
+              <Label>{t('char.perks')}</Label>
+              <Text style={type.bodySmall}>{hero.perks.map((pk) => content.perks[pk]?.name ?? pk).join(' · ')}</Text>
+            </View>
+          )}
+          <View style={{ gap: 4 }}>
+            <Label>{bg.name}</Label>
+            <Text style={[type.bodySmall, { color: colors.mossBright }]}>+ {bg.advantage}</Text>
+            <Text style={[type.bodySmall, { color: colors.rustBright }]}>− {bg.drawback}</Text>
+          </View>
+          <View style={{ gap: 4 }}>
+            <Label>{t('char.heroGear')}</Label>
+            <Text style={type.bodySmall}>
+              {Object.entries(sheet.items)
+                .map(([item, qty]) => `${content.items[item]?.name ?? item}${qty > 1 ? ` ×${qty}` : ''}`)
+                .join(', ')}
+            </Text>
+          </View>
+        </View>
+      )}
+    </Sheet>
+  );
+}
+
 const styles = StyleSheet.create({
+  heroLink: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 2 },
+  previewStats: { flexDirection: 'row', gap: space.sm },
+  previewStat: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: space.sm, borderRadius: 14, backgroundColor: 'rgba(255,248,240,0.05)' },
   hero: { flexDirection: 'row', gap: space.lg, alignItems: 'center', padding: space.md },
   bento: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginTop: space.sm },
   tileWide: { flexBasis: '46%', flexGrow: 1, margin: 4 },

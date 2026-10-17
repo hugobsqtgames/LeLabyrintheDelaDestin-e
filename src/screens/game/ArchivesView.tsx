@@ -2,7 +2,7 @@
  * Archives : documents trouvés (lus sur papier) et pages du journal intime
  * écrites à la fin de chaque chapitre.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { DocumentDef, GameState } from '../../engine/types';
 import { useT } from '../../i18n';
@@ -13,6 +13,7 @@ import { Label, Panel, SectionTitle } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, radius, space, type } from '../../ui/theme';
 import { useChrome } from '../../ui/components/Hud';
+import { makeMatcher, SearchField } from './ChronicleView';
 
 export function ArchivesView({ game }: { game: GameState }) {
   const { content } = useStore();
@@ -20,13 +21,43 @@ export function ArchivesView({ game }: { game: GameState }) {
   const chrome = useChrome();
   const [open, setOpen] = useState<DocumentDef | null>(null);
   const total = Object.keys(content.documents).length;
-  const docs = game.documents.map((id) => content.documents[id]).filter(Boolean);
+  const allDocs = useMemo(() => game.documents.map((id) => content.documents[id]).filter(Boolean), [game.documents, content]);
+  const [query, setQuery] = useState('');
+  const match = useMemo(() => makeMatcher(query), [query]);
+  const docs = useMemo(() => (match ? allDocs.filter((d) => match(d.title, d.source, d.body)) : allDocs), [allDocs, match]);
+  const diary = useMemo(
+    () =>
+      match
+        ? game.diary.filter((page) => {
+            const ch = content.chapters.find((c) => c.id === page.chapter);
+            return match(page.text, ch?.title);
+          })
+        : game.diary,
+    [game.diary, content, match],
+  );
+  const hasArchives = allDocs.length > 0 || game.diary.length > 0;
 
   return (
     <>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top, paddingBottom: chrome.bottom }}>
-        <SectionTitle right={<Text style={[type.number, { fontSize: 12, color: colors.textDim }]}>{docs.length}/{total}</Text>}>{t('archives.documents')}</SectionTitle>
-        {docs.length === 0 && <Text style={type.bodySmall}>{t('archives.none')}</Text>}
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top, paddingBottom: chrome.bottom }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {hasArchives && (
+          <View style={{ marginTop: space.sm, gap: space.sm }}>
+            <SearchField value={query} onChange={setQuery} placeholder={t('archives.search')} />
+            {match && (
+              <Text style={type.label}>
+                {docs.length + diary.length === 0 ? t('archives.noResults', { q: query.trim() }) : t('archives.results', { docs: docs.length, pages: diary.length })}
+              </Text>
+            )}
+          </View>
+        )}
+        {(!match || docs.length > 0) && (
+          <SectionTitle right={<Text style={[type.number, { fontSize: 12, color: colors.textDim }]}>{match ? docs.length : `${docs.length}/${total}`}</Text>}>{t('archives.documents')}</SectionTitle>
+        )}
+        {allDocs.length === 0 && <Text style={type.bodySmall}>{t('archives.none')}</Text>}
         <View style={styles.grid}>
           {docs.map((d, i) => (
             <Pressable
@@ -49,7 +80,7 @@ export function ArchivesView({ game }: { game: GameState }) {
               </Glass>
             </Pressable>
           ))}
-          {Array.from({ length: Math.max(0, total - docs.length) }).map((_, i) => (
+          {!match && Array.from({ length: Math.max(0, total - docs.length) }).map((_, i) => (
             <View key={`x${i}`} style={styles.cell}>
               <View style={[styles.doc, styles.missing]}>
                 <Icon name="lock" size={14} color={colors.textFaint} />
@@ -58,10 +89,10 @@ export function ArchivesView({ game }: { game: GameState }) {
           ))}
         </View>
 
-        <SectionTitle>{t('archives.diary')}</SectionTitle>
+        {(!match || diary.length > 0) && <SectionTitle>{t('archives.diary')}</SectionTitle>}
         {game.diary.length === 0 && <Text style={type.bodySmall}>{t('archives.noDiary')}</Text>}
         <View style={{ gap: space.md }}>
-          {game.diary.map((page) => {
+          {diary.map((page) => {
             const ch = content.chapters.find((c) => c.id === page.chapter);
             return (
               <Panel key={page.chapter} tone="paper" taped>

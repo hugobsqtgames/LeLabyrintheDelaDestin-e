@@ -44,6 +44,10 @@ import {
 const C = 'c3';
 const THEO_PRISONNIER = companionIs('theo', 'captured');
 const TRAHISON = all(withUs('kaz'), relMax('kaz', 2), withUs('theo'), notFlag('kaz_aveu'));
+/** Relève : le compagnon est devenu le personnage joué. */
+const KAZ_JOUE = companionIs('kaz', 'hero');
+const MAELLE_JOUE = companionIs('maelle', 'hero');
+const INES_JOUE = companionIs('ines', 'hero');
 
 export const chapter3: Scene[] = [
   {
@@ -59,6 +63,7 @@ export const chapter3: Scene[] = [
       p('Le port fluvial de Valombre est un cimetière de métal. Des péniches couchées sur le flanc dans la vase, des grues figées dans des gestes interrompus, des conteneurs empilés comme des briques d’enfant. Le fleuve passe au milieu, indifférent, et emporte vers l’aval des choses qu’on préfère ne pas regarder.'),
       p('Une patrouille remonte le quai dans votre direction : un homme au visage peint de cambouis, un fusil en bandoulière, et un molosse au bout d’une chaîne. Les Ferrailleurs.'),
       p('Le deuxième homme de la patrouille porte une clé à molette d’un mètre sur l’épaule. Il a le visage peint, lui aussi. C’est Kaz.', flag('kaz_refuse')),
+      p('Vous connaissez ce visage-là, et ce chien-là. Vous avez bu avec eux, avant, les soirs où vous perdiez votre paie au poker chez Gaspard. Eux aussi vous connaissent. Ils savent ce que vous lui devez.', KAZ_JOUE),
     ],
     onEnter: [discover('casse'), discover('pont_fer'), discover('capitainerie')],
     choices: [
@@ -68,6 +73,14 @@ export const chapter3: Scene[] = [
         kind: 'talk', time: 0.5,
         visibleIf: [flag('kaz_refuse')],
         next: 'c3_kaz_ferrailleur',
+      },
+      {
+        id: 'kaz_hero',
+        text: '[Vous, Kaz] Avancer à visage découvert. Ils connaissent le Polonais.',
+        kind: 'negotiate', time: 0.5,
+        visibleIf: [KAZ_JOUE],
+        effects: [xp(15)],
+        next: 'c3_kaz_patrouille',
       },
       {
         id: 'detenu',
@@ -106,6 +119,21 @@ export const chapter3: Scene[] = [
     ],
     onEnter: [set('kaz_quitte'), questFx('q_cages', 'active', 'reperer'), journal('Kaz est devenu Ferrailleur. Il vous a laissé passer, une dernière fois.')],
     choices: [{ id: 'planque', text: 'Gagner la capitainerie pour s’y cacher.', kind: 'move', next: 'c3_planque_arrivee' }],
+  },
+  {
+    id: 'c3_kaz_patrouille',
+    chapter: C,
+    location: 'quai',
+    title: 'Le Polonais',
+    kind: 'story',
+    text: [
+      p('Le Ferrailleur abaisse son fusil avant que vous ayez dit un mot. Le chien remue la queue : il se souvient de vos poches, de l’époque où vous y gardiez du saucisson.'),
+      p('« Kaz. » L’homme crache dans le fleuve. « Gaspard demande après toi. Il dit que tu lui dois une barge de gasoil. Il dit aussi que tu lui as promis quelque chose, à la place. »'),
+      p('Il regarde le garçon derrière vous, un peu trop longtemps. Vous vous placez entre eux, sans hâte, comme on referme une porte.', withUs('theo')),
+      p('« Dis-lui que je viens, répondez-vous. Avec de quoi payer. » Il ricane et rappelle son chien. Vous ne savez pas encore avec quoi vous paierez. Vous savez seulement avec quoi vous ne paierez pas.'),
+    ],
+    onEnter: [questFx('q_cages', 'active', 'reperer')],
+    choices: [{ id: 'planque', text: 'Gagner la capitainerie avant qu’il change d’avis.', kind: 'move', next: 'c3_planque_arrivee' }],
   },
   {
     id: 'c3_detenu',
@@ -197,6 +225,7 @@ export const chapter3: Scene[] = [
       p('Le groupe s’est installé dans le bureau du capitaine de port. Il reste {reste} avant l’aube du septième, et le Pont de Fer est la dernière porte.'),
       p('Théo est collé aux jumelles, à dessiner le port sur une page arrachée.', withUs('theo')),
       p('Kaz ne quitte pas la fenêtre des yeux. Il regarde la casse Lenoir. Il a l’air de quelqu’un qui fait des calculs.', withUs('kaz')),
+      p('Vous regardez la casse Lenoir par la fenêtre. Une barge de gasoil perdue au poker, une promesse faite à Gaspard pour effacer la dette : lui ramener un porteur. Vous ne la tiendrez pas. Mais Gaspard, lui, s’en souvient.', KAZ_JOUE),
     ],
     choices: [
       {
@@ -528,6 +557,14 @@ export const chapter3: Scene[] = [
         next: 'c3_ruse',
       },
       {
+        id: 'ruse_hero',
+        text: '[Vous, Kaz] Entrer dans la casse en « livrant » Théo, comme Gaspard l’attend de vous.',
+        kind: 'stealth', time: 1,
+        visibleIf: [KAZ_JOUE, withUs('theo')],
+        requires: [relMin('theo', 3)],
+        next: 'c3_ruse',
+      },
+      {
         id: 'infiltrer',
         text: 'S’infiltrer par le grillage du fleuve pendant la relève de trois heures.',
         kind: 'stealth', time: 2,
@@ -612,9 +649,11 @@ export const chapter3: Scene[] = [
     title: 'La livraison',
     kind: 'story',
     text: [
-      p('Kaz entre dans la casse en tirant Théo par la corde. Vous suivez à cinquante mètres, d’ombre en ombre. Les gardes s’écartent : ils connaissent Kaz, ils savent ce qu’il doit, et ils voient ce qu’il apporte.'),
+      p('Kaz entre dans la casse en tirant Théo par la corde. Vous suivez à cinquante mètres, d’ombre en ombre. Les gardes s’écartent : ils connaissent Kaz, ils savent ce qu’il doit, et ils voient ce qu’il apporte.', not(KAZ_JOUE)),
+      p('Vous entrez dans la casse en tirant Théo par une corde nouée de façon à ce qu’un seul geste suffise à la défaire. Les gardes s’écartent : ils vous connaissent, ils savent ce que vous devez, et ils voient ce que vous apportez. Théo marche derrière vous, tête basse. Il joue bien. Trop bien.', KAZ_JOUE),
       say('gaspard', '« Le Polonais ! » Gaspard se lève de son trône, les bras ouverts. « Je savais que tu étais un homme de parole. Montre-moi la marchandise. »'),
-      p('Théo tire d’un coup sec sur la corde, qui tombe à ses pieds. Kaz lève sa clé à molette. Et vous êtes déjà dans le dos de Gaspard.'),
+      p('Théo tire d’un coup sec sur la corde, qui tombe à ses pieds. Kaz lève sa clé à molette. Et vous êtes déjà dans le dos de Gaspard.', not(KAZ_JOUE)),
+      p('Théo tire d’un coup sec sur la corde, qui tombe à ses pieds. Vous êtes à un pas de Gaspard. Il a juste le temps de comprendre qu’on ne lui a rien livré du tout.', KAZ_JOUE),
     ],
     onEnter: [rel('theo', 1), rel('kaz', 2)],
     choices: [{ id: 'frapper', text: 'Frapper.', kind: 'fight', next: 'c3_boss_embuscade' }],
@@ -628,6 +667,7 @@ export const chapter3: Scene[] = [
     text: [
       p('Le grillage du fleuve cède sous la pince. Vous vous faufilez entre deux carcasses de camionnettes, à plat ventre dans la boue. Le chien de garde dort, la tête sur ses pattes.'),
       p('Les cages sont là. Six enfants et deux adultes, maigres, sales, silencieux. La fillette aux cheveux tressés vous regarde approcher sans un bruit, et pose un doigt sur ses lèvres. Elle a compris avant tout le monde.'),
+      p('Malik les avait vues, ces cages. C’est écrit à la dernière page de son carnet, d’une écriture qui se brouille. Vous les voyez à votre tour, et vos mains, elles, ne tremblent pas.', INES_JOUE),
       p('Dans la dernière cage, recroquevillé sous une couverture militaire, Théo. Il vous voit. Il ne dit rien. Ses yeux disent tout.', THEO_PRISONNIER),
       p('Le gardien des cages ronfle sur une chaise de camping, un trousseau de clés à la ceinture.'),
     ],
@@ -779,6 +819,8 @@ export const chapter3: Scene[] = [
     text: [
       p('On vous fouille à l’entrée, on vous laisse vos armes — par mépris plus que par confiance — et on vous conduit dans la cour centrale. Gaspard Lenoir vous attend sur son trône de sièges de voiture, une cuisse de poulet à la main.'),
       say('gaspard', '« Quelqu’un de sérieux, à ce qu’on m’a dit. » Il vous jauge, et quelque chose dans votre façon de tenir lui plaît. « Bon. Parlons affaires entre gens qui savent ce que vaut une vie. »', flag('respect_ferrailleurs')),
+      say('gaspard', '« Le Polonais. » Gaspard repose sa cuisse de poulet. « Tu reviens enfin. Avec ma barge de gasoil, j’espère. Ou avec ce que tu m’as promis à la place. »', KAZ_JOUE),
+      say('gaspard', '« La mère. » Gaspard vous regarde, puis regarde votre fils. « Je connais les mères. Elles finissent toutes par vendre, ou par s’asseoir devant la cage. On va voir laquelle tu es. »', all(MAELLE_JOUE, withUs('theo'))),
       say('gaspard', '« Le gamin dort dans la cage du fond. Kaz a payé sa dette. Toi, tu veux le récupérer, j’imagine. Ça a un prix. Le même que celui que paie la barge, à peu près. »', THEO_PRISONNIER),
       say('gaspard', '« Tu veux passer le pont ? Tout le monde veut passer le pont. » Il regarde Théo, longuement, comme on regarde un cheval à la foire. « Ce gamin-là, par exemple. Il a une drôle de cicatrice. Je te fais le pont gratuit, et je te paie ta place sur la barge, si tu me le laisses. »', withUs('theo')),
       say('gaspard', '« Tu veux passer le pont. Le péage, c’est cinq rations par tête. Ou alors tu as quelque chose de plus intéressant à me proposer. »', all(not(withUs('theo')), not(THEO_PRISONNIER))),
@@ -1028,6 +1070,14 @@ export const chapter3: Scene[] = [
         text: '[Rossignols] Sortir vos crochets cachés dans la doublure et ouvrir le cadenas.',
         kind: 'item',
         requires: [has('rossignol')],
+        next: 'c3_evasion',
+      },
+      {
+        id: 'ines_hero',
+        text: '[Vous, Inès] L’épingle cousue dans votre col. Personne ne regarde jamais derrière soi.',
+        kind: 'stealth',
+        visibleIf: [INES_JOUE],
+        effects: [xp(10)],
         next: 'c3_evasion',
       },
       {

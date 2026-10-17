@@ -4,8 +4,8 @@
  * inconnu apparaît en pointillé qui s'efface. Les changements du monde
  * (cache fouillée, refuge brûlé…) restent notés.
  */
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import type { GameState, LocationDef } from '../../engine/types';
 import { useT } from '../../i18n';
@@ -14,9 +14,63 @@ import { Glass } from '../../ui/components/Glass';
 import { useChrome } from '../../ui/components/Hud';
 import { Badge, Label, Panel, PressableCard } from '../../ui/components/primitives';
 import { Icon } from '../../ui/icons';
-import { colors, fonts, MAX_SCALE_UI, radius, space, type } from '../../ui/theme';
+import { colors, fonts, MAX_SCALE_UI, NATIVE_DRIVER, radius, space, type } from '../../ui/theme';
 
 const DANGER_COLOR = ['', colors.mossBright, colors.amber, colors.blood];
+
+/** Couleur du chemin parcouru : la lueur chaude d'une lampe-tempête. */
+const ROUTE_COLOR = colors.amber;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedG = Animated.createAnimatedComponent(G);
+
+type Pt = { x: number; y: number };
+type Seg = { p1: Pt; c1: Pt; c2: Pt; p2: Pt };
+
+function bezierAt(s: Seg, t: number): Pt {
+  const u = 1 - t;
+  const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+  return { x: a * s.p1.x + b * s.c1.x + c * s.c2.x + d * s.p2.x, y: a * s.p1.y + b * s.c1.y + c * s.c2.y + d * s.p2.y };
+}
+
+/**
+ * Courbe lissée (Catmull-Rom → Bézier) passant par chaque étape, avec sa
+ * longueur (pour l'animation du tracé) et une flèche au milieu des segments
+ * assez longs pour la porter.
+ */
+function buildRoute(points: Pt[]) {
+  const segs: Seg[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? p2;
+    segs.push({ p1, p2, c1: { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 }, c2: { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 } });
+  }
+  const r = (n: number) => Math.round(n * 100) / 100;
+  const d = segs.length
+    ? `M${r(segs[0].p1.x)} ${r(segs[0].p1.y)}` + segs.map((s) => ` C${r(s.c1.x)} ${r(s.c1.y)} ${r(s.c2.x)} ${r(s.c2.y)} ${r(s.p2.x)} ${r(s.p2.y)}`).join('')
+    : '';
+  let length = 0;
+  const arrows: { x: number; y: number; angle: number; at: number }[] = [];
+  for (const s of segs) {
+    let prev = s.p1;
+    let segLen = 0;
+    for (let k = 1; k <= 16; k++) {
+      const q = bezierAt(s, k / 16);
+      segLen += Math.hypot(q.x - prev.x, q.y - prev.y);
+      prev = q;
+    }
+    const m = bezierAt(s, 0.5);
+    // Allers-retours : une seule flèche par endroit, pour rester lisible.
+    if (segLen > 12 && !arrows.some((a) => Math.hypot(a.x - m.x, a.y - m.y) < 6)) {
+      const a = bezierAt(s, 0.46);
+      const b = bezierAt(s, 0.54);
+      arrows.push({ x: m.x, y: m.y, angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI, at: length + segLen / 2 });
+    }
+    length += segLen;
+  }
+  return { d, length: Math.max(1, length), arrows };
+}
 
 function RegionDecor({ index }: { index: number }) {
   switch (index) {
@@ -52,15 +106,31 @@ function RegionDecor({ index }: { index: number }) {
   }
 }
 
+function labelProps(l: LocationDef) {
+  return {
+    x: l.x < 22 ? l.x - 3 : l.x > 78 ? l.x + 3 : l.x,
+    y: l.y + 7.5,
+    fontSize: 3.4,
+    textAnchor: (l.x < 22 ? 'start' : l.x > 78 ? 'end' : 'middle') as 'start' | 'end' | 'middle',
+    fontFamily: fonts.uiBold,
+  };
+}
+
+function labelText(l: LocationDef) {
+  return l.name.length > 22 ? `${l.name.slice(0, 21)}…` : l.name;
+}
+
 export function MapView({ game }: { game: GameState }) {
-  const { content } = useStore();
+  const { content, reduceMotion } = useStore();
   const t = useT();
   const chrome = useChrome();
   const regions = content.regions;
   const current = content.scenes[game.currentScene]?.location;
   const currentRegion = current ? content.locations[current]?.region : regions[0];
   const knownRegions = regions.filter((r) => game.discovered.some((l) => content.locations[l]?.region === r));
-  const [region, setRegion] = useState(currentRegion ?? regions[0]);
+  const [picked, setRegion] = useState(currentRegion ?? regions[0]);
+  // La région choisie peut devenir caduque (contenu rechargé dans une autre langue) : on retombe sur celle du lieu actuel.
+  const region = regions.includes(picked) ? picked : (currentRegion ?? regions[0]);
   const [selected, setSelected] = useState<string | null>(current ?? null);
   const known = useMemo(() => new Set(game.discovered), [game.discovered]);
   const locations = useMemo(() => Object.values(content.locations).filter((l) => l.region === region && known.has(l.id)), [content, region, known]);
@@ -71,6 +141,31 @@ export function MapView({ game }: { game: GameState }) {
         .map(([a, b]) => ({ a: content.locations[a], b: content.locations[b], open: known.has(a) && known.has(b) })),
     [content, region, known],
   );
+  // Chemin réellement parcouru : lieux des scènes visitées, dans l'ordre, sans doublon consécutif.
+  const routeIds = useMemo(() => {
+    const ids: string[] = [];
+    const push = (id: string | undefined) => {
+      if (id && known.has(id) && content.locations[id]?.region === region && ids[ids.length - 1] !== id) ids.push(id);
+    };
+    for (const sceneId of game.visitedScenes) push(content.scenes[sceneId]?.location);
+    push(current);
+    return ids;
+  }, [game.visitedScenes, content, region, known, current]);
+  const route = useMemo(() => buildRoute(routeIds.map((id) => content.locations[id])), [routeIds, content]);
+  const routeKey = `${region}|${routeIds.join('>')}`;
+  const [draw] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  useEffect(() => {
+    if (reduceMotion) {
+      draw.setValue(1);
+      return;
+    }
+    draw.setValue(0);
+    const a = Animated.timing(draw, { toValue: 1, duration: Math.min(2200, 700 + route.length * 6), delay: 150, easing: Easing.inOut(Easing.cubic), useNativeDriver: false });
+    a.start();
+    return () => a.stop();
+  }, [routeKey, reduceMotion, draw, route.length]);
+  const dashOffset = draw.interpolate({ inputRange: [0, 1], outputRange: [route.length, 0] });
+  const hereLoc = current && known.has(current) && content.locations[current]?.region === region ? content.locations[current] : null;
   const total = Object.values(content.locations).filter((l) => l.region === region).length;
   const sel: LocationDef | null = selected && known.has(selected) ? content.locations[selected] : null;
   const notes = sel ? (game.world[sel.id] ?? []).map((k) => sel.changes?.[k]).filter(Boolean) : [];
@@ -124,6 +219,21 @@ export function MapView({ game }: { game: GameState }) {
             const my = from.y + (to.y - from.y) * 0.45;
             return <Line key={`${a.id}-${b.id}`} x1={from.x} y1={from.y} x2={mx} y2={my} stroke="rgba(255,248,240,0.35)" strokeWidth={0.6} strokeDasharray="1 1.4" strokeLinecap="round" />;
           })}
+          {routeIds.length > 1 && (
+            <G pointerEvents="none">
+              <AnimatedPath d={route.d} fill="none" stroke={ROUTE_COLOR} strokeOpacity={0.16} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${route.length} ${route.length}`} strokeDashoffset={dashOffset} />
+              <AnimatedPath d={route.d} fill="none" stroke={ROUTE_COLOR} strokeOpacity={0.3} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${route.length} ${route.length}`} strokeDashoffset={dashOffset} />
+              <AnimatedPath d={route.d} fill="none" stroke={ROUTE_COLOR} strokeWidth={0.75} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${route.length} ${route.length}`} strokeDashoffset={dashOffset} />
+              {route.arrows.map((a, i) => (
+                <AnimatedG key={i} opacity={draw.interpolate({ inputRange: [0, Math.min(0.99, a.at / route.length), Math.min(1, a.at / route.length + 0.01)], outputRange: [0, 0, 1] })}>
+                  <G transform={`translate(${a.x.toFixed(2)} ${a.y.toFixed(2)}) rotate(${a.angle.toFixed(1)})`}>
+                    <Path d="M-1.1 -1.3 L0.9 0 L-1.1 1.3" fill="none" stroke={colors.bg} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                    <Path d="M-1.1 -1.3 L0.9 0 L-1.1 1.3" fill="none" stroke={ROUTE_COLOR} strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" />
+                  </G>
+                </AnimatedG>
+              ))}
+            </G>
+          )}
           {locations.map((l) => {
             const here = l.id === current;
             const isSel = l.id === selected;
@@ -133,26 +243,36 @@ export function MapView({ game }: { game: GameState }) {
                 {isSel && <Circle cx={l.x} cy={l.y} r={4.6} fill="none" stroke={colors.text} strokeWidth={0.5} />}
                 <Circle cx={l.x} cy={l.y} r={2.6} fill={here ? colors.rust : colors.text} />
                 <Circle cx={l.x} cy={l.y} r={1} fill={colors.bg} opacity={here ? 0 : 0.8} />
-                <SvgText
-                  x={l.x < 22 ? l.x - 3 : l.x > 78 ? l.x + 3 : l.x}
-                  y={l.y + 7.5}
-                  fontSize={3.4}
-                  fill={isSel || here ? colors.text : colors.textDim}
-                  textAnchor={l.x < 22 ? 'start' : l.x > 78 ? 'end' : 'middle'}
-                  fontFamily={fonts.uiBold}
-                >
-                  {l.name.length > 22 ? `${l.name.slice(0, 21)}…` : l.name}
-                </SvgText>
               </G>
             );
           })}
+          {/* Étiquettes au-dessus des lieux et du chemin, sur un halo sombre qui les garde lisibles. */}
+          {locations.map((l) => (
+            <G key={`label-${l.id}`} onPress={() => setSelected(l.id)}>
+              <SvgText {...labelProps(l)} stroke={colors.bg} strokeWidth={1.1} strokeOpacity={0.85} strokeLinejoin="round" fill={colors.bg}>
+                {labelText(l)}
+              </SvgText>
+              <SvgText {...labelProps(l)} fill={l.id === selected || l.id === current ? colors.text : colors.textDim}>
+                {labelText(l)}
+              </SvgText>
+            </G>
+          ))}
           <SvgText x={95} y={8} fontSize={3.4} fill={colors.textFaint} textAnchor="end" fontFamily={fonts.mono}>
             N ↑
           </SvgText>
           <Rect x={0} y={0} width={0} height={0} />
         </Svg>
+        {hereLoc && <HerePulse x={hereLoc.x} y={hereLoc.y} still={reduceMotion} />}
       </Glass>
-      <Text style={[type.label, { marginTop: space.sm }]}>{t('map.discovered', { n: locations.length, total })}</Text>
+      <View style={styles.legend}>
+        <Text style={type.label}>{t('map.discovered', { n: locations.length, total })}</Text>
+        {routeIds.length > 1 && (
+          <View style={styles.legendItem} accessible accessibilityLabel={`${t('map.route')}. ${routeIds.map((id) => content.locations[id]?.name).join(', ')}`}>
+            <View style={styles.legendSwatch} />
+            <Text style={[type.label, { color: ROUTE_COLOR }]}>{t('map.route')}</Text>
+          </View>
+        )}
+      </View>
 
       {sel && (
         <Panel tone="paper" taped style={{ marginTop: space.lg }}>
@@ -189,7 +309,39 @@ export function MapView({ game }: { game: GameState }) {
   );
 }
 
+/** Halo qui bat doucement sur le lieu actuel (fixe si les mouvements sont réduits). */
+function HerePulse({ x, y, still }: { x: number; y: number; still: boolean }) {
+  const [v] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (still) {
+      v.setValue(0.35);
+      return;
+    }
+    const loop = Animated.loop(Animated.timing(v, { toValue: 1, duration: 1800, easing: Easing.out(Easing.quad), useNativeDriver: NATIVE_DRIVER }));
+    loop.start();
+    return () => loop.stop();
+  }, [still, v]);
+  return (
+    <View pointerEvents="none" style={[styles.pulseAnchor, { left: `${x}%`, top: `${y}%` }]}>
+      <Animated.View
+        style={[
+          styles.pulse,
+          {
+            opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.75, 0] }),
+            transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.6] }) }],
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  pulseAnchor: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
+  pulse: { position: 'absolute', width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: colors.rustBright },
+  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendSwatch: { width: 18, height: 3, borderRadius: 2, backgroundColor: ROUTE_COLOR, shadowColor: ROUTE_COLOR, shadowOpacity: 0.8, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
   mapFrame: { aspectRatio: 1, width: '100%' },
   chip: { borderRadius: radius.pill, paddingHorizontal: space.md + 2, paddingVertical: 8, backgroundColor: 'rgba(255,248,240,0.06)' },
   chipActive: { backgroundColor: colors.text },

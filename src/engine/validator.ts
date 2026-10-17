@@ -9,6 +9,7 @@
 import { EFFECTIVE_STAT_MAX } from './rules';
 import type { Condition, Effect, GameContent, Scene } from './types';
 import { RELATION_MAX, RELATION_MIN } from './effects';
+import { RELAY_FLAGS } from './relay';
 
 export interface ValidationIssue {
   level: 'error' | 'warning';
@@ -111,7 +112,8 @@ export function validateContent(content: GameContent): ValidationIssue[] {
     if (!content.regions.includes(l.region)) err(`Lieu ${l.id} : région inconnue ${l.region}`);
   }
 
-  const setFlags = new Set<string>();
+  // Drapeaux posés par le moteur lui-même (relève).
+  const setFlags = new Set<string>(RELAY_FLAGS);
   const readFlags = new Map<string, string>();
   const counters = new Set<string>();
 

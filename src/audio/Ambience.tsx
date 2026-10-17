@@ -1,5 +1,5 @@
 /**
- * Ambiance sonore : une boucle par région (et une pour les combats), jouée
+ * Ambiance sonore : une boucle par région ou lieu marquant (et une pour les combats), jouée
  * localement. Le volume vient des paramètres (0 = coupé, rien n'est lu).
  * L'ambiance respecte le mode silencieux de l'iPhone et se mélange à la
  * musique de l'utilisateur au lieu de l'interrompre.
@@ -13,8 +13,11 @@ import { type TrackId, trackFor } from './tracks';
 const TRACKS: Record<TrackId, number> = {
   ville: require('../../assets/audio/ville.m4a'),
   carrieres: require('../../assets/audio/carrieres.m4a'),
+  faubourgs: require('../../assets/audio/faubourgs.m4a'),
   port: require('../../assets/audio/port.m4a'),
   ecluse: require('../../assets/audio/ecluse.m4a'),
+  marais: require('../../assets/audio/marais.m4a'),
+  barrage: require('../../assets/audio/barrage.m4a'),
   combat: require('../../assets/audio/combat.m4a'),
 };
 
@@ -126,10 +129,15 @@ const controller = new AmbienceController();
 export function Ambience() {
   const { model, content } = useStore();
   const volume = model.settings.volume;
-  const track = trackFor(model, content.regions, (id) => {
-    const loc = content.scenes[id]?.location;
-    return loc ? content.locations[loc]?.region : undefined;
-  });
+  const track = trackFor(
+    model,
+    content.regions,
+    (id) => {
+      const loc = content.scenes[id]?.location;
+      return loc ? content.locations[loc]?.region : undefined;
+    },
+    (id) => content.scenes[id]?.location,
+  );
 
   useEffect(() => {
     controller.sync(track, volume);

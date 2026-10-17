@@ -43,6 +43,10 @@ const DELMAS_A_BORD = flag('r8_delmas_embarques');
 const CLE = has('cle_aiguillage');
 const SANS_PERSONNE = all(notWithUs('maelle'), notWithUs('theo'), notWithUs('kaz'), notWithUs('ines'), notWithUs('nour'));
 const COMBAT_TRANCHEE: Condition = { type: 'visited', scene: 'r8_horde_combat' };
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
+const HEROS = any(KAZ_HEROS, MAELLE_HEROS, INES_HEROS);
 
 export const chapterR8: Scene[] = [
   // -------------------------------------------------------------------------
@@ -56,11 +60,11 @@ export const chapterR8: Scene[] = [
     kind: 'story',
     checkpoint: true,
     text: [
-      p('La gare de Brennes tient en trois choses : un quai de briques où l’herbe a percé entre les joints, une horloge arrêtée sur une heure que plus personne ne regarde, et, adossée au talus, la remise des cantonniers. Une porte de planches peinte en rouge sang-de-bœuf. Un cadenas carré, de ceux qu’on n’ouvre qu’avec une clé de cheminot.'),
-      p('Au-delà du heurtoir, la voie unique file vers l’est entre deux haies de ronces. Elle suit le fleuve jusqu’à Morvan. Personne n’y a roulé depuis la Fièvre. Les rails ont pris la couleur des feuilles mortes.'),
-      p('Dans votre poche, la clé en T d’Armand Vidal, gravée « A.V. — Brennes ». Vous revoyez le vieux cheminot dans son poste d’aiguillage, sa casquette trop grande. « Sous la bâche verte. Elle vous fera gagner la moitié d’une journée. »', CLE),
+      p('La gare de Brennes tient en trois choses : un quai de briques où l’herbe a percé entre les joints, une horloge que plus personne ne regarde, et, adossée au talus, la remise des cantonniers. Une porte coulissante en tôle, rouillée jusqu’au rouge sang-de-bœuf. Un cadenas à barillet carré, de ceux qu’on n’ouvre qu’avec une clé de cheminot.'),
+      p('Au-delà du heurtoir, la voie unique file vers le nord entre deux haies de ronces. Elle suit le fleuve jusqu’à Morvan. Personne n’y a roulé depuis la Fièvre. Les rails ont pris la couleur des feuilles mortes.'),
+      p('Dans votre poche, la clé en T d’Armand Vidal, gravée « A.V. — Brennes ». Vous revoyez le vieux cheminot dans son poste d’aiguillage, sa casquette trop grande. « Sous la bâche verte. Elle te fera gagner la moitié d’une journée. »', CLE),
       p('Vous n’avez pas de clé. Vous avez des épaules, et peu de temps devant vous.', lacks('cle_aiguillage')),
-      p('Kaz pose sa paume à plat sur la porte, comme on tâte le flanc d’une bête. « Du chêne. Le cantonnier qui a posé ça n’aimait pas les voleurs. »', withUs('kaz')),
+      p('Kaz pose sa paume à plat sur la porte, comme on tâte le flanc d’une bête. « De la tôle de wagon, doublée. Le cantonnier qui a posé ça n’aimait pas les voleurs. »', withUs('kaz')),
       p('Théo s’est assis au bord du quai, les pieds au-dessus du ballast. Il dessine la voie qui part : deux traits qui se rejoignent au bout de la page.', withUs('theo')),
       p('Nour compte les traverses jusqu’au premier poteau. « Vingt-trois. » Elle le dit pour elle-même, pas pour vous.', withUs('nour')),
     ],
@@ -74,7 +78,7 @@ export const chapterR8: Scene[] = [
       },
       {
         id: 'gonds',
-        text: '[Technicien ou outils] Démonter les gonds : ils sont du côté extérieur.',
+        text: '[Technicien ou outils] Déboulonner le rail de la porte coulissante : les écrous sont du côté extérieur.',
         kind: 'explore', time: 1,
         visibleIf: [lacks('cle_aiguillage')],
         requires: [any(profile('technicien'), has('outils'))],
@@ -127,7 +131,7 @@ export const chapterR8: Scene[] = [
     title: 'Le tambour',
     kind: 'combat',
     text: [
-      p('Le bois gémit, se fend sur toute sa hauteur, et tient. Le choc roule sur le quai comme un coup de grosse caisse. Dans les ronces du talus, quelque chose se redresse. Puis le cliquetis : des dents qui claquent, sèches, régulières, comme une horloge qui se serait remise en marche.'),
+      p('La tôle gémit, se gondole sur toute sa hauteur, et tient. Le choc roule sur le quai comme un coup de grosse caisse. Dans les ronces du talus, quelque chose se redresse. Puis le cliquetis : des dents qui claquent, sèches, régulières, comme une horloge qui se serait remise en marche.'),
     ],
     encounter: {
       enemies: ['rodeur', 'rodeur'],
@@ -168,12 +172,13 @@ export const chapterR8: Scene[] = [
     kind: 'story',
     text: [
       p('La clé tourne dans le cadenas comme si elle n’était jamais partie. La porte s’ouvre sur une odeur de graisse froide et de poussière.', all(CLE, notFlag('r8_porte_forcee'))),
-      p('La porte pend sur un seul gond. Personne ne la refermera.', flag('r8_porte_forcee')),
-      p('À l’intérieur, la lumière passe entre les planches en lames minces où dansent des poussières. Un établi, des pelles, une lanterne de signalisation au verre rouge. Et au milieu, posée sur deux bouts de rail, une forme sous une bâche verte.'),
+      p('La porte pend de travers, sortie de son rail. Personne ne la refermera.', flag('r8_porte_forcee')),
+      p('À l’intérieur, la lumière tombe d’une lucarne en lames minces où dansent des poussières. Un établi, des pelles, une lanterne de signalisation au verre rouge. Et au milieu, posée sur deux bouts de rail, une forme sous une bâche verte.'),
       p('Vous tirez la bâche. Une plate-forme de chêne sur quatre roues d’acier. Au centre, un balancier de fonte à deux poignées, comme une balançoire de square. Un frein à pied, une boîte à outils vissée dans le plancher. Sur l’établi, une burette d’huile, encore pleine.'),
       p('Une feuille de cahier est épinglée au balancier, écrite au crayon de menuisier. Le mot est pour vous.', CLE),
       p('Une feuille de cahier est épinglée au balancier. Le mot n’était pas pour vous. Vous le lisez quand même.', lacks('cle_aiguillage')),
       say('kaz', '« Une draisine à balancier. » Kaz fait jouer la poignée, qui remonte avec un grincement de vieille porte. « Un qui pompe, elle roule. Deux qui pompent, elle file. Quatre, elle s’envole. Mon beau-père en avait une sur le canal de la Marne. Irena montait dessus en robe du dimanche. » Il se tait.', withUs('kaz')),
+      p('Une draisine à balancier. Vous faites jouer la poignée, qui remonte avec un grincement de vieille porte. Votre beau-père en avait une sur le canal de la Marne. Irena montait dessus en robe du dimanche, et elle riait de vous voir pomper, tout rouge, pour l’emmener jusqu’à l’écluse suivante.', KAZ_HEROS),
       say('theo', '« On va vraiment rouler ? » C’est la première fois depuis longtemps que Théo pose une question sans avoir peur de la réponse.', withUs('theo')),
     ],
     onEnter: [doc('doc_r8_mot_armand')],
@@ -198,6 +203,13 @@ export const chapterR8: Scene[] = [
         kind: 'talk', time: 0.5,
         requires: [withUs('kaz')],
         effects: [rel('kaz', 1)],
+        next: 'r8_depart',
+      },
+      {
+        id: 'kaz_vous',
+        text: '[Vous, Kaz] Organiser la manœuvre : des cales, un levier, et tout le monde au trois.',
+        kind: 'talk', time: 0.5,
+        requires: [KAZ_HEROS],
         next: 'r8_depart',
       },
       {
@@ -256,8 +268,9 @@ export const chapterR8: Scene[] = [
     title: 'La ligne du fleuve',
     kind: 'story',
     checkpoint: true,
+    illustration: 'draisine',
     text: [
-      p('Les roues trouvent le rail avec un claquement net. On pousse, on saute à bord, on pompe. Le balancier monte, descend, monte. Le quai de Brennes glisse vers l’arrière, puis l’horloge arrêtée, puis le village tout entier, qui n’est plus qu’un clocher au-dessus des haies.'),
+      p('Les roues trouvent le rail avec un claquement net. On pousse, on saute à bord, on pompe. Le balancier monte, descend, monte. Le quai de Brennes glisse vers l’arrière, puis l’horloge de la gare, puis le village tout entier, qui n’est plus qu’un clocher au-dessus des haies.'),
       p('Et la draisine prend de la vitesse. Le vent du fleuve vous entre dans la bouche et vous fait pleurer les yeux. Les traverses défilent sous vous trop vite pour qu’on les distingue, un battement sourd, régulier, comme un cœur. À droite, en contrebas, le fleuve, large et brun, plein de lumière. Pour la première fois depuis des jours, c’est le paysage qui bouge et vous qui restez immobile.'),
       p('Elle tire un peu à gauche. Armand avait prévenu.'),
       p('Kaz pompe torse nu, la chemise nouée autour de la taille, et il rit. Un rire énorme, absurde, qui couvre le bruit des roues.', withUs('kaz')),
@@ -265,6 +278,7 @@ export const chapterR8: Scene[] = [
       p('Nour s’est accroupie à l’avant, les mains crispées sur le bord du plancher. Elle a renoncé à compter les traverses. « Elles vont trop vite », dit-elle, et c’est presque un reproche.', withUs('nour')),
       p('Inès, à l’arrière, surveille la voie derrière vous. Par habitude. Personne ne vous suit. Personne ne pourrait.', withUs('ines')),
       p('Maëlle a fermé les yeux. Elle ne dort pas. Elle sent le vent, c’est tout.', withUs('maelle')),
+      p('Vous fermez les yeux une seconde. Vous ne dormez pas. Vous sentez le vent, c’est tout, et pour la première fois depuis la pharmacie, personne n’a besoin de vous pendant une minute entière.', MAELLE_HEROS),
     ],
     onEnter: [
       set('draisine_prise'),
@@ -352,7 +366,7 @@ export const chapterR8: Scene[] = [
       },
       {
         id: 'pompier',
-        text: '[Ancien pompier] Écouter le pont avant de s’y engager.',
+        text: '[Pompier] Écouter le pont avant de s’y engager.',
         kind: 'explore', time: 0.5,
         requires: [background('pompier')],
         effects: [xp(15), journal('Vous avez écouté le pont du Lizon comme on écoute une charpente avant qu’elle cède.', false)],
@@ -364,6 +378,13 @@ export const chapterR8: Scene[] = [
         kind: 'talk', time: 0.5,
         requires: [withUs('kaz')],
         effects: [rel('kaz', 1)],
+        next: 'r8_wagon',
+      },
+      {
+        id: 'kaz_vous',
+        text: '[Vous, Kaz] Inspecter les éclisses une à une, comme on inspecte les gonds d’une porte d’écluse.',
+        kind: 'explore', time: 0.5,
+        requires: [KAZ_HEROS],
         next: 'r8_wagon',
       },
       {
@@ -410,6 +431,14 @@ export const chapterR8: Scene[] = [
         kind: 'fight', time: 0.25,
         visibleIf: [lacks('cle_aiguillage')],
         requires: [withUs('kaz')],
+        next: 'r8_horde',
+      },
+      {
+        id: 'kaz_levier_vous',
+        text: '[Vous, Kaz] Faire sauter le cadenas d’un coup de clé à molette.',
+        kind: 'fight', time: 0.25,
+        visibleIf: [lacks('cle_aiguillage')],
+        requires: [KAZ_HEROS],
         next: 'r8_horde',
       },
       {
@@ -506,6 +535,7 @@ export const chapterR8: Scene[] = [
       p('Ils passent. Par trois, par cinq, par un seul. Le cliquetis va et vient. Un Rôdeur s’arrête sur le rail, tourne la tête vers vous, renifle l’air comme un chien. Une minute. Deux. Puis il reprend sa marche vers l’eau, de ce pas qui ne va nulle part.'),
       p('Théo vous a pris la main sans s’en rendre compte. Il ne la lâche qu’à la fin.', withUs('theo')),
       p('Inès a l’arbalète à l’épaule depuis le début. Elle ne tire pas. Elle n’a jamais eu l’intention de tirer. C’est pour se tenir à quelque chose.', withUs('ines')),
+      p('Vous avez l’arbalète à l’épaule depuis le début. Vous ne tirerez pas. C’est pour vous tenir à quelque chose, comme dans les galeries, les premières fois, quand Malik serrait votre manche dans le noir.', INES_HEROS),
       p('Le soleil a tourné quand le dernier disparaît dans les roseaux de la berge.'),
     ],
     choices: [{ id: 'repartir', text: 'Repartir, tout doucement.', kind: 'move', time: 0.25, next: 'r8_corniche' }],
@@ -650,7 +680,7 @@ export const chapterR8: Scene[] = [
     kind: 'story',
     text: [
       p('Vous ne savez plus très bien comment s’est faite la montée jusqu’en haut du talus. Il y a de la craie sous vos ongles, du sang sur votre manche, et votre sac est plus léger : il s’est ouvert dans la pente.'),
-      p('On vous a tiré par les bras jusqu’aux acacias. En bas, la horde a repris sa marche vers l’eau, comme si rien ne s’était passé. Pour elle, rien ne s’est passé.', not(SANS_PERSONNE)),
+      p('Des mains ont agrippé vos bras et les ont tirés jusqu’aux acacias. En bas, la horde a repris sa marche vers l’eau, comme si rien ne s’était passé. Pour elle, rien ne s’est passé.', not(SANS_PERSONNE)),
       p('En bas, la horde a repris sa marche vers l’eau, comme si rien ne s’était passé. Pour elle, rien ne s’est passé.', SANS_PERSONNE),
     ],
     onEnter: [hurt(3, 'la horde de la tranchée'), take('ration', 1)],
@@ -678,6 +708,7 @@ export const chapterR8: Scene[] = [
       p('Sur l’autre rive, un 4×4 blanc vient de s’arrêter. Deux silhouettes en combinaison grise en descendent et déroulent le câble d’un treuil. Elles ne se pressent pas. Elles savent que la marchandise ne partira pas sans elles.'),
       p('Vous savez ce qu’il y a sous la bâche. Vous le savez depuis la casse. Un pan de toile se soulève dans le vent, et une main maigre se cramponne aux barreaux. Théo.', THEO_PRISONNIER),
       p('Maëlle a vu, elle aussi. Elle fait trois pas vers le talus, et il faut la retenir par le bras. Elle ne se débat pas. Elle tremble.', all(THEO_PRISONNIER, withUs('maelle'))),
+      p('Votre fils. Vous faites trois pas vers le talus avant de vous arrêter vous-même, la main serrée sur la bandoulière de votre trousse. Vous tremblez. Vous ne descendrez pas en courant : morte au milieu du gué, vous ne lui servirez à rien.', all(THEO_PRISONNIER, MAELLE_HEROS)),
       p('Sous les bâches, il y a des gens. Vous voyez une jambe de femme, des pieds d’enfant. Des porteurs, sans doute, qu’on livre à la barge.', not(THEO_PRISONNIER)),
       p('Claire serre Jules contre elle et lui tourne la tête vers le coteau. « Ne regarde pas en bas. » Puis, pour vous : « Nous, on continue par la voie. On sera à l’écluse avant la nuit. » Jules vous fait le salut à l’envers. Ils s’éloignent sur les rails, une grande ombre et une petite.', DELMAS_A_BORD),
       p('Assis sur une borne kilométrique, un peu plus loin, un homme regarde lui aussi le gué. Massif, voûté, sans plastron, le visage lavé de son cambouis. Il a entendu vos pas. Il ne se lève pas. Gaspard Lenoir.', all(flag('gaspard_epargne'), notFlag('r8_gaspard_parle'))),
@@ -714,7 +745,8 @@ export const chapterR8: Scene[] = [
     text: [
       p('De près, il a l’air plus petit. Sans ses tôles, sans ses chiens, sans son trône de sièges de voiture, Gaspard Lenoir ressemble à n’importe quel homme de soixante ans qui a trop marché. Il a des ampoules aux talons. Il mange une pomme verte, lentement, avec un canif.'),
       say('gaspard', '« Le Bègue et Momo. Mes gars. Enfin, mes anciens gars. » Il pointe le canif vers le gué. « La nuit où la casse est tombée, ils ont pris le dernier camion et les cages. Ils ont gardé le contrat. Ils livrent ce que je devais livrer. Ils se sont même pas donné la peine de changer de client. »'),
-      say('gaspard', '« Le gamin, là-dessous. Celui que tu m’as laissé pour une plaque en fer. » Il ne vous regarde pas. « Il n’a pas pleuré une seule fois. Même moi, ça m’a gêné. »', all(THEO_PRISONNIER, flag('theo_vendu'))),
+      say('gaspard', '« Le gamin, là-dessous. Celui que tu m’as laissé pour une plaque en fer. » Il ne vous regarde pas. « Il n’a pas pleuré une seule fois. Même moi, ça m’a gêné. »', all(THEO_PRISONNIER, flag('theo_vendu'), not(HEROS))),
+      say('gaspard', '« Le gamin, là-dessous. Celui qu’on m’a laissé pour une plaque en fer. » Il ne vous regarde pas. « Il n’a pas pleuré une seule fois. Même moi, ça m’a gêné. »', all(THEO_PRISONNIER, flag('theo_vendu'), HEROS)),
       say('gaspard', '« Les gris, en face, ils ne paient pas. Ils prennent. Je l’ai compris trop tard. Toi, tu l’as compris avant moi. » Il jette le trognon dans les ronces. « Le Bègue a peur de l’eau. Momo dort dès qu’il a mangé. Fais-en ce que tu veux. »'),
       p('Kaz est resté debout, à trois mètres. Gaspard le regarde enfin. « Le Polonais. » Kaz ne répond pas. Ils restent ainsi un long moment, deux hommes qui se sont tout dit il y a longtemps.', withUs('kaz')),
     ],

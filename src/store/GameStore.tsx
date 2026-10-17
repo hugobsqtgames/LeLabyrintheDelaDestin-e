@@ -15,11 +15,16 @@ import { contentFor } from '../content/localized';
 import { type Lang, resolveLanguage } from '../i18n/lang';
 import { addPlaytime, newGame } from '../engine/narrative';
 import { newSeed } from '../engine/rng';
-import type { CharacterDraft, GameContent, GameState } from '../engine/types';
-import type { SaveManager } from '../persistence/saves';
+import { absorbGame, type AchievementDef, emptyMeta, type MetaProfile, readMeta } from '../engine/meta';
+import { takeOver } from '../engine/relay';
+import { hoursLeft } from '../engine/rules';
+import { translate } from '../i18n/translate';
+import { cancelReminders, scheduleReminder } from '../notifications/reminders';
+import type { ChapterId, CharacterDraft, CharacterId, GameContent, GameState, ItemId } from '../engine/types';
+import { META_KEY, type SaveManager } from '../persistence/saves';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 
-export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery';
+export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery' | 'memories';
 export type SavesMode = 'new' | 'load' | 'copy';
 export type Tab = 'story' | 'character' | 'inventory' | 'map' | 'quests' | 'chronicle' | 'archives';
 export { DEFAULT_SETTINGS, type LanguageSetting, type Settings } from './settings';
@@ -39,6 +44,12 @@ export interface AppModel {
   pendingSlot: number | null;
   /** Afficher le résumé « Que s'est-il passé ? » (après un chargement). */
   recap: boolean;
+  /** Mémoires hors partie (succès, codex, personnages, chapitres). */
+  meta: MetaProfile;
+  /** Succès qui viennent d'être débloqués (bandeau à afficher). */
+  unlocked: AchievementDef[];
+  /** « Rejouer un chapitre » : chapitre choisi, en attente d'un emplacement. */
+  pendingChapter: ChapterId | null;
 }
 
 type Action =
@@ -52,7 +63,10 @@ type Action =
   | { type: 'saved' }
   | { type: 'saveError'; error: string | null }
   | { type: 'pendingSlot'; slot: number | null }
-  | { type: 'recap'; value: boolean };
+  | { type: 'recap'; value: boolean }
+  | { type: 'meta'; meta: MetaProfile; unlocked?: AchievementDef[] }
+  | { type: 'dismissUnlocked' }
+  | { type: 'pendingChapter'; chapter: ChapterId | null };
 
 function reducer(model: AppModel, action: Action): AppModel {
   switch (action.type) {
@@ -66,7 +80,7 @@ function reducer(model: AppModel, action: Action): AppModel {
       return game === model.game ? model : { ...model, game };
     }
     case 'start':
-      return { ...model, game: action.game, slot: action.slot, route: 'game', tab: 'story', saveError: null, pendingSlot: null, recap: false };
+      return { ...model, game: action.game, slot: action.slot, route: 'game', tab: 'story', saveError: null, pendingSlot: null, pendingChapter: null, recap: false };
     case 'close':
       return { ...model, game: null, slot: null, route: 'title', tab: 'story' };
     case 'settings':
@@ -81,6 +95,12 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, pendingSlot: action.slot };
     case 'recap':
       return { ...model, recap: action.value };
+    case 'meta':
+      return { ...model, meta: action.meta, unlocked: action.unlocked?.length ? [...model.unlocked, ...action.unlocked] : model.unlocked };
+    case 'dismissUnlocked':
+      return { ...model, unlocked: model.unlocked.slice(1) };
+    case 'pendingChapter':
+      return { ...model, pendingChapter: action.chapter };
     default:
       return model;
   }
@@ -99,10 +119,18 @@ export interface Store {
   update: (fn: (g: GameState) => GameState) => void;
   startNewGame: (draft: CharacterDraft, slot: number | null) => GameState;
   loadGame: (slot: number) => Promise<{ ok: boolean; error?: string; notes: string[] }>;
+  /** Recharge l'état mis de côté juste avant la dernière relève de cet emplacement. */
+  restoreBeforeRelay: (slot: number) => Promise<{ ok: boolean; error?: string; notes: string[] }>;
+  /** Relève : met de côté l'état de la mort, puis le compagnon reprend la route. */
+  relayTakeOver: (hero: CharacterId, picks: ItemId[]) => void;
   closeGame: () => Promise<void>;
   setSettings: (patch: Partial<Settings>) => void;
   setPendingSlot: (slot: number | null) => void;
   dismissRecap: () => void;
+  dismissUnlocked: () => void;
+  /** Rejouer un chapitre : choisit le chapitre, puis l'emplacement. */
+  setPendingChapter: (chapter: ChapterId | null) => void;
+  startFromChapter: (chapter: ChapterId, slot: number) => Promise<{ ok: boolean; error?: string }>;
   feedback: (kind: 'light' | 'heavy' | 'success' | 'error') => void;
 }
 
@@ -147,6 +175,9 @@ export function GameProvider({
     saveCount: 0,
     pendingSlot: null,
     recap: false,
+    meta: emptyMeta(),
+    unlocked: [],
+    pendingChapter: null,
     ...initial,
   });
   const lastActivity = useRef(0);
@@ -163,8 +194,10 @@ export function GameProvider({
   }, []);
 
   // Paramètres persistants.
+  // Une maquette qui fixe ses propres paramètres les garde tels quels (rien n'est relu ni écrit).
+  const fixedSettings = !!initial?.settings;
   useEffect(() => {
-    if (!saves) return;
+    if (!saves || fixedSettings) return;
     let alive = true;
     saves.loadSettings(DEFAULT_SETTINGS).then((s) => {
       if (!alive) return;
@@ -174,7 +207,7 @@ export function GameProvider({
     return () => {
       alive = false;
     };
-  }, [saves, mockTutorial]);
+  }, [saves, mockTutorial, fixedSettings]);
   useEffect(() => {
     if (saves && settingsLoaded.current) saves.saveSettings(model.settings).catch(() => undefined);
   }, [saves, model.settings]);
@@ -200,6 +233,64 @@ export function GameProvider({
       .then(() => dispatch({ type: 'saved' }))
       .catch((e: Error) => dispatch({ type: 'saveError', error: e?.message ?? 'Sauvegarde impossible.' }));
   }, [saves, model.game, model.slot]);
+
+  // Mémoires : chargées une fois, enrichies à chaque changement de partie (jamais pour les maquettes).
+  const metaLoaded = useRef(false);
+  const prevScene = useRef<string | null>(null);
+  const chapterSaved = useRef(new Set<string>());
+  useEffect(() => {
+    if (!saves || mockTutorial !== null) return;
+    let alive = true;
+    saves.loadJson(META_KEY).then((raw) => {
+      if (!alive) return;
+      metaLoaded.current = true;
+      dispatch({ type: 'meta', meta: readMeta(raw) });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [saves, mockTutorial]);
+  const metaRef = useRef(model.meta);
+  useEffect(() => {
+    metaRef.current = model.meta;
+  }, [model.meta]);
+  useEffect(() => {
+    const g = model.game;
+    if (!g || !saves || mockTutorial !== null || !metaLoaded.current) return;
+    const c = contentFor(resolveLanguage(languageRef.current));
+    const res = absorbGame(metaRef.current, c, g, prevScene.current, c.achievements, Date.now());
+    prevScene.current = g.currentScene;
+    if (res.meta !== metaRef.current) {
+      dispatch({ type: 'meta', meta: res.meta, unlocked: res.unlocked });
+      saves.saveJson(META_KEY, res.meta).catch(() => undefined);
+    }
+    // Début de chapitre mémorisé pour « Rejouer un chapitre ».
+    const ch = c.chapters.find((x) => x.start === g.currentScene);
+    const key = `${g.id}:${ch?.id}`;
+    if (ch && !g.ending && model.slot !== null && !chapterSaved.current.has(key)) {
+      chapterSaved.current.add(key);
+      saves.saveChapterStart(ch.id, g).catch(() => undefined);
+    }
+  }, [model.game, model.slot, saves, mockTutorial]);
+
+  // Rappel de reprise (opt-in) : programmé en quittant une partie en cours, annulé au retour.
+  const reminderGame = useRef<GameState | null>(null);
+  useEffect(() => {
+    reminderGame.current = model.game;
+  }, [model.game]);
+  useEffect(() => {
+    if (!model.settings.reminders || mockTutorial !== null) return;
+    const sub = RNAppState.addEventListener('change', (st) => {
+      const g = reminderGame.current;
+      if (st === 'active') cancelReminders();
+      else if (st === 'background' && g && !g.ending) {
+        const lang = resolveLanguage(languageRef.current);
+        const left = Math.max(0, Math.round(hoursLeft(g.clock)));
+        scheduleReminder(translate(lang, 'notif.title'), translate(lang, 'notif.body', { name: g.player.name, left }));
+      }
+    });
+    return () => sub.remove();
+  }, [model.settings.reminders, mockTutorial]);
 
   // Mise en arrière-plan : on vide la file d'écriture.
   useEffect(() => {
@@ -235,9 +326,9 @@ export function GameProvider({
   );
 
   const loadGame = useCallback(
-    async (slot: number) => {
+    async (slot: number, beforeRelay = false) => {
       if (!saves) return { ok: false, error: 'Persistance désactivée.', notes: [] };
-      const res = await saves.load(slot);
+      const res = beforeRelay ? await saves.loadRelaySnapshot(slot) : await saves.load(slot);
       if (!res.ok || !res.state) return { ok: false, error: res.error, notes: [] };
       lastActivity.current = Date.now();
       dispatch({ type: 'start', slot, game: res.state });
@@ -249,6 +340,36 @@ export function GameProvider({
       return { ok: true, notes };
     },
     [saves],
+  );
+
+  const lang = resolveLanguage(model.settings.language);
+  const content = contentFor(lang);
+
+  const startFromChapter = useCallback(
+    async (chapter: ChapterId, slot: number) => {
+      if (!saves) return { ok: false, error: 'Persistance désactivée.' };
+      const res = await saves.loadChapterStart(chapter);
+      if (!res.ok || !res.state) return { ok: false, error: res.error };
+      await saves.remove(slot);
+      const now = Date.now();
+      const game: GameState = { ...res.state, id: `partie-${now}`, createdAt: now, ending: null, notices: [] };
+      lastActivity.current = now;
+      dispatch({ type: 'start', slot, game });
+      dispatch({ type: 'settings', patch: { lastSlot: slot } });
+      return { ok: true };
+    },
+    [saves],
+  );
+
+  const restoreBeforeRelay = useCallback((slot: number) => loadGame(slot, true), [loadGame]);
+
+  const relayTakeOver = useCallback(
+    (hero: CharacterId, picks: ItemId[]) => {
+      // La copie passe par la file d'écriture avant l'autosauvegarde du nouvel état.
+      if (saves && model.slot !== null && model.game?.ending) saves.saveRelaySnapshot(model.slot, model.game).catch(() => undefined);
+      update((g) => takeOver(content, g, hero, picks));
+    },
+    [saves, model.slot, model.game, update, content],
   );
 
   const closeGame = useCallback(async () => {
@@ -273,8 +394,6 @@ export function GameProvider({
     [hapticsOn],
   );
 
-  const lang = resolveLanguage(model.settings.language);
-  const content = contentFor(lang);
 
   const store = useMemo<Store>(
     () => ({
@@ -289,14 +408,19 @@ export function GameProvider({
       setTab: (tab) => dispatch({ type: 'tab', tab }),
       update,
       startNewGame,
-      loadGame,
+      loadGame: (slot: number) => loadGame(slot),
+      restoreBeforeRelay,
+      relayTakeOver,
       closeGame,
       setSettings: (patch) => dispatch({ type: 'settings', patch }),
       setPendingSlot: (slot) => dispatch({ type: 'pendingSlot', slot }),
       dismissRecap: () => dispatch({ type: 'recap', value: false }),
+      dismissUnlocked: () => dispatch({ type: 'dismissUnlocked' }),
+      setPendingChapter: (chapter) => dispatch({ type: 'pendingChapter', chapter }),
+      startFromChapter,
       feedback,
     }),
-    [model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, closeGame, feedback],
+    [model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, restoreBeforeRelay, relayTakeOver, startFromChapter, closeGame, feedback],
   );
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;

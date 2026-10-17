@@ -37,6 +37,9 @@ const THEO_PRIS = companionIs('theo', 'captured');
 const SEUL = all(notWithUs('maelle'), notWithUs('theo'), notWithUs('kaz'), notWithUs('ines'), notWithUs('nour'));
 const SANG = flag('r2_sang');
 const PAR_LE_CAISSON: Condition = { type: 'visited', scene: 'r2_caisson_combat' };
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
 
 export const chapterR2: Scene[] = [
   // -------------------------------------------------------------------------
@@ -53,7 +56,7 @@ export const chapterR2: Scene[] = [
       p('La route des vergers remonte en lacets jusqu’à la bretelle d’accès. Au-dessus du talus, l’autoroute. Le viaduc de la Rocade enjambe la vallée sur quarante mètres de vide : douze piles de béton, un tablier gris, et dessus, figé depuis quatorze mois, l’embouteillage du premier jour de la Fièvre.'),
       p('Des centaines de voitures, pare-chocs contre pare-chocs, dans les deux sens. Les vitres sont couvertes d’une buée qui a séché sur place, blanche, opaque, comme si chaque habitacle avait gardé pour lui le dernier souffle de ses passagers.'),
       p('Tout au bout, là où le viaduc rejoint l’autre versant, la gare de péage. Une fumée monte sous l’auvent. Des silhouettes en gilet orange vont et viennent entre les cabines. Sur la barrière, un drap peint en lettres rouges : « PÉAGE — UN TIERS DE CE QUE VOUS PORTEZ ».'),
-      p('Sur la bande d’arrêt d’urgence, la poussière garde deux traces de pneus larges, fraîches de la nuit. Le camion des Ferrailleurs est passé par ici, avec sa cargaison de cages. Il n’a pas eu à pousser les voitures : quelqu’un les avait poussées pour lui.', THEO_PRIS),
+      p('Sur la bande d’arrêt d’urgence, la poussière garde deux traces de pneus larges, fraîches de ce matin. Le camion des Ferrailleurs est passé par ici, avec sa cargaison de cages. Il n’a pas eu à pousser les voitures : quelqu’un les avait poussées pour lui.', THEO_PRIS),
       p('Théo s’est arrêté pour dessiner le viaduc. Maëlle lui remonte le col du blouson jusqu’aux oreilles, sans un mot, à cause des gilets orange là-bas.', all(withUs('theo'), withUs('maelle'))),
       say('nour', '« Douze piles », dit Nour. « Ça fait onze trous. »', withUs('nour')),
       say('kaz', '« Un péage qui marche encore », grogne Kaz. « C’est bien la seule administration qui ait survécu. »', withUs('kaz')),
@@ -171,7 +174,7 @@ export const chapterR2: Scene[] = [
     location: 'rocade',
     title: 'Entre les carrosseries',
     kind: 'combat',
-    text: [p('Votre semelle racle le bitume. Le premier homme se fige, puis s’accroupit et vous voit, sous le camping-car. « Eh ben. Des resquilleurs. »')],
+    text: [p('Votre semelle racle le bitume. Le premier homme se fige, puis s’accroupit et vous voit, sous le camping-car. « Eh ben. On voulait passer sans payer ? »')],
     encounter: {
       enemies: ['peagiste', 'peagiste'],
       canFlee: true,
@@ -196,7 +199,7 @@ export const chapterR2: Scene[] = [
       victory: 'r2_ronde_butin',
       defeat: 'r2_rancon',
       flee: 'r2_structure',
-      intro: 'Embuscade : les deux Péagistes ne vous ont pas vus venir.',
+      intro: 'Embuscade : les deux Péagistes n’ont rien vu venir.',
     },
     choices: [],
   },
@@ -259,10 +262,11 @@ export const chapterR2: Scene[] = [
       p('Les deux hommes de la ronde ont fait le chemin derrière vous, fusil dans le dos, sans brutalité. Ici, on ne frappe pas les clients.', flag('r2_escorte')),
       p('Il plisse les yeux en vous voyant surgir d’entre les voitures. « Vous avez évité mes gars. » Il note quelque chose dans la marge du registre. « J’aime pas ça. J’aime bien, aussi. »', flag('r2_ronde_evitee')),
       p('« Deux de mes gars sont couchés entre les voitures. » Il ne lève pas les yeux du registre. Autour de lui, quatre fusils se sont tournés vers vous. « Ça se paie aussi. Le tarif a changé. »', SANG),
-      p('« Vous venez de la ville ? Il m’est passé un drôle de client hier soir. Grand, gros, la figure peinte. Il disait qu’il avait été roi, quelque part. » Le Péage sourit. « Il a payé comme tout le monde. Il n’a même pas discuté. Un roi qui paie, ce n’est plus un roi. »', flag('gaspard_epargne')),
+      p('« Vous venez de la ville ? Il m’est passé un drôle de client ce matin. Grand, gros, la figure peinte. Il disait qu’il avait été roi, quelque part. » Le Péage sourit. « Il a payé comme tout le monde. Il n’a même pas discuté. Un roi qui paie, ce n’est plus un roi. »', flag('gaspard_epargne')),
       p('Il tapote une ligne du registre. « Une dame maigre avec une valise et un gamin, tout à l’heure. Le gamin m’a fait un salut militaire à l’envers. Je lui ai fait cadeau d’une boîte de pêches au sirop. » Il hausse les épaules. « Je ne suis pas un monstre. Je suis un péage. »', questStep('q_delmas', 'route')),
       p('Son regard passe sur chacun de vous comme un lecteur de code-barres. Il s’arrête sur Théo une seconde de trop. « Les gosses, c’est gratuit », dit-il enfin. « Sauf ceux qui valent quelque chose. »', withUs('theo')),
       p('Maëlle fait un pas, un seul, et se retrouve entre la table et son fils.', all(withUs('theo'), withUs('maelle'))),
+      p('Vous faites un pas, un seul, et vous voilà entre la table et votre fils. Vous n’avez pas décidé de bouger. Votre corps l’a fait pour vous, comme chaque fois depuis quatorze mois, et le Péage le note dans son regard comme il note tout le reste.', all(withUs('theo'), MAELLE_HEROS)),
       p('Sur le bitume, derrière la barrière, une flaque d’huile encore fraîche et les mêmes traces de pneus larges. Le camion s’est arrêté ici. Puis il est reparti.', THEO_PRIS),
     ],
     choices: [
@@ -308,6 +312,14 @@ export const chapterR2: Scene[] = [
         kind: 'talk', time: 0.5,
         visibleIf: [withUs('kaz'), not(SANG)],
         effects: [set('peage_paye'), set('r2_gerard'), rel('kaz', 1), xp(20)],
+        next: 'r2_paye',
+      },
+      {
+        id: 'kaz_heros',
+        text: '[Vous, Kaz] Retirer votre bonnet. Ce visage, sous la graisse, vous le connaissez.',
+        kind: 'talk', time: 0.5,
+        visibleIf: [KAZ_HEROS, not(SANG)],
+        effects: [set('peage_paye'), set('r2_gerard'), xp(20)],
         next: 'r2_paye',
       },
       {
@@ -373,7 +385,7 @@ export const chapterR2: Scene[] = [
       p('Le Péage a un radiocassette sur le comptoir de sa cabine, un vieux modèle de dépanneuse à deux compartiments. Il glisse la cassette dedans sans vous quitter des yeux.'),
       p('La voix du capitaine Rousset remplit la cabine. « Huit places sur le pont inférieur. » « Le reste du contingent sera trié à la grille. » « Le reste est négociable. »'),
       p('Le Péage l’écoute deux fois. La première, il hoche la tête comme un homme qui reconnaît un collègue. La seconde, il ne bouge plus du tout.'),
-      p('« Six places », dit-il enfin. « Il m’a promis six places, par radio. Avec cette voix-là. » Il éjecte la cassette et la fait tourner entre ses gros doigts. « Avec ça, je le tiens, votre capitaine. Je ne monte pas sur sa barge en marchandise. Je monte en associé. » Il lève les yeux. « Laissez-la-moi, et vous passez. Gratuit. J’écris même « acquitté » dans le registre. »'),
+      p('« Six places », dit-il enfin. « Il m’a promis six places, par radio. Avec cette voix-là. » Il éjecte la cassette et la fait tourner entre ses gros doigts. « Avec ça, je le tiens, votre capitaine. Je ne monte pas sur sa barge en marchandise. Je monte en associé. » Il lève les yeux. « Laissez-la-moi, et vous passez. Gratuit. J’écris même “acquitté” dans le registre. »'),
     ],
     choices: [
       {
@@ -402,13 +414,16 @@ export const chapterR2: Scene[] = [
     title: 'Acquitté',
     kind: 'story',
     text: [
-      p('Kaz s’avance jusqu’à la table et retire son bonnet. « Gérard », dit-il. « Gérard Moulin. Barrière de Valombre-Est. Tu me faisais passer le dimanche, sans ticket, avec la camionnette d’Irena, quand elle allait vendre ses confitures au marché de Brennes. »', flag('r2_gerard')),
-      p('Le Péage le regarde longtemps. Quelque chose bouge dans son visage, très loin sous la graisse et la fatigue. « Les confitures de prunes. » « De mirabelles », dit Kaz. Un silence. « Passe », dit le Péage. « Toi et ta famille. Pas de tiers. » Dans le registre, à la place du nom de Kaz, il écrit : « Irena ».', flag('r2_gerard')),
+      p('Kaz s’avance jusqu’à la table et retire son bonnet. « Gérard », dit-il. « Gérard Moulin. Barrière de Valombre-Est. Tu me faisais passer le dimanche, sans ticket, avec la camionnette d’Irena, quand elle allait vendre ses confitures au marché de Brennes. »', all(flag('r2_gerard'), withUs('kaz'))),
+      p('Vous vous avancez jusqu’à la table et vous retirez votre bonnet. « Gérard », dites-vous. « Gérard Moulin. Barrière de Valombre-Est. » Le dimanche, il vous faisait passer sans ticket, avec la camionnette d’Irena, quand elle allait vendre ses confitures au marché de Brennes. Vous le lui rappelez, mot pour mot.', all(flag('r2_gerard'), KAZ_HEROS)),
+      p('Le Péage le regarde longtemps. Quelque chose bouge dans son visage, très loin sous la graisse et la fatigue. « Les confitures de prunes. » « De mirabelles », dit Kaz. Un silence. « Passe », dit le Péage. « Toi et ta famille. Pas de tiers. » Dans le registre, à la place du nom de Kaz, il écrit : « Irena ».', all(flag('r2_gerard'), withUs('kaz'))),
+      p('Le Péage vous regarde longtemps. Quelque chose bouge dans son visage, très loin sous la graisse et la fatigue. « Les confitures de prunes. » « De mirabelles », répondez-vous. Un silence. « Passe », dit-il. « Toi et ta famille. Pas de tiers. » Dans le registre, à la place de votre nom, il écrit : « Irena ».', all(flag('r2_gerard'), KAZ_HEROS)),
       p('Vous avez repéré les trois points tatoués au poignet de son second. Vous donnez le numéro de votre ancien bâtiment, le nom du surveillant que tout le monde haïssait, le prix d’un paquet de tabac à la cantine. Les gilets orange éclatent de rire. Le Péage, contrarié, applique le « tarif maison » : une ration, et qu’on n’en parle plus.', flag('r2_detenu')),
       p('Le Péage range la cassette dans la poche de poitrine de sa combinaison et remonte la fermeture éclair jusqu’en haut, comme on ferme un coffre.', flag('r2_cassette_donnee')),
       p('Les deux cassettes tournent ensemble pendant une heure, et vous surveillez les bobines comme on surveille une fièvre. Il garde la copie. Vous gardez l’original. Personne ne se fait confiance, et c’est précisément pour ça que l’arrangement tient.', flag('r2_cassette_copiee')),
       p('Il trace une croix à côté de deux noms, en haut de la page, puis il pèse votre paiement avec la même application que le reste.', SANG),
-      p('« Nom ? » Vous le lui donnez. Il l’écrit en capitales : {nom}. Puis il tamponne la ligne avec un tampon encreur qui n’a plus d’encre depuis longtemps. « Acquitté. Bonne route sur la Rocade. Attention aux bouchons. » Il rit tout seul de sa plaisanterie, qui doit avoir quatorze mois.'),
+      p('« Nom ? » Vous le lui donnez. Il l’écrit en capitales : {nom}.', not(all(flag('r2_gerard'), KAZ_HEROS))),
+      p('Il tamponne la ligne avec un tampon encreur qui n’a plus d’encre depuis longtemps. « Acquitté. Bonne route sur la Rocade. Attention aux bouchons. » Il rit tout seul de sa plaisanterie, qui doit avoir quatorze mois.'),
       p('La barrière rouge et blanche se lève en grinçant, poussée à la main par un gamin en gilet trop grand.'),
     ],
     onEnter: [journal('Vous avez acquitté le péage de la Rocade.', false)],
@@ -426,9 +441,10 @@ export const chapterR2: Scene[] = [
     kind: 'story',
     text: [
       p('Sous le viaduc, la vallée change de taille. Les piles montent vers un plafond de béton gris, rayé de coulures de rouille. Le vent passe entre elles avec un bruit d’orgue mal accordé. Quarante mètres plus bas, la rivière.'),
-      p('Deux chemins, peut-être. Le long du bord du tablier court une corniche de béton, large comme une marche d’escalier, sous le parapet : de là-haut, personne ne la voit. Et le tablier lui-même est creux. Un caisson, comme disent les ingénieurs : un long couloir de béton qui traverse toute la vallée, avec une porte de visite au sommet de la première pile, au bout d’une échelle à crinoline.'),
+      p('Deux chemins, peut-être. Le long du bord du tablier court une corniche de béton, large comme une marche d’escalier, sous le parapet : de là-haut, personne ne la voit. Et le tablier lui-même est creux. Un caisson, comme disent les ingénieurs, c’est-à-dire un long couloir de béton qui traverse toute la vallée, avec une porte de visite au sommet de la première pile, au bout d’une échelle à crinoline.'),
       p('C’est la porte de service que vous aviez repérée aux jumelles. Une chaîne, un cadenas rouillé. Personne ne la garde.', flag('r2_reperage')),
       say('kaz', '« Un caisson de viaduc », dit Kaz en levant la tête. « J’en ai visité, pour le canal. Dedans, il fait noir comme dans une poche, et tout ce qui tombe du tablier finit par y rentrer. Tout. »', withUs('kaz')),
+      p('La corniche est large comme une marche d’escalier, avec quarante mètres de vide en dessous. Vous avez fait passer des familles entières sur pire, sous les Carrières, avec une seule lampe pour tout le monde. Le vide, au moins, on le voit.', INES_HEROS),
     ],
     choices: [
       {
@@ -462,6 +478,19 @@ export const chapterR2: Scene[] = [
           success: 'r2_viaduc',
           failure: 'r2_chute',
           successEffects: [set('peage_contourne'), set('r2_corniche'), rel('ines', 1), xp(20)],
+        },
+      },
+      {
+        id: 'ines_heros',
+        text: '[Vous, Inès] Ouvrir la voie sur la corniche, comme dans les Carrières.',
+        kind: 'explore', time: 1.5,
+        visibleIf: [INES_HEROS],
+        check: {
+          stat: 'survie',
+          difficulty: 7,
+          success: 'r2_viaduc',
+          failure: 'r2_chute',
+          successEffects: [set('peage_contourne'), set('r2_corniche'), xp(20)],
         },
       },
       {
@@ -566,8 +595,8 @@ export const chapterR2: Scene[] = [
     text: [
       p('Une plaque de béton se détache sous votre pied. Le monde bascule. Vous tombez de trois mètres sur la tête de la pile suivante, une plateforme couverte de mousse et de fientes, et le choc vous vide les poumons. Votre sac s’est ouvert. Des choses tombent encore, plus bas, longtemps, avant d’atteindre la rivière.', not(PAR_LE_CAISSON)),
       p('Vous courez dans le noir, les dents qui claquent derrière vous, et le sol se dérobe : une trappe de visite, mal refermée. Vous tombez dans la cellule suivante, la cheville tordue, le front ouvert contre une cloison. Au-dessus, quelqu’un rabat la plaque d’acier. Les mains griffent le métal, puis renoncent.', PAR_LE_CAISSON),
-      p('Kaz vous hisse d’une seule main, comme un sac de ciment. Il ne dit rien. Il n’a pas besoin.', withUs('kaz')),
-      p('Inès a déjà noué une corde autour de vous. « Regarde le béton. Pas le vide. Le béton. »', withUs('ines')),
+      p('Kaz vous hisse d’une seule main. Il ne dit rien ; son regard suffit.', withUs('kaz')),
+      p('Inès a déjà noué une corde autour de vous. « Regarde le béton. Pas le vide. Le béton. »', all(withUs('ines'), not(PAR_LE_CAISSON))),
       p('Maëlle vous fait asseoir, palpe la cheville, serre un bandage. « Rien de cassé. Tu boiteras jusqu’à ce soir. » Elle serre le nœud d’un coup sec. « Il y a pire, comme façon de tomber d’un viaduc. »', withUs('maelle')),
       p('Il vous faut longtemps pour reprendre votre souffle, et plus longtemps encore pour vous remettre à avancer. Mais vous avancez. Une heure plus tard, vous posez le pied sur le talus de l’autre versant, derrière la gare de péage.'),
     ],
@@ -591,6 +620,7 @@ export const chapterR2: Scene[] = [
     location: 'rocade',
     title: 'Le Péage',
     kind: 'combat',
+    illustration: 'peage',
     text: [
       p('Le Péage soupire, comme devant un client qui conteste une facture. Il se lève. Il n’en finit pas de se lever. Il arrache d’un geste la barrière rouge et blanche de son axe et la soupèse, deux mètres de tôle et d’acier, qu’il tient comme un bouclier.'),
       p('« Personne ne tire », dit-il à ses hommes. « C’est une affaire de comptabilité. »'),
@@ -624,7 +654,7 @@ export const chapterR2: Scene[] = [
     title: 'Les comptes',
     kind: 'story',
     text: [
-      p('Le Péage s’assoit par terre, lentement, le dos contre sa cabine, au milieu de la poudre blanche de l’extincteur. Il respire mal. Ses hommes regardent la scène, puis ils regardent leurs fusils, puis ils s’en vont, un par un, entre les voitures. Personne ne leur doit plus rien.'),
+      p('Le Péage s’assoit par terre, lentement, le dos contre sa cabine, au milieu des morceaux de sa barrière. Il respire mal. Ses hommes regardent la scène, puis ils regardent leurs fusils, puis ils s’en vont, un par un, entre les voitures. Personne ne leur doit plus rien.'),
       p('« Faut bien que quelqu’un tienne les comptes », dit-il. Ce sont ses derniers mots. Il les dit comme une excuse, ou comme un reproche, vous ne saurez jamais lequel.'),
       p('Dans la cabine 7 : un fusil à pompe, une boîte de cartouches, un gilet pare-balles de gendarme. Et le registre, sur la table, ouvert à la page du jour.'),
       p('Une ligne de l’aube : « Ferrailleurs, camion plateau, 3 cages. Exonéré (convention Institut). Livraison au gué de la Sauldre. » Vous savez maintenant où le camion de Théo s’arrêtera.', THEO_PRIS),
@@ -668,12 +698,13 @@ export const chapterR2: Scene[] = [
     kind: 'story',
     text: [
       p('L’autoroute redescend en pente douce vers la vallée suivante. Derrière vous, le viaduc et son embouteillage immobile, comme un train de marchandises qu’on aurait oublié de faire partir.'),
-      p('La barrière se rabaisse derrière vous dans un grincement. Quelqu’un bombe déjà une croix orange sur la borne. Le passage est réglé. Vous voilà dans le registre.', flag('peage_paye')),
+      p('Là-haut, la barrière se rabaisse dans un grincement. Quelqu’un bombe déjà une croix orange sur la borne. Le passage est réglé. Vous voilà dans le registre.', flag('peage_paye')),
       p('Personne ne tient plus la barrière. Déjà, des silhouettes sortent d’entre les voitures, prudemment, et passent de l’autre côté sans rien poser sur la balance.', flag('peage_vaincu')),
       p('Les trois gagés marchent un moment avec vous, puis s’arrêtent à un embranchement. L’un d’eux vous serre la main sans un mot et part vers le nord.', flag('r2_gages_liberes')),
       p('Vous remontez de la corniche par-dessus le parapet, les doigts blancs et les genoux en coton, juste derrière la gare de péage. Les gilets orange regardent tous de l’autre côté, vers ceux qui viennent.', flag('r2_corniche')),
       p('Loin devant, sur la route, une silhouette massive marche seule, sans se presser, un sac sur l’épaule. Même de dos, même sans couronne, vous reconnaissez la démarche de Gaspard Lenoir. Il ne se retourne pas.', flag('gaspard_epargne')),
-      p('Kaz marche en silence, son bonnet à la main. Au bout d’un kilomètre, il dit seulement : « Elle faisait les meilleures confitures de la vallée. Tout le monde le savait, même lui. »', flag('r2_gerard')),
+      p('Kaz marche en silence, son bonnet à la main. Au bout d’un kilomètre, il dit seulement : « Elle faisait les meilleures confitures de la vallée. Tout le monde le savait, même lui. »', all(flag('r2_gerard'), withUs('kaz'))),
+      p('Vous marchez longtemps votre bonnet à la main, sans le remettre. Irena faisait les meilleures confitures de la vallée. Tout le monde le savait, même lui. Ce matin, ça a payé un passage. Elle aurait trouvé ça drôle.', all(flag('r2_gerard'), KAZ_HEROS)),
       p('Théo s’assoit sur la glissière et sort son carnet. Il dessine le viaduc, les douze piles, la gare de péage. Il dessine aussi quelque chose sous le tablier, mais il tourne la page avant que vous ayez vu quoi.', withUs('theo')),
     ],
     choices: [
@@ -741,11 +772,11 @@ export const DOCUMENTS_R2: DocumentDef[] = [
 export const DIARY_R2: DiaryRule[] = [
   { chapter: 'r2', text: 'Quatorze mois que ces voitures attendent que le bouchon se résorbe. Il y a encore des gens dedans, ceinturés, qui attendent avec elles.' },
   { chapter: 'r2', if: flag('peage_paye'), text: 'J’ai payé le tiers. Mon nom est écrit dans un registre, en capitales, entre une alliance et une paire de chaussures. Acquitté.' },
-  { chapter: 'r2', if: flag('r2_gerard'), text: 'Le Péage a écrit « Irena » à la place du nom de Kaz. Je n’aurais jamais cru qu’un homme pareil se souvienne de confitures.' },
-  { chapter: 'r2', if: flag('r2_sang'), text: 'Le garçon de la ronde avait trois points tatoués au poignet et pas vingt ans. Le prix a changé, comme dit Kaz. Pour lui aussi.' },
+  { chapter: 'r2', if: all(flag('r2_gerard'), withUs('kaz')), text: 'Le Péage a écrit « Irena » à la place du nom de Kaz. Je n’aurais jamais cru qu’un homme pareil se souvienne de confitures.' },
+  { chapter: 'r2', if: flag('r2_sang'), text: 'Le garçon de la ronde avait trois points tatoués au poignet et pas vingt ans. Le prix a changé. Pour lui aussi.' },
   { chapter: 'r2', if: flag('peage_vaincu'), text: 'J’ai abattu le Péage. « Faut bien que quelqu’un tienne les comptes. » Je crois qu’il le pensait vraiment.' },
   { chapter: 'r2', if: flag('peage_contourne'), text: 'J’ai traversé le viaduc par son ventre. Ceux qui n’avaient pas payé y étaient encore, debout dans le noir, avec leurs valises.' },
   { chapter: 'r2', if: flag('r2_cassette_donnee'), text: 'J’ai donné la voix de Rousset à un homme qui veut s’en servir pour monter sur la barge. J’espère que je n’ai pas vendu la seule preuve qu’on avait.' },
   { chapter: 'r2', if: all(companionIs('theo', 'captured'), flag('r2_camion_registre')), text: 'Le gué de la Sauldre. C’est là que le camion livrera Théo. Je l’ai lu dans un registre, entre deux lignes de conserves.' },
-  { chapter: 'r2', text: 'Ce soir, une cloche a sonné sur une colline. Une seule fois. Comme pour dire qu’il y a encore quelqu’un.' },
+  { chapter: 'r2', text: 'Tout à l’heure, une cloche a sonné sur une colline. Une seule fois. Comme pour dire qu’il y a encore quelqu’un.' },
 ];

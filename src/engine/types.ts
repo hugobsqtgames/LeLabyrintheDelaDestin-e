@@ -5,13 +5,15 @@
  * (src/engine) et le contenu (src/content) peuvent être testés en Node pur.
  */
 
+import type { AchievementDef } from './meta';
+
 // ---------------------------------------------------------------------------
 // Identifiants
 // ---------------------------------------------------------------------------
 
 export type StatId = 'force' | 'discretion' | 'survie' | 'astuce';
-export type ProfileId = 'guerrier' | 'eclaireur' | 'technicien' | 'eclusier' | 'infirmiere' | 'passeuse';
-export type BackgroundId = 'ambulancier' | 'detenu' | 'cataphile' | 'pompier' | 'eclusier' | 'infirmiere' | 'passeuse';
+export type ProfileId = 'guerrier' | 'eclaireur' | 'technicien' | 'eclusier' | 'infirmiere' | 'passeuse' | 'cartographe' | 'compteuse';
+export type BackgroundId = 'ambulancier' | 'detenu' | 'cataphile' | 'pompier' | 'eclusier' | 'infirmiere' | 'passeuse' | 'porteur' | 'rescapee';
 export type EmblemId = 'masque' | 'boussole' | 'cle' | 'corbeau' | 'fougere' | 'lame';
 export type PerkId =
   | 'premiers_secours'
@@ -520,6 +522,8 @@ export interface HeroSheet {
   character: CharacterId;
   /** Nom porté une fois aux commandes (court : « Kaz »). */
   name: string;
+  /** Ne prend la relève que si aucun autre compagnon jouable n'est là (les plus jeunes). */
+  lastResort?: boolean;
   profile: ProfileId;
   background: BackgroundId;
   /** Caractéristiques de base au niveau 1. */
@@ -615,6 +619,8 @@ export interface ChapterDef {
   aura?: string;
   /** Une infection non soignée s'aggrave en entrant dans ce chapitre. */
   infects?: boolean;
+  /** Heure de l'horloge à laquelle un voyageur « à l'heure » commence ce chapitre (indicateur de retard). */
+  due?: number;
 }
 
 /** Une phrase du journal intime, retenue si sa condition est remplie. */
@@ -670,6 +676,8 @@ export interface GameContent {
   summaryRules: SummaryRule[];
   /** Compagnons jouables en cas de relève. */
   heroes: Record<CharacterId, HeroSheet>;
+  /** Succès (mémoires hors partie). */
+  achievements: AchievementDef[];
   startScene: SceneId;
   /**
    * Messages du moteur (notifications, journal de combat, raisons de

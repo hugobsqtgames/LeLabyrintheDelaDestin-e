@@ -100,10 +100,26 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
   l’avancée du voyage (sans dépasser celui du héros tombé). Rien du héros tombé ne lui revient, sauf les objets de
   quête et **ce qu’il prend en fouillant le corps** (trois objets au plus) quand le corps est accessible : certaines
   morts (le troupeau, la cage, l’écluse) ne laissent rien. La partie ne s’arrête que lorsque plus personne ne peut
-  reprendre la route. Les tombés restent dans la chronique.
+  reprendre la route. Les tombés restent dans la chronique. En dernier recours, s’il ne reste personne d’autre,
+  **Théo** (Cartographe) ou **Nour** (Compteuse) peuvent reprendre la route. Le choix est **confirmé** avant d’être
+  appliqué, et l’état de la mort est **mis de côté** : « Avant la relève » (Charger une partie, ou le menu pause)
+  permet d’y revenir. La **fiche de relève** de chaque compagnon jouable se consulte à tout moment depuis la Fiche.
+  Le récit change quand on joue un compagnon : répliques à la deuxième personne, choix « [Vous, Kaz] », hommage à
+  celle ou celui qui est tombé, épilogues propres.
 - **Tutoriel** au premier lancement : visite guidée en 13 étapes (récit, choix et probabilités, bandeau, horloge,
   chacun des 5 onglets — Récit, Fiche, Sac, Carte, Carnet —, combats, relève). Chaque étape ouvre l’onglet qu’elle
-  présente. On peut le passer, et le revoir dans **Paramètres › Aide › Revoir le tutoriel**.
+  présente. On peut le passer, et le revoir dans **Paramètres › Aide › Revoir le tutoriel**. Des **astuces
+  contextuelles** apparaissent ensuite une seule fois, quand une mécanique se présente (premier combat, choix
+  chronométré, atelier, sac, montée de niveau, relève).
+- **Mémoires** (écran titre) : progression commune à toutes les parties, déduite uniquement de ce qui a été joué —
+  **21 succès** (hors ligne), **visages** rencontrés, **codex** des ennemis croisés (faiblesses, attaques), et
+  **chapitres** : après une première partie terminée, **arbre des choix** de chaque chapitre (scènes vues, choix
+  explorés ou non, sans rien révéler de l’inconnu) et **Rejouer un chapitre** depuis le début tel que vous l’aviez
+  atteint la dernière fois, dans l’emplacement de votre choix.
+- **Indicateur de retard** : l’horloge du bandeau passe à « un peu juste » puis « en retard » quand vous êtes en
+  retard sur l’heure à laquelle un voyageur à l’heure entame le chapitre en cours.
+- **Rappel de reprise** (facultatif, désactivé par défaut) : une notification **locale** programmée sur l’appareil
+  quand on quitte une partie en cours, après 48 h sans jouer ; annulée dès qu’on revient. Aucun serveur.
 
 ## Interface (refonte 2026)
 
@@ -115,18 +131,33 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
   chapitre**, résumé **« Que s’est-il passé ? »** à la reprise, **détail des jets** en touchant le pourcentage.
 - **Accessibilité** : taille de texte iOS respectée (jusqu’à ×1,8 pour le récit), réglage de taille propre au récit,
   contrastes WCAG vérifiés par un test (≥ 4,5:1), animations réductibles, libellés VoiceOver.
-- **Ambiance sonore** : cinq boucles synthétisées pour le jeu (ville, carrières, port, écluse, combat), volume
-  réglable, respect du mode silencieux, mélange avec la musique de l’utilisateur.
+- **Ambiance sonore** : huit boucles synthétisées pour le jeu (ville, carrières, faubourgs, port, marais, barrage,
+  écluse, combat), choisies par lieu puis par région ; volume réglable, respect du mode silencieux, mélange avec la
+  musique de l’utilisateur.
+- **Carte** : le chemin réellement parcouru se trace sur la carte de chaque région, jusqu’à la position actuelle.
+- **Recherche** dans la chronique et dans les archives (documents et journal intime), sans tenir compte des accents.
+- **« Précédemment »** sur le carton de chaque chapitre : les faits marquants du chapitre précédent.
+- **Récit sur papier** (option de lecture) : encre sombre sur page claire.
+- **18 illustrations** plein cadre, dont une pour chaque chapitre de la route.
 - **Langues** : français ou anglais, selon l’appareil ou au choix dans les paramètres. Le moteur reçoit le contenu
   traduit (dictionnaire français → anglais appliqué à tout le contenu, messages du moteur traduits) ; un test vérifie
   que chaque texte a sa traduction.
+
+## Publication
+
+- `eas.json` : profil `preview` (distribution interne, APK Android) et profil `production` (numéro de build
+  incrémenté automatiquement, version gérée par EAS). Identifiants : `fr.labyrinthe.destinee` (iOS et Android).
+- Icône 1024 × 1024 sans transparence, écran de démarrage et icône adaptative Android fournis ;
+  `usesNonExemptEncryption: false` ; `npx expo-doctor` : 21/21.
+- Commandes : `npx eas-cli@latest build --profile production --platform ios` puis
+  `npx eas-cli@latest submit --platform ios` (un compte Expo et un compte Apple Developer sont nécessaires).
 
 ## Sauvegardes
 
 - 3 emplacements ; chaque partie se sauvegarde automatiquement **après chaque décision, action de combat ou
   changement d’inventaire**, et à la mise en arrière-plan.
 - Enveloppe versionnée (`schemaVersion`) avec **somme de contrôle** ; avant d’écraser une sauvegarde valide, elle
-  est copiée en **secours** ; au chargement : vérification, **migration** (v1 → v2 → v3 → v4 incluses et testées),
+  est copiée en **secours** ; avant une relève, l’état de la mort est gardé à part (« Avant la relève ») ; au chargement : vérification, **migration** (v1 → v2 → v3 → v4 incluses et testées),
   validation/réparation (objets inconnus retirés, scène disparue → début du chapitre, combat relancé).
 - **File d’écriture** : jamais deux écritures concurrentes, les rafales sont fusionnées.
 - Nouvelle partie dans un emplacement occupé, suppression et copie : **confirmation explicite**. Le RNG est stocké

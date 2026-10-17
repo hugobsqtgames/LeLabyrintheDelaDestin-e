@@ -40,6 +40,10 @@ const AVEC_QUELQU_UN = not(SANS_PERSONNE);
 const OBSERVE = any(flag('r9_observe'), flag('r8_camion_observe'));
 const TIREUR = any(withUs('ines'), has('fusil'), has('arbalete'));
 const ARME_DE_TIR = any(withUs('ines'), has('fusil'), has('arbalete'), has('arbalete_poing'), has('pistolet'));
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
+const HEROS = any(KAZ_HEROS, MAELLE_HEROS, INES_HEROS);
 
 export const chapterR9: Scene[] = [
   // -------------------------------------------------------------------------
@@ -52,6 +56,7 @@ export const chapterR9: Scene[] = [
     title: 'Le pont couché',
     kind: 'story',
     checkpoint: true,
+    illustration: 'gue',
     text: [
       p('Le pont routier de la Sauldre s’est couché dans la rivière d’un seul bloc, comme une bête qui s’agenouille. Le tablier plonge dans l’eau verte et ressort plus loin en tronçons, hérissé de fers à béton. À côté, il reste le gué d’avant les ponts : une rangée de grandes pierres plates, posées là par des gens qui n’avaient ni pont ni impatience.'),
       p('Au milieu du gué, la benne des Ferrailleurs s’est enfoncée jusqu’aux moyeux. Ridelles soudées, bâche de chantier, cambouis partout. Sous la bâche relevée par le vent, des barreaux.'),
@@ -110,7 +115,7 @@ export const chapterR9: Scene[] = [
       say('gaspard', '« Le Bègue et Momo. » Il crache dans la Sauldre. « Je les ai ramassés gamins sur le parking d’un supermarché. Je leur ai appris à démonter un moteur. Je leur ai aussi appris ça. »', notFlag('r8_gaspard_parle')),
       say('gaspard', '« Tu vois, la marchandise et l’acheteur sont arrivés. Il ne manque que la morale. » Il a un rire sans joie.', flag('r8_gaspard_parle')),
       say('gaspard', '« Je descends leur parler. Ils m’écouteront peut-être, une dernière fois. Les gris, par contre, ils n’écoutent personne. Il faudra que tu sois là quand ça tournera mal. »'),
-      say('gaspard', '« Pourquoi je fais ça ? » Il se lève, lourdement. « Parce que tu m’as laissé debout. Et parce que je n’aime pas qu’on me roule. Ces gens-là roulent tout le monde. »'),
+      say('gaspard', '« Pourquoi je fais ça ? » Il se lève, lourdement. « Parce qu’on m’a laissé debout, à la casse. Et parce que je n’aime pas qu’on me roule. Ces gens-là roulent tout le monde. »'),
       say('kaz', '« Il ment souvent, dit Kaz à voix basse. Pas sur ce genre de choses. »', withUs('kaz')),
     ],
     choices: [
@@ -143,9 +148,11 @@ export const chapterR9: Scene[] = [
       say('maelle', '« Il est là. » Maëlle ne dit rien d’autre. Elle a la voix très calme, très basse, celle du soir où la pharmacie a brûlé. La voix qui précède les gestes. Vous posez une main sur son bras. Elle la laisse, pour l’instant.', all(withUs('maelle'), THEO_CAGE)),
       say('maelle', '« Ce sont des enfants. » Maëlle a la voix très calme, très basse. La voix qui précède les gestes.', all(withUs('maelle'), not(THEO_CAGE))),
       p('Théo regarde les cages sans rien dire. Il a remonté le col de son blouson sur la cicatrice. Ses mains tremblent ; il serre les poings pour qu’elles s’arrêtent.', withUs('theo')),
-      say('nour', '« Deux en gris, deux peints. Quatre fusils. » Elle compte encore, presque sans voix. « Trois dans les cages. Il faut que ce soit nous, les plus nombreux. »', withUs('nour')),
+      say('nour', '« Deux en gris, deux peints. Quatre fusils. » Elle compte encore, presque sans voix. « Et eux, dans les cages. Il faut que ce soit nous, les plus nombreux. »', withUs('nour')),
       say('kaz', '« Quand le treuil se tendra, la benne va gémir comme une vache, et personne ne regardera ailleurs. » Il fait craquer ses doigts. « Après, il y a les fusils des gris. Ça, je ne sais pas les réparer. »', withUs('kaz')),
       say('ines', '« D’ici, j’ai le sergent. Pas les deux. » Inès a déjà armé son arbalète. Elle ne demande pas la permission. Elle attend que vous la donniez.', withUs('ines')),
+      p('Votre fils est à quarante mètres, derrière des barreaux. Dans votre tête, la voix est très calme, celle du soir où la pharmacie a brûlé. La voix qui précède les gestes. Vous attendez quand même. Une infirmière qui se précipite tue son patient.', all(MAELLE_HEROS, THEO_CAGE)),
+      p('D’ici, vous avez le sergent. Pas les deux. Vous armez l’arbalète sans un bruit, la joue contre le bois, comme vous l’aviez appris à Malik dans les galeries. Il tirait toujours trop tôt.', INES_HEROS),
       p('Personne à côté de vous. Quatre fusils en face, et l’eau entre les deux.', SANS_PERSONNE),
     ],
     choices: [
@@ -375,7 +382,7 @@ export const chapterR9: Scene[] = [
       p('Un coup de crosse, quelque part entre l’oreille et le monde. Puis l’eau froide dans la bouche, et le ciel qui tourne.'),
       p('Des mains vous tirent par le col jusque sous les saules. Ce sont celles de Kaz. Il vous traîne sur la berge comme un sac de ciment, sans douceur, et vous recouvre de branches.', withUs('kaz')),
       p('Des mains vous tirent par le col jusque sous les saules et vous recouvrent de branches. Quelqu’un respire tout près, en retenant le bruit.', all(AVEC_QUELQU_UN, notWithUs('kaz'))),
-      p('Le courant vous dépose contre les racines d’un saule, plus bas. Personne ne vous a suivi dans l’eau. Les gris ne gaspillent pas leurs balles.', SANS_PERSONNE),
+      p('Le courant vous dépose contre les racines d’un saule, plus bas. Personne ne prend la peine de vous suivre dans l’eau. Les gris ne gaspillent pas leurs balles.', SANS_PERSONNE),
       p('Quand vous pouvez relever la tête, le treuil a fait son travail. La benne remonte la berge d’en face en ruisselant, au bout du câble, comme un chien au bout d’une laisse. Le 4×4 ouvre la route de Morvan. Le sergent parle dans sa radio. Il décrit votre visage.'),
       p('À l’arrière, dans la dernière cage, Théo s’est levé. Il tient les barreaux à deux mains. Il regarde les saules jusqu’au virage.', THEO_CAGE),
     ],
@@ -395,11 +402,11 @@ export const chapterR9: Scene[] = [
     title: 'Le repli',
     kind: 'story',
     text: [
-      p('Vous refluez vers les saules sous les tirs. Les balles hachent les branches au-dessus de vos têtes. Puis elles s’arrêtent : les gris n’ont pas besoin de vous tuer. Ils ont besoin de partir.'),
+      p('Vous refluez vers les saules sous les tirs. Les balles hachent les branches au-dessus de vous. Puis elles s’arrêtent : les gris n’ont pas besoin de vous tuer. Ils ont besoin de partir.'),
       p('Le treuil hurle. La benne s’arrache aux galets dans une gerbe d’eau brune et remonte l’autre berge. Le 4×4 ouvre la route de Morvan, le sergent la radio collée à la bouche, sans quitter les saules des yeux.'),
       p('Dans la dernière cage, Théo ne regarde pas vers vous. Il regarde la route devant. Il a déjà recommencé à compter quelque chose.', THEO_CAGE),
     ],
-    onEnter: [set('r9_alerte'), set('r9_camion_parti'), journal('Repoussés au gué de la Sauldre, vous avez vu la livraison repartir vers Morvan.')],
+    onEnter: [set('r9_alerte'), set('r9_camion_parti'), journal('Au gué de la Sauldre, il a fallu reculer, et la livraison est repartie vers Morvan.')],
     choices: [{ id: 'traverser', text: 'Attendre que le bruit du moteur s’éteigne, puis traverser.', kind: 'move', time: 0.5, next: 'r9_traversee' }],
   },
 
@@ -476,7 +483,7 @@ export const chapterR9: Scene[] = [
       say('moi', '« Les sujets. Ce sont des enfants, dans des cages à chien. »'),
       p('« Ce sont des patients prioritaires. Le transport n’est pas de notre ressort. » Il désigne les Ferrailleurs du menton, comme on désigne une brouette. Momo a vu le geste. Il ne l’a pas aimé.'),
       p('Le regard du sergent glisse sur le groupe et s’arrête sur Théo. Sur son épaule. Il ne dit rien. Il note. Vous le voyez noter.', withUs('theo')),
-      p('Derrière les barreaux, Théo vous regarde parler. Il ne vous a jamais entendu mentir aussi bien, ni dire la vérité aussi mal.', THEO_CAGE),
+      p('Derrière les barreaux, Théo vous regarde parler. Il n’a jamais entendu votre voix mentir aussi bien, ni dire la vérité aussi mal.', THEO_CAGE),
     ],
     choices: [
       {
@@ -506,6 +513,13 @@ export const chapterR9: Scene[] = [
         requires: [withUs('kaz')],
         check: { stat: 'astuce', difficulty: 7, success: 'r9_retournement', failure: 'r9_assaut', successEffects: [set('r9_par_kaz'), rel('kaz', 1)] },
       },
+      {
+        id: 'kaz_vous',
+        text: '[Vous, Kaz] Parler aux Ferrailleurs : vous les connaissez depuis la casse, et ils vous doivent encore de l’argent.',
+        kind: 'talk', time: 0.5,
+        requires: [KAZ_HEROS],
+        check: { stat: 'astuce', difficulty: 7, success: 'r9_retournement', failure: 'r9_assaut', successEffects: [set('r9_par_kaz')] },
+      },
       { id: 'reculer', text: 'Reculer lentement jusqu’aux saules.', kind: 'flee', next: 'r9_saules' },
     ],
   },
@@ -521,7 +535,8 @@ export const chapterR9: Scene[] = [
       p('Vous dépliez la feuille plastifiée tachée de sang et vous la tendez à Momo. « Collecte de porteurs, secteur Valombre-Nord. Priorité : sujets jeunes. » Signé Rousset. Momo lit lentement, en remuant les lèvres. Le convoi de l’Institut faisait la collecte lui-même. Les Ferrailleurs ne sont qu’un raccourci, en attendant qu’on n’ait plus besoin d’eux.', all(flag('r9_par_preuve'), lacks('enregistrement'))),
       p('« Et nous, on est quoi, sur ton papier ? » demande Momo au sergent. Le sergent ne répond pas. C’est une réponse.', all(flag('r9_par_preuve'), lacks('enregistrement'))),
       p('Vous posez les rations sur la ridelle, une par une. De vraies boîtes, avec des étiquettes. Momo les regarde, puis il regarde le sergent. « Des places sur la barge, qu’il nous promet. Pour quand ? Pour qui ? » Il soupèse une boîte. « Ça, au moins, ça se mange ce soir. »', flag('r9_par_rachat')),
-      say('kaz', '« Momo. Tu me dois toujours une bouteille et quarante euros. » Kaz entre dans l’eau, énorme et tranquille. « Gaspard ne t’a jamais dit pourquoi lui, il ne montait pas à bord ? Parce qu’ils trient, petit. Ils trient à la grille, et les gars comme toi et moi, on est de l’autre côté. »', flag('r9_par_kaz')),
+      say('kaz', '« Momo. Tu me dois toujours une bouteille et quarante euros. » Kaz entre dans l’eau, énorme et tranquille. « Gaspard ne t’a jamais dit pourquoi lui, il ne montait pas à bord ? Parce qu’ils trient, petit. Ils trient à la grille, et les gars comme toi et moi, on est de l’autre côté. »', all(flag('r9_par_kaz'), withUs('kaz'))),
+      say('moi', '« Momo. Tu me dois toujours une bouteille et quarante euros. » Vous entrez dans l’eau, lentement, de tout votre poids. « Gaspard ne t’a jamais dit pourquoi lui, il ne montait pas à bord ? Parce qu’ils trient, petit. Ils trient à la grille, et les gars comme toi et moi, on est de l’autre côté. »', all(flag('r9_par_kaz'), KAZ_HEROS)),
       p('Gaspard Lenoir descend dans le gué comme on rentre chez soi. Il ne court pas, il ne crie pas. Le Bègue lâche sa pelle. Momo se lève de la ridelle, le fusil ballant.', flag('r9_gaspard_aide')),
       say('gaspard', '« Rangez-moi ça. On ne livre plus. La barge nous trie à la grille comme des pommes pourries, et vous, vous lui portez les pommes. »', flag('r9_gaspard_aide')),
       p('Le sergent n’attend pas la suite. Il tire. Gaspard pivote, une main sur le haut du bras, et reste debout.', flag('r9_gaspard_aide')),
@@ -556,7 +571,7 @@ export const chapterR9: Scene[] = [
       p('Vous ouvrez les autres cages. Le trousseau tremble un peu dans vos mains. Ce n’est pas le froid.', all(notFlag('r9_en_douce'), flag('theo_libere'))),
       p('Sur l’autre rive, il n’y a plus de 4×4. Rien que deux traces de pneus dans la boue, qui filent vers Morvan.', all(flag('r9_alerte'), notFlag('r9_en_douce'), notFlag('r9_vernet_libre'))),
       p('La femme s’appelle Aurélie. Elle n’est pas porteuse. Elle est la tante des deux petits, et quand on est venu les prendre dans une ferme de la route de Brennes, elle a refusé de les lâcher. Alors on l’a prise aussi. Quelqu’un, à Brennes, leur avait offert une soupe et regardé leurs nuques. « Adulte négociable », a dit le sergent en la voyant. Elle répète le mot sans le comprendre.'),
-      p('Lou a huit ans, Samuel onze. Ils ont la même cicatrice ronde, lui au poignet, elle à la base du cou. Ils ne pleurent pas. Samuel ne lâche pas la main de sa sœur, même pour descendre du plateau.'),
+      p('Lou a huit ans, Nathan onze. Ils ont la même cicatrice ronde, lui au poignet, elle à la base du cou. Ils ne pleurent pas. Nathan ne lâche pas la main de sa sœur, même pour descendre du plateau.'),
       p('Théo les aide à descendre, un par un. Il sait comment on déplie des jambes restées trop longtemps pliées. Il l’a appris dans la benne.', flag('theo_libere')),
       p('Théo reste un long moment devant la quatrième cage, la vide, celle qui attendait quelqu’un. Puis il en referme la porte d’un coup de pied, et le cadenas avec, et il jette la clé dans la Sauldre.', all(withUs('theo'), notFlag('theo_libere'), notFlag('r9_en_douce'))),
       say('nour', '« Huit pas jusqu’à l’eau », dit Nour à Lou en lui prenant l’autre main. « Après, tu comptes avec moi. Quand on compte, on a moins peur. »', withUs('nour')),
@@ -566,7 +581,7 @@ export const chapterR9: Scene[] = [
       p('Le jeune Vernet est parti à pied sur la route de Morvan, sans arme, sans se retourner. Il sera à l’écluse avant la nuit. Il racontera.', flag('r9_vernet_libre')),
       p('Aurélie vous demande où aller. Pas à l’écluse. Plus jamais à l’écluse.'),
     ],
-    onEnter: [set('captifs_liberes'), xp(30), journal('Au gué de la Sauldre, vous avez ouvert les cages : Aurélie, Lou et Samuel sont libres.')],
+    onEnter: [set('captifs_liberes'), xp(30), journal('Au gué de la Sauldre, vous avez ouvert les cages : Aurélie, Lou et Nathan sont libres.')],
     choices: [
       {
         id: 'ration',
@@ -603,9 +618,12 @@ export const chapterR9: Scene[] = [
       p('Vous ouvrez sa cage en dernier, dans le vacarme du treuil. Il se glisse dans l’eau sans un bruit, comme il a dû le répéter cent fois dans sa tête.', flag('r9_en_douce')),
       p('Théo ne sort pas tout de suite. Il range d’abord le clou dans sa poche. Sur le plancher de la cage, gravée à la pointe, il y a une carte : la route depuis le Pont de Fer, chaque virage, chaque village, chaque pont, avec un trait pour chaque heure. Le chemin du retour. Il comptait le faire seul.'),
       p('Puis il descend. Ses jambes le portent mal. Il refuse votre bras.'),
-      say('theo', '« Tu m’as vendu. » Il ne crie pas. Il constate, comme on lit un panneau. « Pour une plaque et six cartouches. J’ai eu le temps de compter, dans la cage. Six. »', flag('r9_theo_vendu')),
-      say('theo', '« Je viens avec toi parce que c’est le seul chemin. Ne crois pas autre chose. Pas encore. »', flag('r9_theo_vendu')),
-      say('theo', '« Je t’ai vu traverser le Pont de Fer. J’ai compté les poutrelles pour ne pas penser à toi. Quarante-deux. » Il s’essuie le nez avec sa manche. « Tu as fait demi-tour. Ça compte. Pas assez. Mais ça compte. »', flag('r9_theo_abandonne')),
+      say('theo', '« Tu m’as vendu. » Il ne crie pas. Il constate, comme on lit un panneau. « Pour une plaque et six cartouches. J’ai eu le temps de compter, dans la cage. Six. »', all(flag('r9_theo_vendu'), not(HEROS))),
+      say('theo', '« Je viens avec toi parce que c’est le seul chemin. Ne crois pas autre chose. Pas encore. »', all(flag('r9_theo_vendu'), not(HEROS))),
+      say('theo', '« J’ai regardé ta silhouette traverser le Pont de Fer. J’ai compté les poutrelles pour ne pas penser à toi. Quarante-deux. » Il s’essuie le nez avec sa manche. « Tu as fait demi-tour. Ça compte. Pas assez. Mais ça compte. »', all(flag('r9_theo_abandonne'), not(HEROS))),
+      p('Vous entrez dans l’eau jusqu’à la taille et vous prenez votre fils. Il est plus léger qu’à la casse. Il sent la rouille et le chien mouillé. Vous dites son prénom, plusieurs fois, parce que c’est le seul mot qui vous reste.', MAELLE_HEROS),
+      say('theo', '« Je savais que tu viendrais, maman. » Puis, plus bas, contre votre cou : « Ce n’est pas toi qui m’as laissé là-bas. Je le sais. »', MAELLE_HEROS),
+      say('theo', '« Ce n’est pas toi qui m’as laissé là-bas. » Il regarde la rive derrière vous, comme s’il y cherchait quelqu’un qui n’y est plus. « Ça ne change rien à ce qui s’est passé. Mais ce n’est pas toi. »', any(KAZ_HEROS, INES_HEROS)),
       p('Maëlle ne dit rien. Elle entre dans l’eau jusqu’à la taille, elle prend son fils, et elle le tient. Longtemps. Théo se laisse faire. Par-dessus l’épaule de sa mère, il vous regarde, et dans ce regard il n’y a pas encore de pardon. Il y a de la place pour un, plus tard, peut-être.', withUs('maelle')),
       say('theo', '« Maman s’est assise devant ma cage, à la casse. Elle n’a presque pas bougé. Quand la benne est partie, elle a couru derrière. Longtemps. Je l’ai regardée devenir toute petite. » Il se tait. « Elle est vivante. Je le sais. »', all(notWithUs('maelle'), flag('maelle_reste_casse'))),
       say('theo', '« Maman ? » Puis, devant votre visage : « Je sais. Elle me cherche quelque part. Elle me cherche toujours. »', all(companionIs('maelle', 'away'), notFlag('maelle_reste_casse'))),
@@ -694,7 +712,7 @@ export const chapterR9: Scene[] = [
       p('Le treuil hurle. Le câble se tend. La benne s’arrache aux galets dans une gerbe d’eau brune et remonte l’autre berge au bout de sa laisse d’acier. Les Ferrailleurs grimpent sur le plateau, à côté des cages. Le 4×4 ouvre la route. Ils passent à cinquante mètres de vous.'),
       p('Théo est debout dans sa cage. Il regarde les saules jusqu’au virage. Il sait que vous êtes là. Il l’a toujours su. Puis la route tourne, et il ne reste que le bruit du moteur, qui met très longtemps à s’éteindre.', THEO_CAGE),
       p('Maëlle ne vous parle pas. Elle s’est levée à l’instant où la benne a bougé, et quelqu’un l’a retenue par le bras, vous ne savez plus qui. Elle ne vous le pardonnera pas. Elle ne vous l’a pas dit. Elle n’a pas besoin.', all(THEO_CAGE, withUs('maelle'))),
-      p('Lou et Samuel se tiennent toujours la main à travers les barreaux. La femme, elle, regarde vers les saules. Elle ne vous voit pas. Elle regarde quand même.', not(THEO_CAGE)),
+      p('Lou et Nathan se tiennent toujours la main à travers les barreaux. La femme, elle, regarde vers les saules. Elle ne vous voit pas. Elle regarde quand même.', not(THEO_CAGE)),
       say('theo', '« Il y avait une cage vide », dit Théo. Rien d’autre. Il ne vous adresse plus la parole jusqu’au gué.', withUs('theo')),
       p('Nour s’est détournée. Elle compte quelque chose, très bas, et ce ne sont pas des pas.', withUs('nour')),
     ],
@@ -733,6 +751,14 @@ export const chapterR9: Scene[] = [
         next: 'r9_fin',
       },
       {
+        id: 'kaz_vous',
+        text: '[Vous, Kaz] Ouvrir la marche : vous avez passé votre vie à lire l’eau.',
+        kind: 'move', time: 1,
+        visibleIf: [KAZ_HEROS],
+        effects: [xp(10)],
+        next: 'r9_fin',
+      },
+      {
         id: 'corde',
         text: 'Tendre la corde d’une rive à l’autre et passer un par un.',
         kind: 'item', time: 1.5,
@@ -766,7 +792,7 @@ export const chapterR9: Scene[] = [
       p('Théo mange à l’écart, assis sur une borne. Il fait tourner son clou entre ses doigts. Quand vous le regardez, il ne détourne pas les yeux. C’est déjà quelque chose.', flag('theo_libere')),
       p('Vous ne regardez pas la route de Morvan. La benne y est passée. Théo y est passé. Au bout de cette route, il y a l’écluse, et dans l’écluse, une barge qui l’attend.', THEO_CAGE),
       p('En bas, le long de la Sauldre, trois silhouettes remontent vers l’amont : une grande et deux petites qui se tiennent la main. Elles ne se retournent pas. C’est bon signe.', flag('captifs_liberes')),
-      p('Le 4×4 de l’Institut a des heures d’avance. À l’écluse, ce soir, un sergent fait son rapport, et le capitaine Rousset apprend qu’on l’attend sur la route.', flag('r9_alerte')),
+      p('Le 4×4 de l’Institut a des heures d’avance. À l’écluse, ce soir, quelqu’un fait son rapport, et le capitaine Rousset apprend qu’on l’attend sur la route.', all(flag('r9_alerte'), notFlag('r9_vernet_libre'))),
       p('À Morvan, personne ne sait encore ce qui s’est passé au gué. La barge attend une livraison qui n’arrivera pas, et elle ne sait pas pourquoi.', all(notFlag('r9_alerte'), flag('captifs_liberes'))),
       p('Plus loin sur le chemin, une silhouette massive marche seule, un chiffon noué autour du bras. Gaspard ne se retourne pas.', flag('r9_gaspard_aide')),
       p('Le soleil se couche derrière vous, du côté de Valombre. Devant, le ciel est déjà gris, et sous ce gris, à quelques heures de marche, on croit voir une lueur blanche qui ne bouge pas. Un projecteur.'),
@@ -812,7 +838,7 @@ export const DIARY_R9: DiaryRule[] = [
   { chapter: C, text: 'Le pont de la Sauldre est couché dans l’eau. On a traversé à pied, sur des pierres que quelqu’un a posées là il y a deux cents ans.' },
   { chapter: C, if: flag('theo_libere'), text: 'Théo est sorti de sa cage avec un clou dans la poche. Il avait gravé la route du retour sur le plancher. Il marche deux pas derrière moi. Je ne lui demande pas de se rapprocher.' },
   { chapter: C, if: THEO_CAGE, text: 'J’ai vu Théo dans une cage, au milieu d’une rivière, et je l’ai regardé partir. Je n’ai pas d’excuse. Je n’en cherche plus.' },
-  { chapter: C, if: flag('captifs_liberes'), text: 'Lou, Samuel, Aurélie. J’écris leurs noms pour qu’ils existent ailleurs que sur un bon de livraison.' },
+  { chapter: C, if: flag('captifs_liberes'), text: 'Lou, Nathan, Aurélie. J’écris leurs noms pour qu’ils existent ailleurs que sur un bon de livraison.' },
   { chapter: C, if: all(flag('r9_livraison_partie'), not(THEO_CAGE)), text: 'Il y avait deux enfants dans des cages et je n’ai rien fait. Je me répète que nous n’aurions pas gagné. Je n’arrive pas à me croire.' },
   { chapter: C, if: flag('r9_alerte'), text: 'Les hommes de la barge ont des combinaisons grises et des voix de guichet. Maintenant, ils savent qu’on arrive.' },
   { chapter: C, if: flag('r9_gaspard_aide'), text: 'Gaspard Lenoir a pris une balle pour des enfants qu’il aurait vendus il y a une semaine. Je ne sais pas quoi faire de ça.' },

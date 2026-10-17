@@ -4,7 +4,7 @@ import { canPerform, performAction, weaponDamageRange, weaponDurability } from '
 import { applyEffects } from '../src/engine/effects';
 import { addItem, canCraft, craft } from '../src/engine/inventory';
 import { choose, enterScene, visibleText } from '../src/engine/narrative';
-import { CLOCK_START, DEPARTED_HOUR, DEPARTURE_HOUR, formatClock } from '../src/engine/rules';
+import { CLOCK_START, DEPARTED_HOUR, DEPARTURE_HOUR, formatClock, lateness } from '../src/engine/rules';
 import { validateContent } from '../src/engine/validator';
 import { migrate, SAVE_SCHEMA_VERSION, validateState } from '../src/persistence/schema';
 import type { GameState } from '../src/engine/types';
@@ -186,5 +186,17 @@ describe('migration v2 → v3', () => {
     const v = validateState(C, m.state);
     expect(v.state!.hero).toBeNull();
     expect(v.state!.fallen).toEqual([]);
+  });
+});
+
+describe('indicateur de retard', () => {
+  it('compare l’horloge à l’heure de référence du chapitre', () => {
+    const r1 = C.chapters.find((c) => c.id === 'r1')!;
+    expect(lateness(C, { chapter: 'r1', clock: r1.due! }).level).toBe('ok');
+    expect(lateness(C, { chapter: 'r1', clock: r1.due! + 7 }).level).toBe('tight');
+    expect(lateness(C, { chapter: 'r1', clock: r1.due! + 12 }).level).toBe('late');
+    // Chaque chapitre a une heure de référence, croissante.
+    const dues = C.chapters.map((c) => c.due!);
+    expect(dues.every((d, i) => i === 0 || d >= dues[i - 1])).toBe(true);
   });
 });

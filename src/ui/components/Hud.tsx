@@ -5,7 +5,7 @@
 import React, { createContext, useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { maxHp, maxStamina } from '../../engine/character';
-import { clockParts, hoursLeft } from '../../engine/rules';
+import { clockParts, hoursLeft, lateness } from '../../engine/rules';
 import type { GameState } from '../../engine/types';
 import { useT } from '../../i18n';
 import { type Tab, useStore } from '../../store/GameStore';
@@ -30,21 +30,27 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
   );
 }
 
-export function ClockChip({ clock, compact }: { clock: number; compact?: boolean }) {
+/**
+ * Horloge des sept jours. `pace` : retard sur la route (« un peu juste »,
+ * « en retard »), calculé par le moteur d'après le chapitre en cours.
+ */
+export function ClockChip({ clock, compact, pace = 'ok' }: { clock: number; compact?: boolean; pace?: 'ok' | 'tight' | 'late' }) {
   const t = useT();
   const { day, hour } = clockParts(clock);
   const left = hoursLeft(clock);
-  const urgent = left <= 24;
-  const color = left < 0 ? colors.blood : urgent ? colors.rust : colors.textDim;
+  const urgent = left <= 24 || pace !== 'ok';
+  const color = left < 0 || pace === 'late' ? colors.blood : urgent ? colors.rust : colors.textDim;
+  const paceText = pace === 'ok' ? '' : ` · ${t(pace === 'late' ? 'hud.late' : 'hud.tight')}`;
   return (
     <View
-      style={[styles.clock, urgent && { backgroundColor: 'rgba(255,106,61,0.14)' }]}
+      style={[styles.clock, urgent && { backgroundColor: pace === 'late' ? 'rgba(255,84,104,0.16)' : 'rgba(255,106,61,0.14)' }]}
       accessible
-      accessibilityLabel={t('hud.clockA11y', { day, hour, left: Math.max(0, Math.round(left)) })}
+      accessibilityLabel={t('hud.clockA11y', { day, hour, left: Math.max(0, Math.round(left)) }) + (pace === 'ok' ? '' : ` ${t(pace === 'late' ? 'hud.lateA11y' : 'hud.tightA11y')}`)}
     >
-      <Icon name="clock" size={12} color={color} strokeWidth={2} />
+      <Icon name={pace === 'ok' ? 'clock' : 'warning'} size={12} color={color} strokeWidth={2} />
       <Text style={[styles.clockText, { color }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
         {t('hud.day', { day })} · {String(hour).padStart(2, '0')}h{!compact && left > 0 ? ` · ${t('hud.left', { h: Math.round(left) })}` : ''}
+        {!compact && paceText}
       </Text>
     </View>
   );
@@ -95,7 +101,7 @@ export function TopBar({ game, onPause }: { game: GameState; onPause: () => void
           <IconButton icon="pause" label={t('common.pause')} onPress={onPause} size={18} />
         </View>
         <View style={styles.clockRow}>
-          <ClockChip clock={game.clock} />
+          <ClockChip clock={game.clock} pace={game.ending ? 'ok' : lateness(content, game).level} />
         </View>
       </Glass>
     </View>

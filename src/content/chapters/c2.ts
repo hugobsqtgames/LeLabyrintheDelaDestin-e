@@ -8,6 +8,7 @@ import {
   any,
   background,
   companion,
+  companionIs,
   discover,
   flag,
   give,
@@ -43,6 +44,9 @@ import {
 const C = 'c2';
 const MAELLE_BLESSEE = all(flag('maelle_mordue'), notFlag('maelle_soignee'), withUs('maelle'));
 const THEO_FIEVRE = all(flag('theo_malade'), withUs('theo'));
+/** Relève : le compagnon est devenu le personnage joué. */
+const INES_JOUE = companionIs('ines', 'hero');
+const MAELLE_JOUE = companionIs('maelle', 'hero');
 
 export const chapter2: Scene[] = [
   {
@@ -143,6 +147,7 @@ export const chapter2: Scene[] = [
       p('La Galerie des Craies est un carrefour souterrain grand comme une église. Les murs sont couverts de signes : flèches, croix, dates, prénoms, prières. Certains ont deux siècles, d’autres deux jours. Une phrase revient partout, en lettres maladroites : « ILS N’ENTENDENT PAS LA CRAIE ».'),
       p('Pour rejoindre l’ossuaire Saint-Roch, où vivent les Veilleurs, il faut choisir un passage.'),
       say('ines', '« Le boyau est étroit mais sûr. Le Puits noyé est glacé. L’éboulis… n’y allez pas. » Elle pose la main sur une flèche tracée à hauteur d’épaule, avec un petit M dans la pointe. « Et ça, c’est Malik. »', withUs('ines')),
+      p('Sur un pilier, à hauteur d’épaule, une flèche avec un petit M dans la pointe. Vous la reconnaîtriez entre mille : c’est la main de Malik. C’est vous qui lui avez appris la craie.', INES_JOUE),
     ],
     choices: [
       {
@@ -159,6 +164,14 @@ export const chapter2: Scene[] = [
         kind: 'explore', time: 4,
         visibleIf: [quest('q_malik', 'active'), withUs('ines')],
         next: 'c2_malik',
+      },
+      {
+        id: 'malik_ines',
+        text: '[Vous, Inès] Suivre les flèches de votre frère.',
+        kind: 'explore', time: 4,
+        visibleIf: [INES_JOUE, not(quest('q_malik', 'completed'))],
+        effects: [when(not(quest('q_malik', 'active')), [questFx('q_malik', 'active', 'chercher')])],
+        next: 'c2_malik_ines',
       },
       {
         id: 'anciens',
@@ -320,19 +333,45 @@ export const chapter2: Scene[] = [
     ],
   },
   {
+    // Relève : Inès est le personnage joué, et c’est son frère.
+    id: 'c2_malik_ines',
+    chapter: C,
+    location: 'galerie_craie',
+    title: 'Les flèches de Malik',
+    kind: 'story',
+    text: [
+      p('Les flèches marquées d’un M vous mènent pendant une heure dans un dédale de galeries secondaires. Elles deviennent plus maladroites, plus tremblées. Vous connaissez sa main mieux que la vôtre : vous voyez, flèche après flèche, le moment où il a commencé à avoir de la fièvre. La dernière n’est pas une flèche. C’est une phrase : « RESTEZ LOIN ».'),
+      p('Au bout de la galerie, un homme est attaché à un pilier par une chaîne de vélo qu’il a lui-même cadenassée autour de sa taille. Il a la peau grise et les yeux laiteux. Ses dents claquent doucement quand la lumière l’atteint.'),
+      p('À ses pieds, posé bien en évidence sur une pierre plate, un carnet à couverture de toile.'),
+      p('« Malik. » Vous le dites tout bas. Il tourne la tête vers votre voix, et ce n’est pas lui qui tourne la tête. Trois semaines que vous le cherchez. Vous l’avez trouvé.'),
+    ],
+    choices: [
+      {
+        id: 'liberer',
+        text: '[Vous, Inès] Lui parler une dernière fois, en arabe, puis lever l’arbalète.',
+        kind: 'sacrifice',
+        effects: [set('ines_libere_malik')],
+        next: 'c2_malik_fin',
+      },
+    ],
+  },
+  {
     id: 'c2_malik_fin',
     chapter: C,
     location: 'galerie_craie',
     title: 'Le carnet',
     kind: 'story',
     text: [
-      p('Inès s’agenouille devant son frère. Elle lui parle en arabe, très bas, longtemps. Puis elle lève son arbalète. Un seul carreau. Elle le récupère ensuite, l’essuie, le range. Ce sont ses gestes de toujours, et c’est ce qui la tient debout.', flag('ines_libere_malik')),
+      p('Inès s’agenouille devant son frère. Elle lui parle en arabe, très bas, longtemps. Puis elle lève son arbalète. Un seul carreau. Elle le récupère ensuite, l’essuie, le range. Ce sont ses gestes de toujours, et c’est ce qui la tient debout.', all(flag('ines_libere_malik'), not(INES_JOUE))),
+      p('Vous vous agenouillez devant votre frère. Vous lui parlez en arabe, très bas, longtemps. Puis vous levez l’arbalète. Un seul carreau. Vous le récupérez, vous l’essuyez, vous le rangez. Ce sont vos gestes de toujours, et c’est ce qui vous tient debout.', all(flag('ines_libere_malik'), INES_JOUE)),
       p('Inès se tourne vers le mur. Vous ne la faites pas attendre. Quand c’est fini, elle se retourne, et elle pose une seconde son front contre votre épaule.', flag('moi_libere_malik')),
       p('Le carnet de Malik est rempli de relevés de galeries, d’une écriture minuscule. Sur une double page, l’aqueduc romain est dessiné en entier : un passage qui contourne la Grande Salle et débouche sur le fleuve.'),
       p('La dernière page est différente. L’écriture se brouille :'),
-      say('ines', '« Ferrand paie. Un passage sur la Destinée pour chaque porteur livré. Les Ferrailleurs chassent les enfants qui ne tombent pas malades. Je l’ai vu au port. Il faut prévenir les Veilleurs. » Inès lit à voix haute, puis referme le carnet. « Il a été mordu en revenant. Pour prévenir les autres. »'),
-      p('Elle détache de ses propres chaussures deux semelles de feutre cousues main et vous les tend.'),
-      say('ines', '« Elles étaient à lui. Il marchait sans bruit, mieux que moi. Prends-les. »'),
+      say('ines', '« Ferrand paie. Un passage sur la Destinée pour chaque porteur livré. Les Ferrailleurs chassent les enfants qui ne tombent pas malades. Je l’ai vu au port. Il faut prévenir les Veilleurs. » Inès lit à voix haute, puis referme le carnet. « Il a été mordu en revenant. Pour prévenir les autres. »', not(INES_JOUE)),
+      p('Vous lisez à voix haute, pour que quelqu’un l’entende : « Ferrand paie. Un passage sur la Destinée pour chaque porteur livré. Les Ferrailleurs chassent les enfants qui ne tombent pas malades. Je l’ai vu au port. Il faut prévenir les Veilleurs. » Il a été mordu en revenant. Pour prévenir les autres.', INES_JOUE),
+      p('Elle détache de ses propres chaussures deux semelles de feutre cousues main et vous les tend.', not(INES_JOUE)),
+      say('ines', '« Elles étaient à lui. Il marchait sans bruit, mieux que moi. Prends-les. »', not(INES_JOUE)),
+      p('Ses semelles de feutre, cousues main, vous les lui retirez avec précaution. Il marchait sans bruit, mieux que vous. Maintenant, vous marcherez pour deux.', INES_JOUE),
     ],
     onEnter: [doc('doc_malik'), 
       questFx('q_malik', 'completed'),
@@ -741,8 +780,9 @@ export const chapter2: Scene[] = [
       p('Kaz ne dort pas. Allongé sur le dos, les yeux ouverts, il regarde Théo dormir à trois mètres de lui. Il le regarde comme on regarde un billet de loterie.', all(withUs('kaz'), relMax('kaz', 2))),
       p('Kaz ronfle comme une péniche. Pour une fois, personne ne lui demande de se taire.', all(withUs('kaz'), relMin('kaz', 3))),
       p('Inès s’est assise à l’écart, le carnet de son frère sur les genoux. Elle ne lit pas. Elle tient juste le carnet.', all(withUs('ines'), flag('ines_libere_malik'))),
-      p('Vers ce qui doit être trois heures du matin, quelqu’un s’assoit à côté de vous.'),
-      say('theo', '« Tu dors ? »', all(withUs('theo'), relMin('theo', 3), notFlag('theo_verite'))),
+      p('Vous ne dormez pas. Vous regardez votre fils dormir, l’épaule gauche découverte, la cicatrice blanche dans la lueur des bougies. Personne ici ne sait. Vous portez ce secret depuis huit mois, sans personne avec qui le partager.', all(MAELLE_JOUE, withUs('theo'))),
+      p('Vers ce qui doit être trois heures du matin, quelqu’un s’assoit à côté de vous.', not(MAELLE_JOUE)),
+      say('theo', '« Tu dors ? »', all(withUs('theo'), relMin('theo', 3), notFlag('theo_verite'), not(MAELLE_JOUE))),
       say('maelle', '« Il faut qu’on parle. »', all(withUs('maelle'), has('lettre_maelle'), notFlag('theo_verite'))),
     ],
     onEnter: [{ type: 'time', hours: 6 }, set('nuit_ossuaire'), rest(10)],
@@ -758,8 +798,15 @@ export const chapter2: Scene[] = [
         id: 'theo',
         text: 'Écouter Théo.',
         kind: 'talk',
-        visibleIf: [withUs('theo'), relMin('theo', 3), notFlag('theo_verite')],
+        visibleIf: [withUs('theo'), relMin('theo', 3), notFlag('theo_verite'), not(MAELLE_JOUE)],
         next: 'c2_aveu_theo',
+      },
+      {
+        id: 'mere',
+        text: '[Vous, Maëlle] Réveiller Théo et lui dire, vous-même, ce qu’il est.',
+        kind: 'talk',
+        visibleIf: [MAELLE_JOUE, withUs('theo'), notFlag('theo_verite')],
+        next: 'c2_aveu_mere',
       },
       { id: 'dormir', text: 'Fermer les yeux et dormir jusqu’au matin.', kind: 'rest', next: 'c2_ossuaire' },
     ],
@@ -818,6 +865,37 @@ export const chapter2: Scene[] = [
       {
         id: 'verite',
         text: '« Je ne te promettrai rien que je ne peux pas tenir. Mais je ne te mentirai jamais. »',
+        kind: 'talk',
+        effects: [rel('theo', 1), set('honnete_theo')],
+        next: 'c2_ossuaire',
+      },
+    ],
+  },
+
+  {
+    id: 'c2_aveu_mere',
+    chapter: C,
+    location: 'ossuaire',
+    title: 'Ce qu’il est',
+    kind: 'story',
+    text: [
+      p('Vous vous asseyez au bord de son matelas. Il ouvre les yeux tout de suite : il ne dormait pas non plus. Vous posez la main sur son épaule gauche. Il ne la retire pas.'),
+      p('Vous lui dites tout. Son père, la morsure, les trois jours à attendre avec une barre de fer. La lettre à l’Institut, la réponse. Ce que vaut son sang, et ce que les gens feraient pour l’avoir.'),
+      say('theo', '« Je sais, maman. » Il le dit sans reproche. « Je savais depuis le début. J’attendais que tu me le dises. »'),
+      p('Un rideau bouge dans l’alcôve voisine. Quelqu’un a entendu.'),
+    ],
+    onEnter: [questFx('q_theo', 'active', 'verite'), set('theo_verite'), set('veilleurs_savent'), rel('theo', 2), journal('Vous avez dit la vérité à Théo : il est porteur, et l’Institut Ferrand le réclame.')],
+    choices: [
+      {
+        id: 'promettre',
+        text: '« Personne ne te vendra. Pas tant que je serai debout. »',
+        kind: 'talk',
+        effects: [rel('theo', 2)],
+        next: 'c2_ossuaire',
+      },
+      {
+        id: 'ensemble',
+        text: '« Je ne sais pas encore ce qu’on fera de ça. Mais on le décidera ensemble. »',
         kind: 'talk',
         effects: [rel('theo', 1), set('honnete_theo')],
         next: 'c2_ossuaire',
@@ -916,7 +994,7 @@ export const chapter2: Scene[] = [
     kind: 'combat',
     text: [p('Votre premier pas résonne sous la voûte. La cloche tinte. Cent têtes se relèvent en même temps.')],
     encounter: {
-      enemies: ['berger', 'rodeur'],
+      enemies: ['berger'],
       canFlee: false,
       victory: 'c2_berger_mort',
       defeat: 'c2_mort_berger',
@@ -1022,6 +1100,8 @@ export const chapter2: Scene[] = [
       say('helene', '« J’ai entendu ce qui s’est dit cette nuit. Je ne suis pas la seule. » Elle parle lentement, en pesant chaque mot comme un verdict. « Un enfant porteur. Peut-être la seule chose qui puisse encore changer le cours de ce monde. Et vous voulez l’emmener à des gens qui paient les enfants en places de bateau. »', all(flag('veilleurs_savent'), withUs('theo'))),
       say('helene', '« Laissez-le-nous. Ici, il ne sera pas une marchandise. Il sera protégé par quarante personnes qui n’ont rien d’autre à défendre. »', all(flag('veilleurs_savent'), withUs('theo'))),
       say('maelle', '« Il décidera lui-même », dit Maëlle d’une voix blanche. Puis, plus bas : « Ou toi. Il t’écoutera. »', all(flag('veilleurs_savent'), withUs('theo'), withUs('maelle'))),
+      p('Hélène ne vous parle pas comme à une cheffe de groupe. Elle vous parle comme à une mère, et elle sait exactement ce qu’elle vous demande.', all(flag('veilleurs_savent'), withUs('theo'), MAELLE_JOUE)),
+      p('Vous pourriez redescendre. D’autres attendent sous la ville. Mais Malik voulait que quelqu’un dise la vérité sur cette barge, et ce quelqu’un, maintenant, c’est vous.', INES_JOUE),
       say('ines', '« Je m’arrête là. » Inès range sa frontale. « Mon travail, c’était de vous faire traverser. Je retourne en bas. D’autres attendent. » Elle hésite. « Bonne chance. Vraiment. »', all(withUs('ines'), relMax('ines', 2))),
       say('ines', '« Je viens avec vous jusqu’au bout. » Inès serre le carnet de son frère contre sa poitrine. « Malik voulait que quelqu’un dise la vérité sur cette barge. Je serai là quand on la dira. »', all(withUs('ines'), relMin('ines', 3))),
     ],

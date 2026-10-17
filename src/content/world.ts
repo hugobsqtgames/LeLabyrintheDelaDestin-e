@@ -848,21 +848,21 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(quests.map((q
 // ---------------------------------------------------------------------------
 
 export const CHAPTERS: ChapterDef[] = [
-  { id: 'c1', number: 1, title: 'Le Dernier Comptoir', subtitle: 'La nuit de la pharmacie', region: 'Quartier des Tanneurs', start: 'c1_toit', aura: 'c1' },
-  { id: 'c2', number: 2, title: 'Le Labyrinthe', subtitle: 'Sous Valombre', region: 'Les Carrières', start: 'c2_brasserie', aura: 'c2', infects: true },
-  { id: 'fb', number: 3, title: 'Les Faubourgs', subtitle: 'Entre les morts et les rails', region: 'Les Faubourgs', start: 'fb_sortie', aura: 'c2' },
-  { id: 'c3', number: 4, title: 'La Ferraille et l’Eau', subtitle: 'Le port fluvial', region: 'Port fluvial', start: 'c3_quai', aura: 'c3', infects: true },
-  { id: 'r1', number: 5, title: 'Les Vergers noyés', subtitle: 'Au-delà du Pont de Fer', region: 'La Route du Fleuve', start: 'r1_berge', aura: 'c3' },
-  { id: 'r2', number: 6, title: 'La Rocade', subtitle: 'Le prix du passage', region: 'La Route du Fleuve', start: 'r2_bretelle', aura: 'c3' },
-  { id: 'r3', number: 7, title: 'Le Prieuré', subtitle: 'Ceux qu’on garde', region: 'La Route du Fleuve', start: 'r3_vigne', aura: 'c4', infects: true },
-  { id: 'r4', number: 8, title: 'Le Barrage', subtitle: 'La nuit de Vaulx', region: 'La Route du Fleuve', start: 'r4_couronnement', aura: 'c2' },
-  { id: 'r5', number: 9, title: 'Le Convoi', subtitle: 'Le sixième jour', region: 'La Route du Fleuve', start: 'r5_fosse', aura: 'c3' },
-  { id: 'r6', number: 10, title: 'Les Tourbières', subtitle: 'Ce que garde le brouillard', region: 'La Route du Fleuve', start: 'r6_digue', aura: 'c2', infects: true },
-  { id: 'r7', number: 11, title: 'Brennes', subtitle: 'La soupe du maire', region: 'La Route du Fleuve', start: 'r7_barricade', aura: 'c3' },
-  { id: 'r8', number: 12, title: 'La Draisine', subtitle: 'La ligne du fleuve', region: 'La Route du Fleuve', start: 'r8_quai', aura: 'c4' },
-  { id: 'r9', number: 13, title: 'Le Gué', subtitle: 'La livraison', region: 'La Route du Fleuve', start: 'r9_rive', aura: 'c3' },
-  { id: 'r10', number: 14, title: 'La Dernière Veillée', subtitle: 'La veille du septième jour', region: 'La Route du Fleuve', start: 'r10_chapelle', aura: 'c4' },
-  { id: 'c4', number: 15, title: 'La Destinée', subtitle: 'L’aube du septième jour', region: 'Écluse de Morvan', start: 'c4_halage', aura: 'c4', infects: true },
+  { id: 'c1', number: 1, title: 'Le Dernier Comptoir', subtitle: 'La nuit de la pharmacie', region: 'Quartier des Tanneurs', start: 'c1_toit', aura: 'c1', due: 23 },
+  { id: 'c2', number: 2, title: 'Le Labyrinthe', subtitle: 'Sous Valombre', region: 'Les Carrières', start: 'c2_brasserie', aura: 'c2', infects: true, due: 49 },
+  { id: 'fb', number: 3, title: 'Les Faubourgs', subtitle: 'Entre les morts et les rails', region: 'Les Faubourgs', start: 'fb_sortie', aura: 'c2', due: 71 },
+  { id: 'c3', number: 4, title: 'La Ferraille et l’Eau', subtitle: 'Le port fluvial', region: 'Port fluvial', start: 'c3_quai', aura: 'c3', infects: true, due: 77 },
+  { id: 'r1', number: 5, title: 'Les Vergers noyés', subtitle: 'Au-delà du Pont de Fer', region: 'La Route du Fleuve', start: 'r1_berge', aura: 'c3', due: 104 },
+  { id: 'r2', number: 6, title: 'La Rocade', subtitle: 'Le prix du passage', region: 'La Route du Fleuve', start: 'r2_bretelle', aura: 'c3', due: 106 },
+  { id: 'r3', number: 7, title: 'Le Prieuré', subtitle: 'Ceux qu’on garde', region: 'La Route du Fleuve', start: 'r3_vigne', aura: 'c4', infects: true, due: 110 },
+  { id: 'r4', number: 8, title: 'Le Barrage', subtitle: 'La nuit de Vaulx', region: 'La Route du Fleuve', start: 'r4_couronnement', aura: 'c2', due: 114 },
+  { id: 'r5', number: 9, title: 'Le Convoi', subtitle: 'Le sixième jour', region: 'La Route du Fleuve', start: 'r5_fosse', aura: 'c3', due: 121 },
+  { id: 'r6', number: 10, title: 'Les Tourbières', subtitle: 'Ce que garde le brouillard', region: 'La Route du Fleuve', start: 'r6_digue', aura: 'c2', infects: true, due: 123 },
+  { id: 'r7', number: 11, title: 'Brennes', subtitle: 'La soupe du maire', region: 'La Route du Fleuve', start: 'r7_barricade', aura: 'c3', due: 126 },
+  { id: 'r8', number: 12, title: 'La Draisine', subtitle: 'La ligne du fleuve', region: 'La Route du Fleuve', start: 'r8_quai', aura: 'c4', due: 129 },
+  { id: 'r9', number: 13, title: 'Le Gué', subtitle: 'La livraison', region: 'La Route du Fleuve', start: 'r9_rive', aura: 'c3', due: 133 },
+  { id: 'r10', number: 14, title: 'La Dernière Veillée', subtitle: 'La veille du septième jour', region: 'La Route du Fleuve', start: 'r10_chapelle', aura: 'c4', due: 136 },
+  { id: 'c4', number: 15, title: 'La Destinée', subtitle: 'L’aube du septième jour', region: 'Écluse de Morvan', start: 'c4_halage', aura: 'c4', infects: true, due: 138 },
 ];
 
 const endings: EndingDef[] = [

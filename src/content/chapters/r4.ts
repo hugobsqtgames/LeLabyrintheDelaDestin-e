@@ -44,6 +44,9 @@ const COURANT = flag('courant_retabli');
 /** La porte de la galerie est restée ouverte : quelque chose remontera pendant la nuit. */
 const PORTE_OUVERTE: Condition = all({ type: 'visited', scene: 'r4_galerie' }, notFlag('r4_porte_fermee'), notFlag('r4_intrus_venu'));
 const ABANDON = [when(not(COURANT), [questFx('q_barrage', 'failed')])];
+const KAZ_HEROS = companionIs('kaz', 'hero');
+const MAELLE_HEROS = companionIs('maelle', 'hero');
+const INES_HEROS = companionIs('ines', 'hero');
 
 export const chapterR4: Scene[] = [
   // -------------------------------------------------------------------------
@@ -56,11 +59,13 @@ export const chapterR4: Scene[] = [
     title: 'Le couronnement',
     kind: 'story',
     checkpoint: true,
+    illustration: 'barrage',
     text: [
       p('Le barrage de Vaulx barre la vallée d’un seul trait gris, quarante mètres de béton entre deux flancs de forêt. En amont, le lac est noir et parfaitement lisse. En aval, le fleuve repart mince, presque timide, comme s’il avait honte d’avoir été retenu.'),
       p('La nuit tombe vite, ici. Le vent remonte la vallée et siffle dans les garde-corps. Au bout du couronnement, à trois cents mètres, la tour de commande attend, toutes fenêtres éteintes.'),
       say('kaz', '« Vaulx. » Kaz pose la main sur le parapet, à plat, comme sur l’encolure d’un cheval. « J’ai fait deux ans de maintenance ici, avant l’écluse. C’est cette centrale qui envoyait le jus à Morvan. Les vannes, les portes, les lampadaires du quai. Tout. »', withUs('kaz')),
-      p('Une plaque émaillée, au pied de la première pile : « Centrale de Vaulx — accès réservé au personnel ». Quelqu’un a rayé « personnel » au couteau et écrit en dessous : « vivants ».', notWithUs('kaz')),
+      p('Vaulx. Vous posez la main à plat sur le parapet, comme sur l’encolure d’un cheval. Deux ans de maintenance ici, avant l’écluse. C’est cette centrale qui envoyait le jus à Morvan : les vannes, les portes, les lampadaires du quai. Et la galerie haute, dans l’épaisseur du mur, vous en connaissez encore chaque marche.', KAZ_HEROS),
+      p('Une plaque émaillée, au pied de la première pile : « Centrale de Vaulx — accès réservé au personnel ». Quelqu’un a rayé « personnel » au couteau et écrit en dessous : « vivants ».', all(notWithUs('kaz'), not(KAZ_HEROS))),
       p('À mi-chemin, sur la passerelle métallique qui longe la crête, trois silhouettes se tiennent immobiles, tournées vers le lac. Le vent vous apporte le bruit, par bouffées : un cliquetis de dents, sec, patient.'),
       p('Théo a déjà sorti son carnet. Il dessine le barrage en quatre traits, et les trois silhouettes en trois points.', withUs('theo')),
     ],
@@ -70,6 +75,13 @@ export const chapterR4: Scene[] = [
         text: 'Suivre Kaz par la galerie haute, à l’intérieur du mur.',
         kind: 'move', time: 1,
         visibleIf: [withUs('kaz')],
+        next: 'r4_escalier',
+      },
+      {
+        id: 'escalier_heros',
+        text: '[Vous, Kaz] Prendre la galerie haute, à l’intérieur du mur, par la porte de la première pile.',
+        kind: 'move', time: 1,
+        visibleIf: [KAZ_HEROS],
         next: 'r4_escalier',
       },
       {
@@ -115,12 +127,14 @@ export const chapterR4: Scene[] = [
     title: 'La galerie haute',
     kind: 'story',
     text: [
-      p('Kaz force une porte de fer au pied de la première pile, et vous entrez dans le barrage lui-même. Un couloir étroit court dans l’épaisseur du mur, sec, froid, éclairé par rien. Vos pas sonnent comme dans une église.'),
-      say('kaz', '« La galerie d’inspection. On y passait deux fois par jour pour relever les fissures. » Il tapote un repère peint sur le béton, un chiffre et une date. « Celle-là, c’est moi qui l’ai notée. Elle n’a pas bougé. Au moins une chose qui tient. »'),
-      say('kaz', '« Irena venait m’apporter à manger, le dimanche. Elle disait que le barrage ronronnait comme un chat. » Un temps. « Il ronronne plus. »'),
-      say('kaz', '« Tu m’as repris après ce que j’ai fait. » Il ne se retourne pas. « Je te dois une lumière, au moins. On va voir si j’en suis encore capable. »', flag('kaz_rachete')),
-      say('kaz', '« À la capitainerie, tu m’as laissé parler sans me couper. Personne ne fait ça. » Il hausse les épaules. « Bon. Tout droit, et on évite tes amis de la passerelle. »', flag('kaz_pardonne')),
-      p('Au bout du couloir, un escalier en colimaçon remonte droit dans la tour. Kaz referme la porte derrière vous et la bloque avec sa clé à molette.'),
+      p('Kaz force une porte de fer au pied de la première pile, et vous entrez dans le barrage lui-même. Un couloir étroit court dans l’épaisseur du mur, sec, froid, éclairé par rien. Vos pas sonnent comme dans une église.', withUs('kaz')),
+      say('kaz', '« La galerie d’inspection. On y passait deux fois par jour pour relever les fissures. » Il tapote un repère peint sur le béton, un chiffre et une date. « Celle-là, c’est moi qui l’ai notée. Elle n’a pas bougé. Au moins une chose qui tient. »', withUs('kaz')),
+      say('kaz', '« Irena venait m’apporter à manger, le dimanche. Elle disait que le barrage ronronnait comme un chat. » Un temps. « Il ronronne plus. »', withUs('kaz')),
+      say('kaz', '« Tu m’as repris après ce que j’ai fait. » Il ne se retourne pas. « Je te dois une lumière, au moins. On va voir si j’en suis encore capable. »', all(withUs('kaz'), flag('kaz_rachete'))),
+      say('kaz', '« À la capitainerie, tu m’as laissé parler sans me couper. Personne ne fait ça. » Il hausse les épaules. « Bon. Tout droit, et on évite tes amis de la passerelle. »', all(withUs('kaz'), flag('kaz_pardonne'))),
+      p('Au bout du couloir, un escalier en colimaçon remonte droit dans la tour. Kaz referme la porte derrière vous et la bloque avec sa clé à molette.', withUs('kaz')),
+      p('La porte de fer cède sous votre épaule, comme autrefois. Le couloir d’inspection court dans l’épaisseur du mur, sec, froid, et vos pas y sonnent comme dans une église. Sur le béton, un repère peint, un chiffre et une date : c’est vous qui l’avez noté. La fissure n’a pas bougé. Au moins une chose qui tient.', KAZ_HEROS),
+      p('Irena venait vous apporter à manger, le dimanche. Elle disait que le barrage ronronnait comme un chat. Il ne ronronne plus. Au bout du couloir, l’escalier en colimaçon remonte dans la tour, et vous bloquez la porte derrière vous avec votre clé à molette.', KAZ_HEROS),
     ],
     onEnter: [rel('kaz', 1), xp(15)],
     choices: [{ id: 'monter', text: 'Monter dans la tour.', kind: 'move', next: 'r4_salle' }],
@@ -227,9 +241,9 @@ export const chapterR4: Scene[] = [
     kind: 'story',
     text: [
       p('Un registre à couverture verte, d’une écriture penchée et régulière d’homme qui a l’habitude qu’on le relise. Les premières pages parlent de débits, de températures, de graissage. Puis la Fièvre, en trois lignes. Puis des mois où le chef de quart, un certain L. Marchal, continue seul de noter la hauteur du lac chaque matin, comme si quelqu’un allait passer vérifier.'),
-      p('Et, il y a trois semaines, une autre écriture entre dans le cahier : celle de la peur.'),
+      p('Et, il y a trois semaines, l’écriture change. Elle devient celle de la peur.'),
       p('« Ils ont démonté le fusible du départ Morvan eux-mêmes. Emporté. Le capitaine dit qu’une écluse sans courant, ça se garde avec quatre hommes. »'),
-      p('Vous connaissez la voix de ce capitaine. Vous l’avez sur une cassette, au fond de votre sac : « Le reste est négociable. » Il n’a pas seulement acheté des porteurs. Il a éteint une vallée pour être seul à tenir les portes.', flag('verite_ferrand')),
+      p('Vous connaissez la voix de ce capitaine. Vous l’avez entendue sur la cassette de la capitainerie : « Le reste est négociable. » Il n’a pas seulement acheté des porteurs. Il a éteint une vallée pour être seul à tenir les portes.', flag('verite_ferrand')),
       say('kaz', '« Sans courant, les vannes de Morvan se tournent à la manivelle. Et la manivelle, c’est eux qui la tiendront. » Kaz referme le cahier très doucement. « Ils ont pas coupé une ligne. Ils ont coupé la sortie. »', withUs('kaz')),
       say('maelle', '« Les rechanges sont en bas, il le dit lui-même. Troisième rayonnage. » Maëlle a déjà posé le doigt sur la dernière page. « Et il dit aussi qu’il n’y descend pas seul. »', withUs('maelle')),
     ],
@@ -251,6 +265,7 @@ export const chapterR4: Scene[] = [
       p('La galerie technique file devant vous sous un plafond bas, hérissé de chemins de câbles. Votre lampe y découpe un tunnel de quelques mètres. Au-delà, rien. Et dans ce rien, quelque chose flotte : des formes pâles, ventrues, gonflées d’eau, collées au plafond comme des ballons d’enfant oubliés après une fête. Elles ne bougent pas.'),
       p('Puis l’une d’elles tourne lentement sur elle-même. Le cliquetis, ici, a un écho.'),
       say('ines', '« Éteins », souffle Inès. « Ils suivent la lumière. Moi, je suis l’eau. »', withUs('ines')),
+      p('Vous éteignez votre lampe avant d’y penser. Sous les Carrières, Malik et vous traversiez les galeries noyées dans le noir complet, une main sur la paroi, en écoutant l’eau. Ce qui flotte au plafond suit la lumière. Vous, vous suivez l’eau.', INES_HEROS),
       say('nour', '« Le magasin, c’est quatre-vingts pas, sur le plan de Théo », chuchote Nour. « Je compte. »', all(withUs('nour'), withUs('theo'))),
     ],
     choices: [
@@ -260,6 +275,14 @@ export const chapterR4: Scene[] = [
         kind: 'stealth', time: 1,
         visibleIf: [withUs('ines')],
         effects: [set('r4_porte_fermee', false), rel('ines', 1)],
+        check: { stat: 'discretion', difficulty: 7, success: 'r4_magasin', failure: 'r4_galerie_combat' },
+      },
+      {
+        id: 'ines_heros',
+        text: '[Vous, Inès] Lampe éteinte, une main sur la paroi, suivre l’eau comme sous les Carrières.',
+        kind: 'stealth', time: 1,
+        visibleIf: [INES_HEROS],
+        effects: [set('r4_porte_fermee', false)],
         check: { stat: 'discretion', difficulty: 7, success: 'r4_magasin', failure: 'r4_galerie_combat' },
       },
       {
@@ -321,7 +344,7 @@ export const chapterR4: Scene[] = [
     id: 'r4_galerie_defaite',
     chapter: C,
     location: 'barrage',
-    title: 'Remonté de l’eau',
+    title: 'Hors de l’eau',
     kind: 'story',
     text: [
       p('L’eau se referme sur votre tête. Elle a un goût de rouille et de chose morte. Vous ne savez plus où est le haut.'),
@@ -403,6 +426,13 @@ export const chapterR4: Scene[] = [
         check: { stat: 'astuce', difficulty: 7, success: 'r4_courant', failure: 'r4_court_circuit' },
       },
       {
+        id: 'kaz_heros',
+        text: '[Vous, Kaz] Lire les voyants vous-même et refaire les gestes d’autrefois, un par un, dans l’ordre.',
+        kind: 'explore', time: 1,
+        visibleIf: [KAZ_HEROS],
+        check: { stat: 'astuce', difficulty: 7, success: 'r4_courant', failure: 'r4_court_circuit' },
+      },
+      {
         id: 'seul',
         text: 'Suivre les schémas collés dans la porte de l’armoire, et réarmer.',
         kind: 'explore', time: 1,
@@ -428,6 +458,7 @@ export const chapterR4: Scene[] = [
       p('Un claquement, une lumière blanche qui vous traverse les paupières, une odeur d’ozone et de poils brûlés. Le pupitre d’en face vous cogne dans le dos ; vous ne savez pas comment vous avez traversé la pièce. Votre main droite ne vous appartient plus tout à fait.'),
       p('Dans l’armoire, le fusible est toujours entier. Une auréole noire lèche le cuivre de la mâchoire. Le levier est revenu tout seul en position ouverte : la sécurité a fait son travail. Vous avez fait le vôtre de travers.'),
       say('maelle', '« Montre. » Maëlle retourne votre paume, souffle dessus, verse de l’eau. « Brûlure du deuxième degré. Tu vivras. La prochaine, je ne sais pas. »', withUs('maelle')),
+      p('Vous retournez votre propre paume à la lumière d’un voyant. Brûlure du deuxième degré. De l’eau, un linge propre, et pas de bandage serré. Vous connaissez la consigne par cœur ; c’est la première fois que vous l’appliquez avec une seule main.', MAELLE_HEROS),
       say('kaz', '« Tu as réarmé avant de refermer. Tout le monde le fait une fois. » Il ne sourit pas. « Personne le fait deux fois. »', withUs('kaz')),
     ],
     onEnter: [hurt(3, 'un arc électrique')],
@@ -474,6 +505,7 @@ export const chapterR4: Scene[] = [
       p('Les voyants du pupitre s’allument un à un, verts, orange, un rouge qui clignote et se calme. Sur le tableau synoptique, la ligne de Morvan s’illumine sur toute sa longueur, comme une veine qui se remplit.'),
       p('Et par la grande baie, dans la vallée noire, une rangée de points orange s’allume le long du fleuve. Un, puis le suivant, puis le suivant, des lampadaires de berge qui se réveillent de proche en proche, jusqu’au coude du fleuve, et au-delà, vers l’aval, vers Morvan. Personne ne dit rien. On n’a plus l’habitude de voir la lumière aller dans le bon sens.'),
       say('kaz', '« Les vannes de l’écluse auront du jus. Les portes s’ouvriront avec un bouton, pas avec quatre hommes sur une manivelle. » Il rit, un rire bref, presque un sanglot. « Irena, t’entends ? Il ronronne. »', withUs('kaz')),
+      p('Un rire vous monte à la gorge, bref, presque un sanglot. Les vannes de l’écluse auront du jus. Les portes s’ouvriront avec un bouton, pas avec quatre hommes sur une manivelle. « Irena, t’entends ? » dites-vous à la vitre. « Il ronronne. »', KAZ_HEROS),
       say('nour', '« Quarante et un », dit Nour, le nez contre la vitre. « Jusqu’au virage. Après, je ne vois plus. »', withUs('nour')),
       say('maelle', '« Ils vont le voir, à l’écluse », dit Maëlle. Elle ne dit pas si c’est une bonne nouvelle.', withUs('maelle')),
       p('Quelque part sur cette route, un camion de Ferrailleurs roule vers l’écluse avec Théo dans une cage. Les lampadaires éclairent son chemin, maintenant. Vous ne savez pas si c’est une consolation.', THEO_CAGE),
@@ -662,7 +694,7 @@ export const chapterR4: Scene[] = [
     kind: 'story',
     routes: [{ if: PORTE_OUVERTE, to: 'r4_intrus' }],
     text: [
-      p('Quand c’est fini, le palier sent la bile et le fer. Vous traînez ce qui reste jusqu’à l’escalier, vous le laissez redescendre vers l’eau, et cette fois vous fermez la porte étanche, de toutes vos forces. Après, on ne dort plus vraiment. On attend le jour, les yeux fermés.', flag('r4_intrus_venu')),
+      p('Quand c’est fini, le palier sent la bile et le fer. Vous descendez jusqu’à la porte étanche et, cette fois, vous la fermez de toutes vos forces. Après, on ne dort plus vraiment. On attend le jour, les yeux fermés.', flag('r4_intrus_venu')),
       p('Vous dormez comme on tombe. Sans rêve, ou presque : une fois, vous croyez entendre une cloche, très loin. Ce n’est que le vent dans les garde-corps.', notFlag('r4_intrus_venu')),
       p('Toute la nuit, sous vos pieds, le barrage ronronne.', all(COURANT, notFlag('r4_intrus_venu'))),
     ],
@@ -699,9 +731,9 @@ export const DOCUMENTS_R4: DocumentDef[] = [
     source: 'Registre ouvert sur le pupitre central de la salle de commande',
     body:
       '« Lac à 212,40. Groupe 1 seul, à vide. Ligne Morvan sous tension, éclairage du quai ok. Personne n’est venu. — L. M. »\n\n' +
-      '« Visite de l’Institut Ferrand. Un capitaine et six hommes en gris. Demandent de couper la ligne de Morvan, « pour raisons sanitaires ». Refusé. L’écluse a besoin de ses vannes, les gens du fleuve aussi. »\n\n' +
+      '« Visite de l’Institut Ferrand. Un capitaine et six hommes en gris. Demandent de couper la ligne de Morvan, “pour raisons sanitaires”. Refusé. L’écluse a besoin de ses vannes, les gens du fleuve aussi. »\n\n' +
       '« Ils sont revenus. Ont démonté le fusible du départ Morvan eux-mêmes. Emporté. Le capitaine dit qu’une écluse sans courant, ça se garde avec quatre hommes. Il veut que les portes ne s’ouvrent que quand il le décide. »\n\n' +
-      '« Ils ont emmené Dédé et Paulin « pour l’entretien de la barge ». Je reste. Quelqu’un doit rester. »\n\n' +
+      '« Ils ont emmené Dédé et Paulin “pour l’entretien de la barge”. Je reste. Quelqu’un doit rester. »\n\n' +
       '« Les rechanges sont au magasin, galerie −2. L’eau est montée depuis la crue de mars, et il y a du monde dedans. Je n’y descends pas seul. Si quelqu’un lit ça : 63 kV, porcelaine, troisième rayonnage. Sectionneur d’abord, toujours. — L. M. »',
   },
   {
