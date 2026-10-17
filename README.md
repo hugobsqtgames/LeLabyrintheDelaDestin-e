@@ -26,7 +26,8 @@ aucun development build n’est nécessaire.
 
 | Commande | Rôle |
 | --- | --- |
-| `npm test` | 131 tests Vitest : moteur, combat, inventaire, horloge, atelier, sauvegardes et migrations, parcours complets, traduction anglaise complète, contraste des couleurs |
+| `npm test` | 162 tests Vitest : moteur, combat, inventaire, horloge, atelier, sauvegardes et migrations, parcours complets, traduction anglaise complète, contraste des couleurs, non-régression de l’audit (file d’écriture, navigation retour) |
+| `npm run e2e:web` | Parcours de bout en bout sur l’export web (Playwright) : navigation aller-retour, création, tutoriel, pause, paramètres, menu, reprise |
 | `npm run typecheck` | TypeScript strict |
 | `npx expo lint` | ESLint (configuration Expo, règles React Compiler) |
 | `npm run validate` | Validateur du contenu narratif |
@@ -239,7 +240,7 @@ la partie (retour arrière Android géré explicitement : onglet → récit → 
 
 ## Résultats obtenus
 
-- `npm test` : **145/145 tests réussis** (dont des parties automatiques complètes en français et en anglais).
+- `npm test` : **162/162 tests réussis** (dont des parties automatiques complètes en français et en anglais).
 - `npm run validate` : 396 scènes, 825 choix, 10 fins, **0 erreur, 0 avertissement**.
 - `npm run typecheck`, `npx expo lint`, `npx expo-doctor` (21/21) : **aucun problème**.
 - Export web puis parcours automatisé dans Chromium au format iPhone : création, choix, combat, onglets,
