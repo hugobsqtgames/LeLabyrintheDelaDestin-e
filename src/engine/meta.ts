@@ -107,7 +107,7 @@ export function absorbGame(
   // Une mort n'est une fin que si personne ne peut reprendre la route.
   if (game.ending && (game.ending.kind === 'ending' || !hasRelay(content, game))) {
     set('endings', add(m.endings, [game.ending.id]));
-    if (!m.countedRuns.includes(game.id)) m = { ...m, runs: m.runs + 1, countedRuns: [...m.countedRuns.slice(-50), game.id] };
+    if (!m.countedRuns.includes(game.id)) m = { ...m, runs: m.runs + 1, countedRuns: [...m.countedRuns, game.id] };
   }
   const unlocked: AchievementDef[] = [];
   for (const a of achievements) {

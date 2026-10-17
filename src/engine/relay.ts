@@ -116,7 +116,9 @@ export function takeOver(content: GameContent, state: GameState, hero: Character
   const deathScene = content.scenes[state.currentScene];
   // On reprend juste avant le coup fatal : la scène précédente si l'on est
   // sur une scène de mort, sinon la scène courante (un combat est relancé).
-  const resume = deathScene?.kind === 'death' && state.previousScene ? state.previousScene : state.currentScene;
+  const before = state.previousScene && content.scenes[state.previousScene] && content.scenes[state.previousScene].kind !== 'death' ? state.previousScene : null;
+  const chapterStart = content.chapters.find((c) => c.id === state.chapter)?.start ?? content.startScene;
+  const resume = deathScene?.kind === 'death' ? (before ?? chapterStart) : deathScene ? state.currentScene : chapterStart;
 
   let s: GameState = {
     ...state,

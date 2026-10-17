@@ -197,6 +197,9 @@ export function validateState(content: GameContent, raw: unknown): ValidationRes
     repairs.push(`Scène « ${currentScene} » introuvable : reprise au début du chapitre.`);
     currentScene = ch.start;
   }
+  // Le chapitre est celui de la scène : les deux ne doivent jamais diverger.
+  const sceneChapter = content.scenes[currentScene].chapter;
+  if (sceneChapter !== chapter && content.chapters.some((c) => c.id === sceneChapter)) chapter = sceneChapter;
 
   const quests: Record<string, QuestState> = {};
   if (isObj(raw.quests)) {
@@ -209,7 +212,9 @@ export function validateState(content: GameContent, raw: unknown): ValidationRes
   const companions: Record<string, CompanionStatus> = {};
   if (isObj(raw.companions)) {
     for (const [id, c] of Object.entries(raw.companions)) {
-      if (content.characters[id] && COMPANION_STATUSES.includes(c as CompanionStatus)) companions[id] = c as CompanionStatus;
+      if (!content.characters[id]) continue;
+      if (COMPANION_STATUSES.includes(c as CompanionStatus)) companions[id] = c as CompanionStatus;
+      else repairs.push(`Statut illisible pour ${content.characters[id].name} : rencontre à refaire.`);
     }
   }
   const flags: Record<string, boolean> = {};
@@ -270,7 +275,7 @@ export function validateState(content: GameContent, raw: unknown): ValidationRes
     },
     chapter,
     currentScene,
-    previousScene: typeof raw.previousScene === 'string' ? raw.previousScene : null,
+    previousScene: typeof raw.previousScene === 'string' && content.scenes[raw.previousScene] ? raw.previousScene : null,
     inventory,
     equipment,
     ground: numberRecord(raw.ground, (k) => !!content.items[k]),

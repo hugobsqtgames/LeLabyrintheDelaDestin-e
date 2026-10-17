@@ -24,3 +24,22 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = { reduceMotion: false, haptics: true, textScale: 1, lastSlot: 0, timedChoices: true, volume: 0.5, language: 'auto', tutorialDone: false, paperReading: false, reminders: false, hintsSeen: [] };
+
+/** Tailles de texte proposées pour le récit. */
+export const TEXT_SCALES = [0.9, 1, 1.15, 1.3];
+
+/**
+ * Remet des paramètres relus du stockage dans leurs bornes : un fichier
+ * abîmé ou d'une autre version ne doit jamais faire planter l'interface.
+ */
+export function sanitizeSettings(raw: Settings): Settings {
+  const s = { ...DEFAULT_SETTINGS, ...raw };
+  return {
+    ...s,
+    textScale: TEXT_SCALES.includes(s.textScale) ? s.textScale : DEFAULT_SETTINGS.textScale,
+    lastSlot: Number.isInteger(s.lastSlot) && s.lastSlot >= 0 && s.lastSlot <= 3 ? s.lastSlot : 0,
+    volume: Number.isFinite(s.volume) ? Math.min(1, Math.max(0, s.volume)) : DEFAULT_SETTINGS.volume,
+    language: s.language === 'fr' || s.language === 'en' ? s.language : 'auto',
+    hintsSeen: Array.isArray(s.hintsSeen) ? s.hintsSeen.filter((h): h is string => typeof h === 'string') : [],
+  };
+}

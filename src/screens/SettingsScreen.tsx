@@ -9,11 +9,11 @@ import { useT } from '../i18n';
 import { cancelReminders, enableReminders, REMINDER_DELAY_HOURS, remindersSupported } from '../notifications/reminders';
 import { deviceLanguage } from '../i18n/lang';
 import { type LanguageSetting, useStore } from '../store/GameStore';
+import { TEXT_SCALES } from '../store/settings';
 import { Body, Button, IconButton, Label, Panel, Screen, SectionTitle, Segmented } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, TOUCH, type } from '../ui/theme';
 
-const SCALES = [0.9, 1, 1.15, 1.3];
 const VOLUMES = [0, 0.25, 0.5, 0.75, 1];
 
 function Toggle({ label, detail, value, onChange, disabled }: { label: string; detail: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -123,7 +123,7 @@ export function SettingsScreen() {
 
         <SectionTitle>{t('settings.reading')}</SectionTitle>
         <View style={styles.scales}>
-          {SCALES.map((v) => (
+          {TEXT_SCALES.map((v) => (
             <Pressable
               key={v}
               accessibilityRole="radio"

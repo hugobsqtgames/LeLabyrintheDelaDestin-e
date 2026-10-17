@@ -70,6 +70,8 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
     if (!saves || !model.game) return;
     setBusy(true);
     try {
+      // L'emplacement de destination repart de zéro : ni copie de secours ni état « avant la relève » d'une autre partie.
+      await saves.remove(slot);
       await saves.save(slot, model.game);
       await saves.flush();
       feedback('success');

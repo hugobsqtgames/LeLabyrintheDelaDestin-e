@@ -74,6 +74,8 @@ function parse(text: string | null): ParsedSave {
 export class SaveManager {
   private queue: Promise<void> = Promise.resolve();
   private pending = new Map<number, GameState>();
+  /** Génération par emplacement : un effacement rend caduques les écritures mises en file avant lui. */
+  private generation = new Map<number, number>();
 
   constructor(
     private readonly storage: KeyValueStorage,
@@ -171,9 +173,12 @@ export class SaveManager {
     const alreadyQueued = this.pending.has(slot);
     this.pending.set(slot, state);
     if (alreadyQueued) return this.queue;
+    const gen = this.generation.get(slot) ?? 0;
     this.queue = this.queue
       .catch(() => undefined)
       .then(async () => {
+        // Un effacement est passé entre-temps : cette tâche ne doit pas écrire l'état suivant à sa place.
+        if ((this.generation.get(slot) ?? 0) !== gen) return;
         const latest = this.pending.get(slot);
         this.pending.delete(slot);
         if (!latest) return;
@@ -206,6 +211,7 @@ export class SaveManager {
    */
   remove(slot: number): Promise<void> {
     this.pending.delete(slot);
+    this.generation.set(slot, (this.generation.get(slot) ?? 0) + 1);
     this.queue = this.queue
       .catch(() => undefined)
       .then(async () => {
@@ -240,13 +246,25 @@ export class SaveManager {
     return out;
   }
 
-  /** Données JSON libres (progression hors partie). `null` si absentes ou illisibles. */
-  async loadJson(key: string): Promise<unknown> {
+  /**
+   * Données JSON libres (progression hors partie). Distingue « absentes » de
+   * « illisibles » : une lecture ratée ne doit pas conduire à écraser les données.
+   */
+  async loadJson(key: string): Promise<{ status: 'absent' | 'ok' | 'unreadable' | 'corrupt'; value: unknown }> {
+    let raw: string | null;
     try {
-      const raw = await this.storage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
+      raw = await this.storage.getItem(key);
     } catch {
-      return null;
+      // Stockage momentanément illisible : surtout ne rien réécrire par-dessus.
+      return { status: 'unreadable', value: null };
+    }
+    if (!raw) return { status: 'absent', value: null };
+    try {
+      return { status: 'ok', value: JSON.parse(raw) };
+    } catch {
+      // Contenu abîmé : une copie est gardée à part avant qu'il soit remplacé.
+      await this.storage.setItem(`${key}:corrompu`, raw).catch(() => undefined);
+      return { status: 'corrupt', value: null };
     }
   }
 

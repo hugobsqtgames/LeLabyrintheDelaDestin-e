@@ -22,7 +22,7 @@ import { translate } from '../i18n/translate';
 import { cancelReminders, scheduleReminder } from '../notifications/reminders';
 import type { ChapterId, CharacterDraft, CharacterId, GameContent, GameState, ItemId } from '../engine/types';
 import { META_KEY, type SaveManager } from '../persistence/saves';
-import { DEFAULT_SETTINGS, type Settings } from './settings';
+import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from './settings';
 
 export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery' | 'memories';
 export type SavesMode = 'new' | 'load' | 'copy';
@@ -65,6 +65,7 @@ type Action =
   | { type: 'pendingSlot'; slot: number | null }
   | { type: 'recap'; value: boolean }
   | { type: 'meta'; meta: MetaProfile; unlocked?: AchievementDef[] }
+  | { type: 'absorb'; content: GameContent; game: GameState; previousScene: string | null; now: number }
   | { type: 'dismissUnlocked' }
   | { type: 'pendingChapter'; chapter: ChapterId | null };
 
@@ -97,6 +98,12 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, recap: action.value };
     case 'meta':
       return { ...model, meta: action.meta, unlocked: action.unlocked?.length ? [...model.unlocked, ...action.unlocked] : model.unlocked };
+    case 'absorb': {
+      // Dans le réducteur : toujours appliqué aux mémoires les plus récentes.
+      const res = absorbGame(model.meta, action.content, action.game, action.previousScene, action.content.achievements, action.now);
+      if (res.meta === model.meta) return model;
+      return { ...model, meta: res.meta, unlocked: res.unlocked.length ? [...model.unlocked, ...res.unlocked] : model.unlocked };
+    }
     case 'dismissUnlocked':
       return { ...model, unlocked: model.unlocked.slice(1) };
     case 'pendingChapter':
@@ -202,7 +209,8 @@ export function GameProvider({
     saves.loadSettings(DEFAULT_SETTINGS).then((s) => {
       if (!alive) return;
       const fixed = fixedSettings.current;
-      const patch = fixed ? { ...s, ...fixed, language: s.language, volume: s.volume, haptics: s.haptics } : mockTutorial === null ? s : { ...s, tutorialDone: mockTutorial };
+      const stored = sanitizeSettings(s);
+      const patch = fixed ? { ...stored, ...fixed, language: stored.language, volume: stored.volume, haptics: stored.haptics } : mockTutorial === null ? stored : { ...stored, tutorialDone: mockTutorial };
       dispatch({ type: 'settings', patch });
       settingsLoaded.current = !fixed;
     });
@@ -243,29 +251,31 @@ export function GameProvider({
   useEffect(() => {
     if (!saves || mockTutorial !== null) return;
     let alive = true;
-    saves.loadJson(META_KEY).then((raw) => {
-      if (!alive) return;
+    saves.loadJson(META_KEY).then((res) => {
+      // Lecture impossible : on ne charge rien et, surtout, on n'écrira rien par-dessus.
+      if (!alive || res.status === 'unreadable') return;
       metaLoaded.current = true;
-      dispatch({ type: 'meta', meta: readMeta(raw) });
+      dispatch({ type: 'meta', meta: readMeta(res.value) });
     });
     return () => {
       alive = false;
     };
   }, [saves, mockTutorial]);
-  const metaRef = useRef(model.meta);
+  const prevGameId = useRef<string | null>(null);
   useEffect(() => {
-    metaRef.current = model.meta;
-  }, [model.meta]);
+    if (saves && metaLoaded.current && mockTutorial === null) saves.saveJson(META_KEY, model.meta).catch(() => undefined);
+  }, [model.meta, saves, mockTutorial]);
   useEffect(() => {
     const g = model.game;
     if (!g || !saves || mockTutorial !== null || !metaLoaded.current) return;
-    const c = contentFor(resolveLanguage(languageRef.current));
-    const res = absorbGame(metaRef.current, c, g, prevScene.current, c.achievements, Date.now());
-    prevScene.current = g.currentScene;
-    if (res.meta !== metaRef.current) {
-      dispatch({ type: 'meta', meta: res.meta, unlocked: res.unlocked });
-      saves.saveJson(META_KEY, res.meta).catch(() => undefined);
+    // Nouvelle partie (ou partie chargée) : pas d'embranchement depuis la scène d'une autre partie.
+    if (prevGameId.current !== g.id) {
+      prevGameId.current = g.id;
+      prevScene.current = null;
     }
+    const c = contentFor(resolveLanguage(languageRef.current));
+    dispatch({ type: 'absorb', content: c, game: g, previousScene: prevScene.current, now: Date.now() });
+    prevScene.current = g.currentScene;
     // Début de chapitre mémorisé pour « Rejouer un chapitre ».
     const ch = c.chapters.find((x) => x.start === g.currentScene);
     const key = `${g.id}:${ch?.id}`;
@@ -282,13 +292,17 @@ export function GameProvider({
   }, [model.game]);
   useEffect(() => {
     if (!model.settings.reminders || mockTutorial !== null) return;
+    // Au lancement (y compris après un arrêt forcé), un rappel resté programmé n'a plus lieu d'être.
+    cancelReminders();
     const sub = RNAppState.addEventListener('change', (st) => {
       const g = reminderGame.current;
       if (st === 'active') cancelReminders();
-      else if (st === 'background' && g && !g.ending) {
-        const lang = resolveLanguage(languageRef.current);
-        const left = Math.max(0, Math.round(hoursLeft(g.clock)));
-        scheduleReminder(translate(lang, 'notif.title'), translate(lang, 'notif.body', { name: g.player.name, left }));
+      else if (st === 'background') {
+        if (g && !g.ending) {
+          const lang = resolveLanguage(languageRef.current);
+          const left = Math.max(0, Math.round(hoursLeft(g.clock)));
+          scheduleReminder(translate(lang, 'notif.title'), translate(lang, 'notif.body', { name: g.player.name, left }));
+        } else cancelReminders();
       }
     });
     return () => sub.remove();
