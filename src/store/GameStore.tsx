@@ -194,20 +194,22 @@ export function GameProvider({
   }, []);
 
   // Paramètres persistants.
-  // Une maquette qui fixe ses propres paramètres les garde tels quels (rien n'est relu ni écrit).
-  const fixedSettings = !!initial?.settings;
+  // Une maquette qui fixe ses propres paramètres les garde (langue, son et vibrations restent ceux du stockage).
+  const fixedSettings = useRef(initial?.settings ?? null);
   useEffect(() => {
-    if (!saves || fixedSettings) return;
+    if (!saves) return;
     let alive = true;
     saves.loadSettings(DEFAULT_SETTINGS).then((s) => {
       if (!alive) return;
-      dispatch({ type: 'settings', patch: mockTutorial === null ? s : { ...s, tutorialDone: mockTutorial } });
-      settingsLoaded.current = true;
+      const fixed = fixedSettings.current;
+      const patch = fixed ? { ...s, ...fixed, language: s.language, volume: s.volume, haptics: s.haptics } : mockTutorial === null ? s : { ...s, tutorialDone: mockTutorial };
+      dispatch({ type: 'settings', patch });
+      settingsLoaded.current = !fixed;
     });
     return () => {
       alive = false;
     };
-  }, [saves, mockTutorial, fixedSettings]);
+  }, [saves, mockTutorial]);
   useEffect(() => {
     if (saves && settingsLoaded.current) saves.saveSettings(model.settings).catch(() => undefined);
   }, [saves, model.settings]);

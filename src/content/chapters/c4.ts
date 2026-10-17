@@ -94,7 +94,7 @@ function epilogueCompagnons(lieu: 'barge' | 'terre'): { text: string; if?: Condi
       : { text: 'Maëlle a fini le voyage à la place de la personne qui l’avait commencé. Elle a ouvert une infirmerie entre deux murs de crânes, et elle a donné au premier lit le nom de quelqu’un qui n’est pas arrivé jusque-là.', if: flag('releve_maelle') },
     { text: 'Inès a fini le voyage à la place de la personne qui l’avait commencé. Sur la dernière page du carnet de Malik, sous l’écriture de son frère, elle a ajouté une ligne : la date, l’écluse, et un nom qu’elle ne dit à personne.', if: all(flag('releve_ines'), PAS_GARDIEN) },
     { text: 'Théo a fini le voyage à la place de la personne qui l’avait commencé. Sur toutes ses cartes, depuis, il y a une petite croix au bord d’un chemin, à l’endroit exact où elle est tombée.', if: all(flag('releve_theo'), PAS_GARDIEN) },
-    { text: 'Nour a fini le voyage à la place de la personne qui l’avait commencé. Elle a neuf ans. Elle sait combien de pas il y avait entre l’endroit où tout s’est arrêté et l’écluse de Morvan. Elle ne le dit à personne.', if: all(flag('releve_nour'), PAS_GARDIEN) },
+    { text: 'Nour a fini le voyage à la place de la personne qui l’avait commencé. Elle a douze ans. Elle sait combien de pas il y avait entre l’endroit où tout s’est arrêté et l’écluse de Morvan. Elle ne le dit à personne.', if: all(flag('releve_nour'), PAS_GARDIEN) },
   ];
 }
 
