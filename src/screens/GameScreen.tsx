@@ -6,6 +6,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { recap } from '../engine/summary';
 import type { ChapterDef, GameState } from '../engine/types';
@@ -290,6 +291,13 @@ export function GameScreen({
       </ChromeContext.Provider>
 
       <View style={[styles.topLayer, { paddingTop: insets.top }]} onLayout={(e) => setTopH(e.nativeEvent.layout.height)} pointerEvents="box-none">
+        {/* Le texte qui défile ne passe pas sous l'heure et les icônes de la barre d'état. */}
+        <LinearGradient
+          colors={['rgba(11,10,10,0.94)', 'rgba(11,10,10,0.7)', 'rgba(11,10,10,0)']}
+          locations={[0, 0.6, 1]}
+          style={[styles.statusScrim, { height: insets.top + 28 }]}
+          pointerEvents="none"
+        />
         <TopBar game={game} onPause={() => setPaused(true)} />
         {model.saveError && (
           <View style={styles.saveError}>
@@ -384,6 +392,7 @@ const styles = StyleSheet.create({
   toastWrap: { position: 'absolute', left: space.lg, right: space.lg, alignItems: 'center', zIndex: 50 },
   toast: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.sm },
   topLayer: { position: 'absolute', top: 0, left: 0, right: 0 },
+  statusScrim: { position: 'absolute', top: 0, left: 0, right: 0 },
   bottomLayer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   saveError: { backgroundColor: 'rgba(255,84,104,0.25)', marginHorizontal: space.md, borderRadius: 12, paddingHorizontal: space.md, paddingVertical: 6 },
   transition: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: space.xl, gap: space.sm },
