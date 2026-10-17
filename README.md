@@ -40,7 +40,7 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
 
 ## Contenu livré
 
-- **15 chapitres, 393 scènes, 785 choix, environ 62 000 mots** de narration, de dialogues et de choix (plus les
+- **15 chapitres, 396 scènes, 825 choix, environ 62 000 mots** de narration, de dialogues et de choix (plus les
   données du monde : objets, documents, journal…), **intégralement traduits en anglais** (tout est écrit et relié ;
   aucun texte de remplissage). De Valombre à l’écluse : la ville (1), les Carrières (2), les Faubourgs (3), le port
   (4), puis dix étapes sur la route du fleuve (5 à 14 : vergers noyés, rocade du Péage, prieuré, barrage de Vaulx,

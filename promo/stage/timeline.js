@@ -45,7 +45,7 @@ export const COPY = [
   { in: 18.95, out: 22.15, text: T('Un monde qui garde<br><em>vos traces.</em>', 'A world that<br><em>bears your scars.</em>') },
 ];
 
-export const STATS = { in: 24.1, out: 25.7, text: T('15 chapitres · 6 fins · 393 scènes', '15 chapters · 6 endings · 393 scenes') };
+export const STATS = { in: 24.1, out: 25.7, text: T('15 chapitres · 6 fins · 396 scènes', '15 chapters · 6 endings · 396 scenes') };
 
 export const OUTRO = {
   in: 25.85,
