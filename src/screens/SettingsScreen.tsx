@@ -190,7 +190,7 @@ export function SettingsScreen() {
 
         <SectionTitle>{t('settings.about')}</SectionTitle>
         <Panel style={{ gap: space.sm }}>
-          <Label>Le Labyrinthe de la Destinée</Label>
+          <Label>Valombre</Label>
           <Text style={type.bodySmall}>{t('settings.privacy')}</Text>
           <Text style={type.bodySmall}>{t('settings.credits')}</Text>
         </Panel>

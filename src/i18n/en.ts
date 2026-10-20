@@ -8,9 +8,9 @@ export const EN: Record<string, string> = {
   'common.pause': 'Pause',
 
   // Title
-  'title.kicker': 'Valombre · D−7',
-  'title.line1': 'The Labyrinth',
-  'title.line2': 'of Destiny',
+  'title.kicker': 'D−7 · A survival story',
+  'title.line1': 'Valombre',
+  'title.line2': 'Seven days to escape.',
   'title.tagline': 'Fourteen months after the Great Fever. Seven days to reach the barge. Every choice leaves a mark.',
   'title.continue': 'Continue',
   'title.new': 'New game',

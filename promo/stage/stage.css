@@ -80,7 +80,7 @@ html, body { width: 886px; height: 1920px; background: var(--bg); overflow: hidd
 #outro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
 #icon { width: 236px; height: 236px; border-radius: 54px; box-shadow: 0 30px 90px rgba(255, 106, 61, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08); }
 .brand { margin-top: 64px; font: 400 112px/0.95 'Instrument Serif'; color: var(--text); text-align: center; letter-spacing: -2.5px; }
-.brand em { font-style: italic; color: var(--ember-soft); }
+.brand em { display: block; margin-top: 18px; font-size: 0.5em; line-height: 1.1; letter-spacing: -1px; font-style: italic; color: var(--ember-soft); }
 #tagline { margin-top: 44px; color: var(--dim); font-size: 24px; letter-spacing: 5px; }
 .cta { margin-top: 120px; padding: 30px 64px; border-radius: 999px; background: var(--text); color: var(--bg); font: 600 40px 'Inter Tight'; letter-spacing: -0.5px; }
 #langs { margin-top: 36px; color: var(--dim); font-size: 21px; letter-spacing: 4px; }

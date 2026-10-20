@@ -39,7 +39,7 @@ const DEFS = [
   {
     aura: ['#FF6A3D', '#3B1E6E'],
     kicker: T('Hors ligne · Sans pub · Sans compte', 'Offline · No ads · No account'),
-    text: T('Entrez dans<br><em>le Labyrinthe.</em>', 'Enter<br><em>the Labyrinth.</em>'),
+    text: T('Entrez dans<br><em>Valombre.</em>', 'Enter<br><em>Valombre.</em>'),
     main: { clip: 'title', ct: 1.0, k: { x: 0, y: 1250, s: 0.6 } },
   },
 ];

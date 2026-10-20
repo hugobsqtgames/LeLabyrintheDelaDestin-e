@@ -9,7 +9,7 @@
  * 15,6 – 18,8 Relations   « Ils se souviennent de vous. »    fiche : portraits, relations
  * 18,8 – 22,3 Monde       « Un monde qui garde vos traces. » trois téléphones : carte, archives, atelier
  * 22,3 – 25,8 Récit       plongée dans l'écran              carton de chapitre plein cadre, « 15 chapitres · 6 fins »
- * 25,8 – 30,0 Conclusion  icône, nom, « Entrez dans le Labyrinthe »
+ * 25,8 – 30,0 Conclusion  icône, nom, « Entrez dans Valombre »
  *
  * Les écrans sont des plans filmés dans l'application (promo/clips.mjs) :
  * `at` = instant d'apparition dans la vidéo, `from` = instant de départ dans le plan.
@@ -49,9 +49,9 @@ export const STATS = { in: 24.1, out: 25.7, text: T('15 chapitres · 6 fins · 3
 
 export const OUTRO = {
   in: 25.85,
-  brand: T('Le Labyrinthe<br><em>de la Destinée</em>', 'The Labyrinth<br><em>of Destiny</em>'),
+  brand: T('Valombre<br><em>Sept jours pour fuir.</em>', 'Valombre<br><em>Seven days to escape.</em>'),
   tagline: T('Hors ligne · Sans pub · Sans compte', 'Offline · No ads · No account'),
-  cta: T('Entrez dans le Labyrinthe', 'Enter the Labyrinth'),
+  cta: T('Entrez dans Valombre', 'Enter Valombre'),
   langs: T('Français · English', 'English · Français'),
 };
 

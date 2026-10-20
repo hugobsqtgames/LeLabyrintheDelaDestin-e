@@ -63,8 +63,9 @@ export function TitleScreen() {
           <Label color={colors.rustBright}>{t('title.kicker')}</Label>
           <Text style={styles.title} accessibilityRole="header" maxFontSizeMultiplier={1.2}>
             {t('title.line1')}
-            {'\n'}
-            <Text style={styles.titleItalic}>{t('title.line2')}</Text>
+          </Text>
+          <Text style={styles.titleItalic} maxFontSizeMultiplier={1.2}>
+            {t('title.line2')}
           </Text>
           <Text style={styles.tag} maxFontSizeMultiplier={MAX_SCALE_UI}>
             {t('title.tagline')}
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   emblemWrap: { position: 'absolute', top: 40, right: -110, opacity: 0.55 },
   wrap: { flexGrow: 1, paddingTop: space.xxxl, paddingBottom: space.lg },
   title: { fontFamily: fonts.title, fontSize: 64, lineHeight: 62, color: colors.text, letterSpacing: -1.5, marginTop: space.sm },
-  titleItalic: { fontFamily: fonts.titleItalic, color: colors.rustBright },
+  titleItalic: { fontFamily: fonts.titleItalic, fontSize: 32, lineHeight: 38, color: colors.rustBright, marginTop: 2 },
   tag: { fontFamily: fonts.ui, fontSize: 16, lineHeight: 23, color: colors.textDim, marginTop: space.md, maxWidth: 340 },
   continue: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
   play: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },

@@ -25,7 +25,7 @@ Le récit suit : **problème → découverte → fonctionnalités → expérienc
 | 15,6 – 18,8 | Relations | « Ils se souviennent *de vous.* » | fiche : portrait, tuiles, défilement jusqu’aux rencontres | pivot opposé |
 | 18,8 – 22,3 | Monde | « Un monde qui garde *vos traces.* » | trois téléphones : **carte** (chemins), **archives** (document ouvert), **atelier** (onglet ouvert) | éventail, dérive latérale |
 | 22,3 – 25,8 | Récit | *15 chapitres · 6 fins · 396 scènes* | carton de chapitre de l’application | plongée : l’écran remplit le cadre |
-| 25,8 – 30,0 | Conclusion | « Le Labyrinthe *de la Destinée* » · *Hors ligne · Sans pub · Sans compte* · **Entrez dans le Labyrinthe** | icône de l’application | apparition mot à mot |
+| 25,8 – 30,0 | Conclusion | « Valombre *Sept jours pour fuir.* » · *Hors ligne · Sans pub · Sans compte* · **Entrez dans Valombre** | icône de l’application | apparition mot à mot |
 
 Chaque chiffre affiché est vrai (validateur : 396 scènes, 6 fins et 4 morts ; 15 chapitres ; aucune connexion,
 publicité ni compte). Les appuis visibles (point + onde) sont les **vrais clics** enregistrés pendant la capture.
