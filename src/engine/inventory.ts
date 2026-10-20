@@ -232,7 +232,9 @@ export function canUseOutOfCombat(content: GameContent, state: GameState, item: 
 /** Applique l'effet d'un consommable sur le joueur et le retire de l'inventaire. */
 export function applyConsumable(content: GameContent, state: GameState, item: ItemId): GameState {
   const def = content.items[item];
-  const u = def.use ?? {};
+  // Rien à consommer : pas d'effet gratuit, pas de plantage sur un objet inconnu.
+  if (!def?.use || itemCount(state, item) <= 0) return state;
+  const u = def.use;
   let s = removeItem(content, state, item, 1, false);
   const p = s.player;
   const heal = u.heal ? Math.round(u.heal * healingMultiplier(content, s)) : 0;

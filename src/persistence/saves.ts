@@ -71,6 +71,8 @@ function parse(text: string | null): ParsedSave {
   return { ok: true, envelope: env };
 }
 
+const gameId = (env: SaveEnvelope) => (env.state as { id?: unknown }).id;
+
 export class SaveManager {
   private queue: Promise<void> = Promise.resolve();
   private pending = new Map<number, GameState>();
@@ -104,10 +106,7 @@ export class SaveManager {
         out.push({ slot, status: 'ok', summary: parsed.envelope!.summary, savedAt: parsed.envelope!.savedAt });
       }
       const last = out[out.length - 1];
-      if (last.status === 'ok') {
-        const snap = await this.storage.getItem(relayKey(slot)).catch(() => null);
-        if (snap && parse(snap).ok) last.relaySnapshot = true;
-      }
+      if (last.status === 'ok' && (await this.relaySnapshotFor(slot))) last.relaySnapshot = true;
     }
     return out;
   }
@@ -119,12 +118,24 @@ export class SaveManager {
     return this.queue;
   }
 
+  /**
+   * État avant relève de cet emplacement, seulement s'il appartient à la même partie que
+   * la sauvegarde (ou sa copie de secours) : jamais celui d'une partie remplacée depuis.
+   */
+  private async relaySnapshotFor(slot: number): Promise<SaveEnvelope | null> {
+    const snap = parse(await this.storage.getItem(relayKey(slot)).catch(() => null));
+    if (!snap.ok) return null;
+    let current = parse(await this.storage.getItem(slotKey(slot)).catch(() => null));
+    if (!current.ok) current = parse(await this.storage.getItem(backupKey(slot)).catch(() => null));
+    return current.ok && gameId(current.envelope!) === gameId(snap.envelope!) ? snap.envelope! : null;
+  }
+
   /** Recharge l'état mis de côté avant la dernière relève. */
   async loadRelaySnapshot(slot: number): Promise<LoadResult> {
     await this.flush();
-    const parsed = parse(await this.storage.getItem(relayKey(slot)).catch(() => null));
-    if (!parsed.ok) return { ok: false, error: 'Aucun état avant relève pour cet emplacement.' };
-    return this.decode(parsed.envelope!);
+    const snap = await this.relaySnapshotFor(slot);
+    if (!snap) return { ok: false, error: 'Aucun état avant relève pour cet emplacement.' };
+    return this.decode(snap);
   }
 
   private decode(envelope: SaveEnvelope): LoadResult {
@@ -190,8 +201,16 @@ export class SaveManager {
   private async write(slot: number, state: GameState): Promise<void> {
     const text = serialize(this.content, state, this.clock());
     const previous = await this.storage.getItem(slotKey(slot)).catch(() => null);
-    if (previous && parse(previous).ok) {
-      await this.storage.setItem(backupKey(slot), previous);
+    const prev = parse(previous);
+    if (prev.ok && gameId(prev.envelope!) === state.id) {
+      await this.storage.setItem(backupKey(slot), previous!);
+    } else {
+      // Nouvelle partie dans l'emplacement (ou effacement resté à moitié) : la copie de secours
+      // et l'état « avant la relève » d'une autre partie ne doivent jamais pouvoir être restaurés à sa place.
+      for (const key of [backupKey(slot), relayKey(slot)]) {
+        const other = parse(await this.storage.getItem(key).catch(() => null));
+        if (other.error !== 'empty' && (!other.ok || gameId(other.envelope!) !== state.id)) await this.storage.removeItem(key);
+      }
     }
     await this.storage.setItem(slotKey(slot), text);
   }

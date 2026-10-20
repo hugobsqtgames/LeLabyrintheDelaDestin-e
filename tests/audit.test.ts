@@ -3,13 +3,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import { performAction } from '../src/engine/combat';
-import { addItem, canCraft, canUseOutOfCombat } from '../src/engine/inventory';
+import { addItem, applyConsumable, canCraft, canUseOutOfCombat } from '../src/engine/inventory';
 import { absorbGame, emptyMeta } from '../src/engine/meta';
 import { enterScene } from '../src/engine/narrative';
 import type { GameState } from '../src/engine/types';
 import { takeOver } from '../src/engine/relay';
 import { validateContent } from '../src/engine/validator';
-import { META_KEY, relayKey, SaveManager, slotKey } from '../src/persistence/saves';
+import { backupKey, META_KEY, relayKey, SaveManager, slotKey } from '../src/persistence/saves';
 import { validateState } from '../src/persistence/schema';
 import { MemoryStorage } from '../src/persistence/storage';
 import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from '../src/store/settings';
@@ -211,5 +211,48 @@ describe('navigation : retour', () => {
     expect(parentRoute({ route: 'saves', game: null, savesMode: 'new', pendingChapter: null })).toBe('title');
     expect(parentRoute({ route: 'create', game: null, savesMode: 'new', pendingChapter: null })).toBe('saves');
     expect(parentRoute({ route: 'settings', game: start(), savesMode: 'load', pendingChapter: null })).toBe('game');
+  });
+});
+
+describe('stress et monkey tests : non-régression', () => {
+  it('une nouvelle partie dans un emplacement ne peut jamais restaurer la copie de secours ni l’état avant relève d’une autre', async () => {
+    const { storage, saves } = manager();
+    const a = { ...start(), id: 'A' };
+    await saves.save(1, a);
+    await saves.save(1, { ...a, turn: 5 }); // copie de secours de A
+    await saves.saveRelaySnapshot(1, a);
+    // Effacement resté à moitié (panne) : seule la sauvegarde principale a disparu.
+    storage.data.delete(slotKey(1));
+    const b = { ...start({ name: 'Bérénice' }), id: 'B' };
+    await saves.save(1, b);
+    await saves.flush();
+    expect(storage.data.has(backupKey(1))).toBe(false);
+    expect(storage.data.has(relayKey(1))).toBe(false);
+    // Sauvegarde de B abîmée : rien à restaurer plutôt qu'une autre partie.
+    storage.data.set(slotKey(1), '{abîmé');
+    const res = await saves.load(1);
+    expect(res.ok).toBe(false);
+  });
+
+  it('un état avant relève d’une autre partie n’est ni proposé ni rechargé', async () => {
+    const { storage, saves } = manager();
+    const a = { ...start(), id: 'A' };
+    const b = { ...start(), id: 'B' };
+    await saves.save(1, b);
+    await saves.flush();
+    // Reliquat valide d'une autre partie (course d'écriture, panne) : présent sur le disque, mais pas celui de B.
+    await saves.saveRelaySnapshot(1, a);
+    expect(storage.data.has(relayKey(1))).toBe(true);
+    const slots = await saves.listSlots();
+    expect(slots[0].relaySnapshot).toBeFalsy();
+    expect((await saves.loadRelaySnapshot(1)).ok).toBe(false);
+  });
+
+  it('consommer un objet absent ou inconnu ne soigne pas et ne plante pas', () => {
+    const s = { ...start(), player: { ...start().player, hp: 1 } };
+    expect(applyConsumable(C, s, 'objet_inconnu')).toBe(s);
+    const sansBandage = { ...s, inventory: { ...s.inventory, bandage: 0 } };
+    delete (sansBandage.inventory as Record<string, number>).bandage;
+    expect(applyConsumable(C, sansBandage, 'bandage').player.hp).toBe(1);
   });
 });
