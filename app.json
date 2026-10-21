@@ -9,7 +9,7 @@
     "backgroundColor": "#0D1110",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "fr.labyrinthe.destinee",
+      "bundleIdentifier": "fr.valombre.app",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -62,7 +62,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "fr.labyrinthe.destinee"
+      "package": "fr.valombre.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

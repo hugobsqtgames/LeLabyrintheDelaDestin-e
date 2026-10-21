@@ -150,7 +150,7 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
 ## Publication
 
 - `eas.json` : profil `preview` (distribution interne, APK Android) et profil `production` (numéro de build
-  incrémenté automatiquement, version gérée par EAS). Identifiants : `fr.labyrinthe.destinee` (iOS et Android).
+  incrémenté automatiquement, version gérée par EAS). Identifiants : `fr.valombre.app` (iOS et Android).
 - Icône 1024 × 1024 sans transparence, écran de démarrage et icône adaptative Android fournis ;
   `usesNonExemptEncryption: false` ; `npx expo-doctor` : 21/21.
 - Commandes : `npx eas-cli@latest build --profile production --platform ios` puis
