@@ -4,14 +4,15 @@
  * taille de texte du système, toujours respectée).
  */
 import React, { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useT } from '../i18n';
 import { cancelReminders, enableReminders, REMINDER_DELAY_HOURS, remindersSupported } from '../notifications/reminders';
 import { deviceLanguage } from '../i18n/lang';
 import { type LanguageSetting, useStore } from '../store/GameStore';
 import { TEXT_SCALES } from '../store/settings';
 import { Body, Button, IconButton, Label, Panel, Screen, SectionTitle, Segmented } from '../ui/components/primitives';
-import { ConfirmDialog } from '../ui/components/Sheet';
+import { ConfirmDialog, Sheet } from '../ui/components/Sheet';
+import { CONTACT_EMAIL, PRIVACY, PRIVACY_URL, SUPPORT_URL } from '../legal/privacy';
 import { Icon } from '../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, TOUCH, type } from '../ui/theme';
 
@@ -38,7 +39,9 @@ function Toggle({ label, detail, value, onChange, disabled }: { label: string; d
 }
 
 export function SettingsScreen() {
-  const { model, setSettings, back, resetAll, feedback } = useStore();
+  const { model, setSettings, back, resetAll, feedback, lang } = useStore();
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const policy = PRIVACY[lang];
   const t = useT();
   const s = model.settings;
   const [tutorialQueued, setTutorialQueued] = useState(false);
@@ -214,8 +217,36 @@ export function SettingsScreen() {
           <Label>Valombre</Label>
           <Text style={type.bodySmall}>{t('settings.privacy')}</Text>
           <Text style={type.bodySmall}>{t('settings.credits')}</Text>
+          <Button label={t('settings.privacyPolicy')} icon="book" variant="secondary" onPress={() => setPrivacyOpen(true)} />
+          <Button label={t('settings.support')} variant="ghost" onPress={() => Linking.openURL(SUPPORT_URL).catch(() => undefined)} />
+          <Text style={type.uiSmall} selectable>
+            {t('settings.contact', { email: CONTACT_EMAIL })}
+          </Text>
         </Panel>
       </ScrollView>
+      <Sheet
+        visible={privacyOpen}
+        onClose={() => setPrivacyOpen(false)}
+        title={t('settings.privacyPolicy')}
+        footer={<Button label={t('settings.privacyOnline')} variant="ghost" onPress={() => Linking.openURL(PRIVACY_URL[lang]).catch(() => undefined)} />}
+      >
+        <View style={{ gap: space.sm }}>
+          <Text style={type.uiSmall}>{policy.updated}</Text>
+          <Text style={[type.bodySmall, { color: colors.text, fontFamily: fonts.uiBold }]}>{policy.summary}</Text>
+          {policy.sections.map((section) => (
+            <View key={section.title} style={{ gap: 6, marginTop: space.sm }}>
+              <Text style={[type.ui, { fontFamily: fonts.uiBold }]} accessibilityRole="header">
+                {section.title}
+              </Text>
+              {section.paragraphs.map((para) => (
+                <Text key={para.slice(0, 40)} style={type.bodySmall}>
+                  {para}
+                </Text>
+              ))}
+            </View>
+          ))}
+        </View>
+      </Sheet>
       <ConfirmDialog
         visible={resetStep === 1}
         danger

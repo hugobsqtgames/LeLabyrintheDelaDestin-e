@@ -58,7 +58,9 @@ try {
       ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', '-', '-i', wav,
         '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.2',
         '-r', String(FPS), '-g', String(FPS), '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-ac', '2',
-        '-movflags', '+faststart', '-shortest', out],
+        '-movflags', '+faststart', '-shortest',
+        // App Store : 30 s au plus ; on reste juste en dessous de la limite.
+        '-t', '29.9', out],
       { stdio: ['pipe', 'inherit', 'inherit'] },
     );
     const total = Math.round(cues.duration * FPS);
