@@ -156,7 +156,7 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
 - Commandes : `npx eas-cli@latest build --profile production --platform ios` puis
   `npx eas-cli@latest submit --platform ios` (un compte Expo et un compte Apple Developer sont nécessaires).
 - **Fiche App Store Connect complète** (textes FR/EN, mots-clés, classification par âge, confidentialité
-  « Aucune donnée collectée », notes pour la vérification, étapes) : [`store/APP_STORE_CONNECT.md`](store/APP_STORE_CONNECT.md),
+  « Aucune donnée collectée », notes pour la vérification, étapes) : [`store/GUIDE_PUBLICATION.md`](store/GUIDE_PUBLICATION.md) (build EAS, TestFlight, chaque case d’App Store Connect, notes au vérificateur),
   contrôlée par `npm run store:check` (limites de caractères, chiffres conformes au jeu, aucune autre plateforme citée).
 - **Politique de confidentialité** : source unique `src/legal/privacy.ts`, affichée dans le jeu (Paramètres › À propos,
   hors ligne) et publiée par `npm run legal` dans `docs/` (GitHub Pages) : `confidentialite.html`, `privacy.html`, et la

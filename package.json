@@ -47,6 +47,7 @@
     "validate": "tsx scripts/validate-content.ts",
     "legal": "tsx scripts/build-legal.ts",
     "store:check": "tsx scripts/store-check.ts",
+    "preflight": "tsc --noEmit && expo lint && vitest run && tsx scripts/validate-content.ts && tsx scripts/store-check.ts && npx expo-doctor",
     "balance": "tsx scripts/balance.ts",
     "bench": "tsx scripts/bossbench.ts",
     "monkey": "tsx scripts/monkey-engine.ts 3000 1 fr && tsx scripts/monkey-engine.ts 3000 2 en",

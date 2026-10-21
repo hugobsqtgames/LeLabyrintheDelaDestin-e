@@ -73,7 +73,7 @@ export const EN: Record<string, string> = {
   'game.saveError': 'Autosave failed: {error}',
   'pause.title': 'Paused',
   'pause.autosave': 'Your game is saved automatically to slot {slot} after every decision.',
-  'pause.demo': 'Demo game: nothing is saved.',
+  'pause.demo': 'Game without a slot: it is not saved.',
   'pause.resume': 'Resume',
   'pause.copy': 'Copy to another slot',
   'pause.quit': 'Quit to menu',

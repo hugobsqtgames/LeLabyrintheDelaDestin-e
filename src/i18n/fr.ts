@@ -73,7 +73,7 @@ export const FR: Record<string, string> = {
   'game.saveError': 'Sauvegarde automatique impossible : {error}',
   'pause.title': 'Pause',
   'pause.autosave': 'Partie sauvegardée automatiquement dans l’emplacement {slot} après chaque décision.',
-  'pause.demo': 'Partie de démonstration : aucune sauvegarde.',
+  'pause.demo': 'Partie sans emplacement : elle n’est pas sauvegardée.',
   'pause.resume': 'Reprendre',
   'pause.copy': 'Copier vers un autre emplacement',
   'pause.quit': 'Quitter vers le menu',

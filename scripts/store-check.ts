@@ -1,5 +1,5 @@
 /**
- * Vérifie la fiche App Store Connect (store/APP_STORE_CONNECT.md) : limites
+ * Vérifie les textes App Store Connect du guide (store/GUIDE_PUBLICATION.md) : limites
  * de caractères d'Apple, aucune autre plateforme citée (règle 2.3.10), et
  * chiffres de la description conformes au contenu réel du jeu (règle 2.3.1).
  *
@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { ACHIEVEMENTS } from '../src/content/achievements';
 import { CONTENT } from '../src/content';
 
-const md = readFileSync(join(__dirname, '..', 'store', 'APP_STORE_CONNECT.md'), 'utf8');
+const md = readFileSync(join(__dirname, '..', 'store', 'GUIDE_PUBLICATION.md'), 'utf8');
 const errors: string[] = [];
 const check = (label: string, text: string, max: number) => {
   const n = [...text].length;
@@ -32,7 +32,7 @@ const quoteAfter = (title: string) => {
 };
 const codeAfter = (title: string) => {
   const i = md.indexOf(title);
-  const m = md.slice(i).match(/```\n([^`]+)\n```/);
+  const m = md.slice(i).match(/```\w*\n([\s\S]+?)\n```/);
   if (!m) throw new Error(`Bloc de code introuvable après : ${title}`);
   return m[1].trim();
 };
@@ -44,11 +44,12 @@ for (const sub of ['Sept jours pour fuir', 'Seven days to escape']) {
 }
 const texts = {
   'Texte promotionnel FR': [quoteAfter('**Texte promotionnel**'), 170],
-  'Promotional text EN': [quoteAfter('**Promotional text**'), 170],
+  'Promotional text EN': [quoteAfter('**Promotional Text**'), 170],
   'Description FR': [quoteAfter('**Description** :'), 4000],
   'Description EN': [quoteAfter('**Description**:'), 4000],
   'Mots-clés FR': [codeAfter('**Mots-clés**'), 100],
   'Keywords EN': [codeAfter('**Keywords**'), 100],
+  'Notes App Review': [codeAfter('**Notes** (*Notes*)'), 4000],
 } as const;
 for (const [label, [text, max]] of Object.entries(texts)) check(label, text, max);
 
@@ -57,6 +58,8 @@ for (const kw of [texts['Mots-clés FR'][0], texts['Keywords EN'][0]]) {
   if (/valombre/i.test(kw)) errors.push('Mots-clés : le nom de l’app est déjà indexé, inutile de le répéter');
 }
 const metadata = Object.values(texts).map(([t]) => t).join('\n');
+const publicText = Object.entries(texts).filter(([k]) => !k.startsWith('Notes')).map(([, [t]]) => t).join('\n');
+if (/démo|demo|bêta|beta|lorem|todo/i.test(publicText)) errors.push('Mot interdit (démo, bêta, texte provisoire) dans les textes (règle 2.2 / 2.1)');
 if (/android|google play|play store|windows phone/i.test(metadata)) errors.push('Une autre plateforme est citée (règle 2.3.10)');
 
 // Chiffres annoncés = contenu réel.
