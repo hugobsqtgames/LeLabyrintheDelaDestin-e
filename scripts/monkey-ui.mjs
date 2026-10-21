@@ -31,6 +31,10 @@ const { server, url } = await serve({ '/': join(ROOT, 'dist') });
 const browser = await launch();
 const problems = [];
 const screens = new Map();
+/** Boutons vus à l'écran et boutons effectivement touchés (libellé normalisé : chiffres masqués). */
+const seenButtons = new Set();
+const pressedButtons = new Set();
+const norm = (l) => l.replace(/\d+/g, '#').replace(/\s+/g, ' ').trim();
 let total = 0;
 
 const withTimeout = (p, ms, label) =>
@@ -88,6 +92,7 @@ for (let session = 0; session < SESSIONS; session += 1) {
         8000,
         'lecture des cibles',
       );
+      for (const t of targets) if (t.label) seenButtons.add(norm(t.label));
       const r = rnd();
       if (!targets.length) {
         problems.push({ session, e, kind: 'aucune action possible', detail: lastLog });
@@ -95,11 +100,13 @@ for (let session = 0; session < SESSIONS; session += 1) {
       } else if (r < 0.7) {
         const t = targets[Math.floor(rnd() * targets.length)];
         lastLog = `appui « ${t.label} »`;
+        if (t.label) pressedButtons.add(norm(t.label));
         await tap(t.x, t.y);
         if (t.input && rnd() < 0.7) await page.keyboard.type(rnd() < 0.2 ? '   ' : rnd() < 0.5 ? 'Zoé d’Ébène 🔥' : 'x'.repeat(Math.floor(rnd() * 40)));
       } else if (r < 0.8) {
         const t = targets[Math.floor(rnd() * targets.length)];
         lastLog = `rafale sur « ${t.label} »`;
+        if (t.label) pressedButtons.add(norm(t.label));
         for (let k = 0; k < 2 + Math.floor(rnd() * 5); k += 1) await tap(t.x, t.y, 15);
       } else if (r < 0.88) {
         lastLog = 'appui au hasard';
@@ -135,6 +142,8 @@ for (let session = 0; session < SESSIONS; session += 1) {
 await browser.close();
 server.close();
 console.log(`${total} événements, ${screens.size} écrans différents visités`);
+console.log(`Boutons : ${pressedButtons.size} libellés différents touchés sur ${seenButtons.size} vus`);
+if (process.env.MONKEY_LIST) console.log('Jamais touchés :', [...seenButtons].filter((b) => !pressedButtons.has(b)).join(' | '));
 console.log('Écrans les plus vus :', [...screens].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, v]) => `${k} (${v})`).join(' · '));
 if (!problems.length) console.log('Aucun problème détecté.');
 else {
