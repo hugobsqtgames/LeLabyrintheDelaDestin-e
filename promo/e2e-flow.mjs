@@ -103,6 +103,28 @@ log('après quitter :', (await page.evaluate(() => document.body.innerText)).rep
 if (!(await has('Nouvelle partie'))) throw new Error('quitter vers le menu KO');
 log('retour accueil OK');
 if (await btn('Continuer').count()) { await click('Continuer'); log('reprise partie OK :', !(await has('Nouvelle partie'))); }
+// Tout effacer : pause → paramètres → deux confirmations → accueil vierge.
+await adv(1200);
+await tap(pause); await adv(1000);
+await click('Paramètres');
+await btn('Tout effacer').scrollIntoViewIfNeeded();
+await click('Tout effacer');
+if (!(await has('Tout effacer ?'))) throw new Error('première confirmation absente');
+await click('Continuer');
+if (!(await has('Dernière confirmation'))) throw new Error('seconde confirmation absente');
+await click('Oui, tout effacer');
+await adv(1500);
+const stored = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('labyrinthe:')));
+log('après effacement :', (await page.evaluate(() => document.body.innerText)).replace(/\n/g, ' | ').slice(0, 160));
+log('clés restantes :', stored.join(', ') || 'aucune');
+if (await btn('Continuer').count()) throw new Error('une partie est encore proposée après « Tout effacer »');
+const leftovers = await page.evaluate(() => ({ meta: JSON.parse(localStorage.getItem('labyrinthe:v1:meta') ?? '{}'), settings: JSON.parse(localStorage.getItem('labyrinthe:v1:settings') ?? '{}') }));
+if (leftovers.meta.runs || Object.keys(leftovers.meta.achievements ?? {}).length || (leftovers.meta.scenes ?? []).length) throw new Error('mémoires non remises à zéro');
+if (leftovers.settings.tutorialDone) throw new Error('paramètres non remis à zéro');
+if (stored.some((k) => k.includes(':slot:') || k.includes(':chapitre:'))) throw new Error('des sauvegardes restent après « Tout effacer »');
+await click('Nouvelle partie');
+if (!(await has('Vide'))) throw new Error('emplacements non vides après « Tout effacer »');
+log('tout effacer OK');
 console.log('ERREURS CONSOLE', errors.length, errors.slice(0, 10));
 await browser.close(); server.close();
 if (errors.length) process.exit(1);

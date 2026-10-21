@@ -256,3 +256,39 @@ describe('stress et monkey tests : non-régression', () => {
     expect(applyConsumable(C, sansBandage, 'bandage').player.hp).toBe(1);
   });
 });
+
+describe('tout effacer', () => {
+  it('efface parties, copies, états avant relève, débuts de chapitre, mémoires et paramètres', async () => {
+    const { storage, saves } = manager();
+    const g = { ...start(), id: 'G' };
+    for (const slot of [1, 2, 3]) {
+      await saves.save(slot, g);
+      await saves.save(slot, { ...g, turn: 3 });
+      await saves.saveRelaySnapshot(slot, g);
+    }
+    await saves.saveChapterStart('c1', g);
+    await saves.saveJson(META_KEY, { runs: 4 });
+    await saves.saveSettings({ volume: 0.2 });
+    storage.data.set(`${META_KEY}:corrompu`, '{');
+    // Une autosauvegarde encore en file au moment de l'effacement ne doit pas ressusciter la partie.
+    void saves.save(2, { ...g, turn: 9 });
+    await saves.eraseAll(C.chapters.map((c) => c.id));
+    await saves.flush();
+    expect([...storage.data.keys()]).toEqual([]);
+    expect((await saves.listSlots()).every((s) => s.status === 'empty')).toBe(true);
+    expect((await saves.chapterStarts(C.chapters.map((c) => c.id))).length).toBe(0);
+    // Le jeu repart normalement ensuite.
+    await saves.save(1, { ...g, id: 'H' });
+    expect((await saves.load(1)).state?.id).toBe('H');
+  });
+
+  it('signale un effacement incomplet au lieu de prétendre avoir tout effacé', async () => {
+    const storage = new MemoryStorage();
+    const saves = new SaveManager(storage, C);
+    await saves.save(1, start());
+    storage.removeItem = async () => {
+      throw new Error('panne');
+    };
+    await expect(saves.eraseAll(['c1'])).rejects.toThrow();
+  });
+});

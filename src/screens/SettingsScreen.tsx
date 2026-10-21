@@ -11,6 +11,7 @@ import { deviceLanguage } from '../i18n/lang';
 import { type LanguageSetting, useStore } from '../store/GameStore';
 import { TEXT_SCALES } from '../store/settings';
 import { Body, Button, IconButton, Label, Panel, Screen, SectionTitle, Segmented } from '../ui/components/primitives';
+import { ConfirmDialog } from '../ui/components/Sheet';
 import { Icon } from '../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, TOUCH, type } from '../ui/theme';
 
@@ -37,11 +38,24 @@ function Toggle({ label, detail, value, onChange, disabled }: { label: string; d
 }
 
 export function SettingsScreen() {
-  const { model, setSettings, back } = useStore();
+  const { model, setSettings, back, resetAll, feedback } = useStore();
   const t = useT();
   const s = model.settings;
   const [tutorialQueued, setTutorialQueued] = useState(false);
   const [reminderError, setReminderError] = useState(false);
+  // Tout effacer : deux confirmations successives, l'action est définitive.
+  const [resetStep, setResetStep] = useState<0 | 1 | 2>(0);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const confirmReset = async () => {
+    if (resetting) return;
+    setResetting(true);
+    const res = await resetAll();
+    setResetting(false);
+    setResetStep(0);
+    if (res.ok) feedback('success');
+    else setResetError(t('settings.resetFailed'));
+  };
   const replayTutorial = () => {
     setSettings({ tutorialDone: false, hintsSeen: [] });
     // En pleine partie, on y retourne tout de suite ; sinon il s'ouvrira à la prochaine.
@@ -188,6 +202,13 @@ export function SettingsScreen() {
           {(tutorialQueued || (!s.tutorialDone && !model.game)) && <Text style={[type.uiSmall, { color: colors.mossBright }]}>{t('settings.tutorialQueued')}</Text>}
         </Panel>
 
+        <SectionTitle>{t('settings.reset')}</SectionTitle>
+        <Panel style={{ gap: space.sm }}>
+          <Text style={type.bodySmall}>{t('settings.resetHint')}</Text>
+          <Button label={t('settings.resetButton')} icon="trash" variant="danger" onPress={() => { setResetError(null); setResetStep(1); }} />
+          {resetError && <Text style={[type.uiSmall, { color: colors.blood }]}>{resetError}</Text>}
+        </Panel>
+
         <SectionTitle>{t('settings.about')}</SectionTitle>
         <Panel style={{ gap: space.sm }}>
           <Label>Valombre</Label>
@@ -195,6 +216,24 @@ export function SettingsScreen() {
           <Text style={type.bodySmall}>{t('settings.credits')}</Text>
         </Panel>
       </ScrollView>
+      <ConfirmDialog
+        visible={resetStep === 1}
+        danger
+        title={t('settings.resetConfirm1')}
+        message={t('settings.resetConfirm1Text')}
+        confirmLabel={t('settings.resetContinue')}
+        onConfirm={() => setResetStep(2)}
+        onCancel={() => setResetStep(0)}
+      />
+      <ConfirmDialog
+        visible={resetStep === 2}
+        danger
+        title={t('settings.resetConfirm2')}
+        message={t('settings.resetConfirm2Text')}
+        confirmLabel={t('settings.resetFinal')}
+        onConfirm={confirmReset}
+        onCancel={() => setResetStep(0)}
+      />
     </Screen>
   );
 }

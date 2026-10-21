@@ -241,6 +241,31 @@ export class SaveManager {
     return this.queue;
   }
 
+  /**
+   * Remise à zéro complète : les emplacements (et leurs copies), les débuts de chapitre,
+   * les mémoires et les paramètres. Passe par la file : aucune écriture en attente ne
+   * peut ressusciter une partie après coup. Rejette si une donnée n'a pas pu être effacée.
+   */
+  eraseAll(chapters: string[]): Promise<void> {
+    this.pending.clear();
+    for (let slot = 1; slot <= SLOT_COUNT; slot += 1) this.generation.set(slot, (this.generation.get(slot) ?? 0) + 1);
+    const keys = [
+      ...Array.from({ length: SLOT_COUNT }, (_, i) => [slotKey(i + 1), backupKey(i + 1), relayKey(i + 1)]).flat(),
+      ...chapters.map(chapterKey),
+      META_KEY,
+      `${META_KEY}:corrompu`,
+      SETTINGS_KEY,
+    ];
+    this.queue = this.queue
+      .catch(() => undefined)
+      .then(async () => {
+        let failed = 0;
+        for (const key of keys) await this.storage.removeItem(key).catch(() => (failed += 1));
+        if (failed) throw new Error(`${failed} donnée(s) n’ont pas pu être effacées.`);
+      });
+    return this.queue;
+  }
+
   /** Mémorise l'état au début d'un chapitre (remplace le précédent). */
   saveChapterStart(chapter: string, state: GameState): Promise<void> {
     const text = serialize(this.content, state, this.clock());

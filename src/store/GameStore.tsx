@@ -69,7 +69,28 @@ type Action =
   | { type: 'meta'; meta: MetaProfile; unlocked?: AchievementDef[] }
   | { type: 'absorb'; content: GameContent; game: GameState; previousScene: string | null; now: number }
   | { type: 'dismissUnlocked' }
-  | { type: 'pendingChapter'; chapter: ChapterId | null };
+  | { type: 'pendingChapter'; chapter: ChapterId | null }
+  | { type: 'reset' };
+
+function freshModel(): AppModel {
+  return {
+    route: 'title',
+    prevRoute: 'title',
+    savesMode: 'load',
+    tab: 'story',
+    slot: null,
+    game: null,
+    settings: DEFAULT_SETTINGS,
+    systemReduceMotion: false,
+    saveError: null,
+    saveCount: 0,
+    pendingSlot: null,
+    recap: false,
+    meta: emptyMeta(),
+    unlocked: [],
+    pendingChapter: null,
+  };
+}
 
 function reducer(model: AppModel, action: Action): AppModel {
   switch (action.type) {
@@ -122,6 +143,9 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, unlocked: model.unlocked.slice(1) };
     case 'pendingChapter':
       return { ...model, pendingChapter: action.chapter };
+    case 'reset':
+      // Comme au premier lancement (seule la préférence système d'animations, lue de l'appareil, reste).
+      return { ...freshModel(), systemReduceMotion: model.systemReduceMotion };
     default:
       return model;
   }
@@ -146,6 +170,8 @@ export interface Store {
   /** Relève : met de côté l'état de la mort, puis le compagnon reprend la route. */
   relayTakeOver: (hero: CharacterId, picks: ItemId[]) => void;
   closeGame: () => Promise<void>;
+  /** Remise à zéro complète, comme au premier lancement (après double confirmation). */
+  resetAll: () => Promise<{ ok: boolean; error?: string }>;
   setSettings: (patch: Partial<Settings>) => void;
   setPendingSlot: (slot: number | null) => void;
   dismissRecap: () => void;
@@ -184,22 +210,9 @@ export function GameProvider({
   initial?: Partial<AppModel>;
 }) {
   const [model, dispatch] = useReducer(reducer, {
-    route: 'title',
-    prevRoute: 'title',
-    savesMode: 'load',
-    tab: 'story',
-    slot: null,
-    game: null,
+    ...freshModel(),
     // Maquettes et vidéo (état initial fourni) : pas de tutoriel par-dessus.
     settings: initial ? { ...DEFAULT_SETTINGS, tutorialDone: true } : DEFAULT_SETTINGS,
-    systemReduceMotion: false,
-    saveError: null,
-    saveCount: 0,
-    pendingSlot: null,
-    recap: false,
-    meta: emptyMeta(),
-    unlocked: [],
-    pendingChapter: null,
     ...initial,
   });
   const lastActivity = useRef(0);
@@ -403,6 +416,22 @@ export function GameProvider({
     [saves, model.slot, model.game, update, content],
   );
 
+  /** Tout effacer : parties, mémoires, succès, chapitres rejouables, paramètres. */
+  const resetAll = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!saves) return { ok: false };
+    cancelReminders();
+    try {
+      await saves.eraseAll(content.chapters.map((c) => c.id));
+    } catch (e) {
+      return { ok: false, error: (e as Error).message };
+    }
+    chapterSaved.current.clear();
+    prevGameId.current = null;
+    prevScene.current = null;
+    dispatch({ type: 'reset' });
+    return { ok: true };
+  }, [saves, content]);
+
   const closeGame = useCallback(async () => {
     if (saves) await saves.flush().catch(() => undefined);
     dispatch({ type: 'close' });
@@ -443,6 +472,7 @@ export function GameProvider({
       restoreBeforeRelay,
       relayTakeOver,
       closeGame,
+      resetAll,
       setSettings: (patch) => dispatch({ type: 'settings', patch }),
       setPendingSlot: (slot) => dispatch({ type: 'pendingSlot', slot }),
       dismissRecap: () => dispatch({ type: 'recap', value: false }),
@@ -451,7 +481,7 @@ export function GameProvider({
       startFromChapter,
       feedback,
     }),
-    [model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, restoreBeforeRelay, relayTakeOver, startFromChapter, closeGame, feedback],
+    [model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, restoreBeforeRelay, relayTakeOver, startFromChapter, closeGame, resetAll, feedback],
   );
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
