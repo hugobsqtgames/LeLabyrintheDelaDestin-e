@@ -1,7 +1,7 @@
 /**
  * Feuille modale et boîte de confirmation personnalisées.
  */
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../store/GameStore';
@@ -9,6 +9,7 @@ import { useT } from '../../i18n';
 import { colors, CONTINUOUS, NATIVE_DRIVER, radius, space, type } from '../theme';
 import { Glass } from './Glass';
 import { Button, IconButton } from './primitives';
+import { type LayerAnimation, modalGate } from '../modalGate';
 
 /**
  * « inline » : les modales s'affichent dans leur conteneur au lieu de couvrir
@@ -36,14 +37,52 @@ function InlineLayer({ children, animation }: { children: React.ReactNode; anima
   );
 }
 
-export function Layer({ visible, children, onRequestClose, animation }: { visible: boolean; children: React.ReactNode; onRequestClose: () => void; animation: 'none' | 'slide' | 'fade' }) {
-  const mode = useContext(ModalModeContext);
-  if (mode === 'inline') return visible ? <InlineLayer animation={animation}>{children}</InlineLayer> : null;
+type LayerProps = { visible: boolean; children: React.ReactNode; onRequestClose: () => void; animation: LayerAnimation };
+
+/** Fenêtre modale native, ouverte seulement quand aucune autre n'est en train de se fermer (voir modalGate). */
+function NativeLayer({ visible, children, onRequestClose, animation }: LayerProps) {
+  const [ready, setReady] = useState(false);
+  const open = visible && ready;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) modalGate.closed(animation);
+    wasOpen.current = open;
+  }, [open, animation]);
+  // Démontée alors qu'elle était ouverte (changement d'écran) : c'est aussi une fermeture.
+  useEffect(() => {
+    const opened = wasOpen;
+    return () => {
+      if (opened.current) modalGate.closed(animation);
+    };
+  }, [animation]);
+  useEffect(() => {
+    if (!visible) {
+      const id = setTimeout(() => setReady(false), 0);
+      return () => clearTimeout(id);
+    }
+    let later: ReturnType<typeof setTimeout> | null = null;
+    // Après les autres effets de ce rendu : une fenêtre fermée au même instant est déjà comptée.
+    const id = setTimeout(() => {
+      const wait = modalGate.wait();
+      if (wait > 0) later = setTimeout(() => setReady(true), wait);
+      else setReady(true);
+    }, 0);
+    return () => {
+      clearTimeout(id);
+      if (later) clearTimeout(later);
+    };
+  }, [visible]);
   return (
-    <Modal visible={visible} transparent animationType={animation} onRequestClose={onRequestClose} statusBarTranslucent>
+    <Modal visible={open} transparent animationType={animation} onRequestClose={onRequestClose} statusBarTranslucent>
       {children}
     </Modal>
   );
+}
+
+export function Layer(props: LayerProps) {
+  const mode = useContext(ModalModeContext);
+  if (mode === 'inline') return props.visible ? <InlineLayer animation={props.animation}>{props.children}</InlineLayer> : null;
+  return <NativeLayer {...props} />;
 }
 
 export function Sheet({
