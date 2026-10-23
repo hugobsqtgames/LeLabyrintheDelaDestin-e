@@ -6,7 +6,7 @@ import React, { useId } from 'react';
 import Svg, { Circle, G, Line, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { colors } from '../theme';
 
-export function Emblem({ size = 160, glow = true }: { size?: number; glow?: boolean }) {
+function EmblemDrawing({ size = 160, glow = true }: { size?: number; glow?: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
@@ -51,3 +51,6 @@ export function Wordmark({ width = 300 }: { width?: number }) {
     </Svg>
   );
 }
+
+/** Dessin SVG coûteux : redessiné seulement si ses propriétés changent. */
+export const Emblem = React.memo(EmblemDrawing);

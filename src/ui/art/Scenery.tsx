@@ -206,7 +206,7 @@ const REGION_ORDER_SKY: [string, string][] = [
  * indépendant de la langue. Si le cadre est plus haut que le bandeau
  * d'origine (4:1), le ciel (ou la voûte) s'étend vers le haut.
  */
-export function SceneryBanner({ location, regionIndex, height = 120, width = 400 }: { location: string; regionIndex: number; height?: number; width?: number }) {
+function SceneryBannerDrawing({ location, regionIndex, height = 120, width = 400 }: { location: string; regionIndex: number; height?: number; width?: number }) {
   const [top, bottom] = REGION_ORDER_SKY[regionIndex] ?? REGION_ORDER_SKY[0];
   const underground = regionIndex === 1;
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -234,3 +234,6 @@ export function SceneryBanner({ location, regionIndex, height = 120, width = 400
     </Svg>
   );
 }
+
+/** Dessin SVG coûteux : redessiné seulement si ses propriétés changent. */
+export const SceneryBanner = React.memo(SceneryBannerDrawing);

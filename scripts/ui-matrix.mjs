@@ -64,7 +64,8 @@ const overflowProbe = () => {
     if (r.width < 2 || r.height < 2) continue;
     const st = getComputedStyle(el);
     if (st.visibility === 'hidden' || Number(st.opacity) === 0) continue;
-    if (!(el.textContent || '').trim()) continue;
+    // Le texte lui-même (feuille de l'arbre), pas ses conteneurs et leurs marges invisibles.
+    if (el.childElementCount > 0 || !(el.textContent || '').trim()) continue;
     let hiddenParent = false;
     let clip = null;
     for (let a = el.parentElement; a; a = a.parentElement) {

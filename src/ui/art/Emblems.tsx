@@ -73,7 +73,7 @@ function Motif({ id, c }: { id: EmblemId; c: string }) {
   }
 }
 
-export function EmblemBadge({ id, size = 64, selected = false }: { id: EmblemId; size?: number; selected?: boolean }) {
+function EmblemBadgeDrawing({ id, size = 64, selected = false }: { id: EmblemId; size?: number; selected?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Path d="M50 4 L90 20 L90 58 Q90 84 50 96 Q10 84 10 58 L10 20 Z" fill={selected ? colors.rustDeep : colors.panelRaised} stroke={selected ? colors.rustBright : colors.lineStrong} strokeWidth={3} />
@@ -83,3 +83,6 @@ export function EmblemBadge({ id, size = 64, selected = false }: { id: EmblemId;
     </Svg>
   );
 }
+
+/** Dessin SVG coûteux : redessiné seulement si ses propriétés changent. */
+export const EmblemBadge = React.memo(EmblemBadgeDrawing);

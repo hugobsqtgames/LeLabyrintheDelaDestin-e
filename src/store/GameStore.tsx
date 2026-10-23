@@ -42,7 +42,6 @@ export interface AppModel {
   /** Paramètres relus du stockage (avant : valeurs par défaut, rien ne doit en dépendre de façon audible). */
   settingsReady: boolean;
   saveError: string | null;
-  saveCount: number;
   /** Emplacement choisi pour une nouvelle partie (après confirmation). */
   pendingSlot: number | null;
   /** Afficher le résumé « Que s'est-il passé ? » (après un chargement). */
@@ -87,7 +86,6 @@ function freshModel(): AppModel {
     systemReduceMotion: false,
     settingsReady: false,
     saveError: null,
-    saveCount: 0,
     pendingSlot: null,
     recap: false,
     meta: emptyMeta(),
@@ -128,7 +126,8 @@ function reducer(model: AppModel, action: Action): AppModel {
     case 'systemReduceMotion':
       return { ...model, systemReduceMotion: action.value };
     case 'saved':
-      return { ...model, saveError: null, saveCount: model.saveCount + 1 };
+      // Rien à changer si tout allait déjà bien : pas de rendu de toute l'application à chaque autosauvegarde.
+      return model.saveError === null ? model : { ...model, saveError: null };
     case 'saveError':
       return { ...model, saveError: action.error };
     case 'pendingSlot':

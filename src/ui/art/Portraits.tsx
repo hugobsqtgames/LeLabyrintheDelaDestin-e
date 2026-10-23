@@ -487,7 +487,7 @@ function Extras({ s }: { s: Spec }) {
   );
 }
 
-export function Portrait({ id, size = 48, ring, shape = 'circle' }: { id: string; size?: number; ring?: string; shape?: 'circle' | 'squircle' | 'tall' }) {
+function PortraitDrawing({ id, size = 48, ring, shape = 'circle' }: { id: string; size?: number; ring?: string; shape?: 'circle' | 'squircle' | 'tall' }) {
   const s = PORTRAITS[id] ?? PORTRAITS.guerrier;
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const w = size;
@@ -549,7 +549,13 @@ export function Portrait({ id, size = 48, ring, shape = 'circle' }: { id: string
 const HERO_FACES: Record<string, string> = { eclusier: 'kaz', infirmiere: 'maelle', passeuse: 'ines', cartographe: 'theo', compteuse: 'nour' };
 
 /** Portrait du protagoniste, d'après son profil. */
-export function PlayerPortrait({ profile, size = 48, ring, shape }: { profile: string; size?: number; ring?: string; shape?: 'circle' | 'squircle' | 'tall' }) {
+function PlayerPortraitDrawing({ profile, size = 48, ring, shape }: { profile: string; size?: number; ring?: string; shape?: 'circle' | 'squircle' | 'tall' }) {
   const id = HERO_FACES[profile] ?? profile;
   return <Portrait id={PORTRAITS[id] ? id : 'guerrier'} size={size} ring={ring} shape={shape} />;
 }
+
+/** Dessin SVG coûteux : redessiné seulement si ses propriétés changent. */
+export const Portrait = React.memo(PortraitDrawing);
+
+/** Dessin SVG coûteux : redessiné seulement si ses propriétés changent. */
+export const PlayerPortrait = React.memo(PlayerPortraitDrawing);

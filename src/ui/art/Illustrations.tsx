@@ -1110,7 +1110,7 @@ export function isIllustration(id: string | undefined): id is IllustrationId {
   return !!id && (ILLUSTRATIONS as readonly string[]).includes(id);
 }
 
-export function Illustration({ id, width = '100%', height = '100%', slice = true }: { id: IllustrationId; width?: number | string; height?: number | string; slice?: boolean }) {
+function IllustrationDrawing({ id, width = '100%', height = '100%', slice = true }: { id: IllustrationId; width?: number | string; height?: number | string; slice?: boolean }) {
   const u = useId().replace(/[^a-zA-Z0-9]/g, '');
   const Scene = SCENES[id];
   return (
@@ -1120,3 +1120,6 @@ export function Illustration({ id, width = '100%', height = '100%', slice = true
     </Svg>
   );
 }
+
+/** Dessin SVG coûteux : redessiné seulement si ses propriétés changent. */
+export const Illustration = React.memo(IllustrationDrawing);
