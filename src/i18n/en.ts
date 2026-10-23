@@ -472,6 +472,7 @@ export const EN: Record<string, string> = {
   'settings.resetConfirm2Text': 'This is permanent: nothing can be recovered. Valombre will start over as on day one.',
   'settings.resetFinal': 'Yes, erase everything',
   'settings.resetFailed': 'Some data could not be erased. Please try again.',
+  'settings.openSystemSettings': 'Open iPhone Settings',
   'settings.about': 'About',
   'settings.privacyPolicy': 'Privacy Policy',
   'settings.privacyOnline': 'Online version',

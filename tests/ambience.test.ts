@@ -38,7 +38,7 @@ function harness() {
   const timers = new Map<number, { fn: () => void; ms: number; next: number }>();
   const ctrl = new AmbienceController<Track>({
     createPlayer: () => player,
-    configure: () => Promise.resolve(),
+    configure: () => undefined,
     sources: SOURCES,
     setInterval: (fn, ms) => {
       const id = nextId++;
@@ -130,6 +130,25 @@ describe('pilote de l’ambiance', () => {
     ctrl.setActive(true);
     advance(5000);
     expect(player.source).toBe(2);
+    expect(player.playing).toBe(true);
+  });
+
+  it('aucune lecture avant le réglage de la session audio (sinon la musique de l’utilisateur serait coupée)', async () => {
+    const player = new FakePlayer();
+    let release: () => void = () => undefined;
+    const ctrl = new AmbienceController<Track>({
+      createPlayer: () => player,
+      configure: () => new Promise<void>((ok) => (release = ok)),
+      sources: SOURCES,
+      setInterval: () => 0,
+      clearInterval: () => undefined,
+    });
+    ctrl.sync('a', 1);
+    expect(player.playing).toBe(false);
+    expect(player.source).toBeNull();
+    release();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(player.source).toBe(1);
     expect(player.playing).toBe(true);
   });
 

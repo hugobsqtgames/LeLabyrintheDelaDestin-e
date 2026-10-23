@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0D1110",
+    "backgroundColor": "#0B0A0A",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "fr.valombre.app",
@@ -75,7 +75,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#0D1110"
+          "backgroundColor": "#0B0A0A"
         }
       ],
       [

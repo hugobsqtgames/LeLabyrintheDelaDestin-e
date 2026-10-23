@@ -472,6 +472,7 @@ export const FR: Record<string, string> = {
   'settings.resetConfirm2Text': 'C’est définitif : rien ne pourra être récupéré. Valombre repartira comme au premier jour.',
   'settings.resetFinal': 'Oui, tout effacer',
   'settings.resetFailed': 'Certaines données n’ont pas pu être effacées. Réessayez.',
+  'settings.openSystemSettings': 'Ouvrir les réglages de l’iPhone',
   'settings.about': 'À propos',
   'settings.privacyPolicy': 'Politique de confidentialité',
   'settings.privacyOnline': 'Version en ligne',

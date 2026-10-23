@@ -196,6 +196,9 @@ export function SettingsScreen() {
               else setReminderError(true);
             }}
           />
+          {reminderError && remindersSupported && (
+            <Button label={t('settings.openSystemSettings')} variant="ghost" onPress={() => Linking.openSettings().catch(() => undefined)} />
+          )}
         </Panel>
 
         <SectionTitle>{t('settings.help')}</SectionTitle>

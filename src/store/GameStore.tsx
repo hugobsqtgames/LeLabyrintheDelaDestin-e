@@ -333,7 +333,8 @@ export function GameProvider({
     const sub = RNAppState.addEventListener('change', (st) => {
       const g = reminderGame.current;
       if (st === 'active') cancelReminders();
-      else if (st === 'background') {
+      // Dès « inactive » : iOS peut suspendre le JavaScript avant la fin d'une programmation lancée en arrière-plan.
+      else {
         if (g && !g.ending) {
           const lang = resolveLanguage(languageRef.current);
           const left = Math.max(0, Math.round(hoursLeft(g.clock)));

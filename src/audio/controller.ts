@@ -20,7 +20,8 @@ export interface PlayerLike {
 
 export interface AmbienceDeps<T extends string> {
   createPlayer: () => PlayerLike;
-  configure: () => Promise<unknown>;
+  /** Session audio (mode silencieux, mélange avec la musique de l'utilisateur) : réglée avant toute lecture. */
+  configure: () => Promise<unknown> | void;
   sources: Record<T, number>;
   setInterval: (fn: () => void, ms: number) => unknown;
   clearInterval: (id: unknown) => void;
@@ -50,6 +51,8 @@ export class AmbienceController<T extends string> {
   private active = true;
   private timer: unknown = null;
   private configured = false;
+  /** La session audio est réglée (ou son réglage a échoué) : on peut jouer. */
+  private sessionReady = false;
 
   constructor(private readonly deps: AmbienceDeps<T>) {}
 
@@ -97,7 +100,21 @@ export class AmbienceController<T extends string> {
   sync(track: T | null, setting: number) {
     if (!this.configured) {
       this.configured = true;
-      this.deps.configure().catch(() => undefined);
+      let pending: unknown;
+      try {
+        pending = this.deps.configure();
+      } catch {
+        pending = undefined;
+      }
+      if (pending && typeof (pending as Promise<unknown>).then === 'function') {
+        // Pas de lecture avant le réglage : sinon la première piste pourrait couper la musique de l'utilisateur.
+        (pending as Promise<unknown>)
+          .catch(() => undefined)
+          .then(() => {
+            this.sessionReady = true;
+            this.reconcile();
+          });
+      } else this.sessionReady = true;
     }
     this.target = track;
     this.setting = setting;
@@ -120,6 +137,7 @@ export class AmbienceController<T extends string> {
   }
 
   private reconcile() {
+    if (!this.sessionReady) return;
     const p = this.p;
     if (!p) return;
     const want = this.target;
