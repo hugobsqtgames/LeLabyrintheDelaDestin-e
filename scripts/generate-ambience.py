@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
 """
-Génère les ambiances sonores du jeu (boucles sans couture), puis les encode
+Génère les ambiances musicales du jeu (boucles sans couture), puis les encode
 en AAC (.m4a) avec ffmpeg.
 
     python3 scripts/generate-ambience.py            # toutes les pistes
     python3 scripts/generate-ambience.py marais     # une seule
+    python3 scripts/generate-ambience.py --wav DIR  # aussi les WAV (contrôle)
 
-Tout est synthétisé : bruit mis en forme dans le domaine fréquentiel (donc
-périodique, la boucle est parfaite), drones, gouttes, cloches lointaines,
-claquements de dents, battements. Aucune ressource externe.
-Dépendances : numpy, ffmpeg.
+Principes (pensés pour un haut-parleur d'iPhone, et pour accompagner la lecture) :
+- de la musique douce plutôt que des bruits : nappes d'accords, notes de cloche
+  espacées avec écho, textures discrètes (vent, eau) ;
+- l'énergie est placée entre 150 Hz et 3 kHz, là où un téléphone restitue le son
+  (sous 200 Hz, un haut-parleur de téléphone ne produit presque rien) ;
+- aucune attaque brutale : chaque note monte en au moins 25 ms, rien ne claque ;
+- niveau modéré (≈ −20 LUFS, crêtes sous −6 dBFS), le curseur de volume du jeu
+  l'abaisse encore ;
+- boucle parfaite : chaque événement est posé « en anneau » (ce qui dépasse la
+  fin reprend au début) et la réverbération est circulaire ; la musique respire
+  plus doucement au point de bouclage pour masquer la reprise du lecteur.
+Tout est synthétisé. Dépendances : numpy, ffmpeg.
 """
 import os
 import subprocess
@@ -20,279 +29,231 @@ import wave
 import numpy as np
 
 SR = 22050
-DUR = 32.0
-N = int(SR * DUR)
+# Longueur exacte en blocs AAC (1024 échantillons) : sans cela l'encodeur complète
+# le dernier bloc avec du silence, et l'iPhone entend un trou à chaque bouclage.
+N = 1034 * 1024
+DUR = N / SR  # ≈ 48,02 s
 OUT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'audio')
 t = np.arange(N) / SR
+TOP = 3400.0  # rien au-dessus : doux et sans sifflement
 
 
-def shaped_noise(rng, lo, hi, tilt=0.0):
-    """Bruit filtré passe-bande (périodique sur la durée de la boucle)."""
-    spec = np.fft.rfft(rng.standard_normal(N))
-    f = np.fft.rfftfreq(N, 1 / SR)
-    gain = np.where((f >= lo) & (f <= hi), 1.0, 0.0)
-    # bords adoucis
-    gain *= np.clip((f - lo * 0.7) / (lo * 0.3 + 1e-9), 0, 1) if lo > 0 else 1
-    gain *= np.clip((hi * 1.3 - f) / (hi * 0.3), 0, 1)
-    if tilt:
-        gain *= (np.maximum(f, 20) / 200.0) ** tilt
-    x = np.fft.irfft(spec * gain, n=N)
-    return x / (np.abs(x).max() + 1e-9)
-
-
-def lfo(freq_cycles, phase=0.0, depth=1.0):
-    """Modulation lente ; `freq_cycles` cycles entiers par boucle (sans couture)."""
-    return 1 - depth * 0.5 * (1 - np.cos(2 * np.pi * freq_cycles * t / DUR + phase))
-
-
-def tone(freq_cycles_exact, amp=1.0):
-    """Sinusoïde dont la fréquence est arrondie pour boucler parfaitement."""
-    k = round(freq_cycles_exact * DUR)
-    return amp * np.sin(2 * np.pi * k * t / DUR)
+def midi(m):
+    return 440.0 * 2 ** ((m - 69) / 12)
 
 
 def place(buf, event, at):
-    """Ajoute un événement à la position `at` (secondes), en bouclant."""
-    i = int(at * SR) % N
+    """Ajoute un événement à la position `at` (secondes), en anneau (boucle sans couture)."""
+    i = int(round(at * SR)) % N
     n = len(event)
-    end = i + n
-    if end <= N:
-        buf[i:end] += event
-    else:
-        buf[i:] += event[: N - i]
-        buf[: end - N] += event[N - i :]
+    while n > 0:
+        take = min(n, N - i)
+        buf[i:i + take] += event[:take]
+        event = event[take:]
+        n -= take
+        i = 0
 
 
-def bell(freq, dur=4.0, amp=0.3):
-    tt = np.arange(int(dur * SR)) / SR
-    partials = [(1, 1), (2.76, 0.45), (5.4, 0.25), (8.93, 0.12)]
-    s = sum(a * np.sin(2 * np.pi * freq * p * tt) * np.exp(-tt * (1.2 + p * 0.6)) for p, a in partials)
-    return amp * s
+def envelope(n, attack, release):
+    """Enveloppe en cosinus surélevé : montée et descente sans angle (donc sans clic)."""
+    e = np.ones(n)
+    a = max(1, int(attack * SR))
+    r = max(1, int(release * SR))
+    e[:a] = 0.5 - 0.5 * np.cos(np.pi * np.arange(a) / a)
+    e[-r:] *= 0.5 + 0.5 * np.cos(np.pi * np.arange(r) / r)
+    return e
 
 
-def drip(rng, amp=0.25):
-    tt = np.arange(int(0.35 * SR)) / SR
-    f0 = rng.uniform(900, 1700)
-    f = f0 * (1 + 0.6 * np.exp(-tt * 40))
-    s = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt * 18)
-    # écho de caverne
-    out = np.zeros(int(1.4 * SR))
-    for k, (d, g) in enumerate([(0, 1), (0.21, 0.4), (0.47, 0.22), (0.83, 0.1)]):
-        j = int(d * SR)
-        out[j : j + len(s)] += g * s
-    return amp * out
+def pad(freq, dur, amp, rng, bright=1.0):
+    """Note de nappe : harmoniques douces, deux voix légèrement désaccordées, chorus lent."""
+    n = int(dur * SR)
+    tt = np.arange(n) / SR
+    out = np.zeros(n)
+    for detune, gain in [(-0.0025, 0.5), (0.0025, 0.5), (-0.5, 0.06)]:
+        f0 = freq * (1 + detune) if detune > -0.4 else freq / 2
+        wobble = 1 + 0.0015 * np.sin(2 * np.pi * rng.uniform(0.08, 0.2) * tt + rng.uniform(0, 6.28))
+        phase = 2 * np.pi * np.cumsum(f0 * wobble) / SR
+        k = 1
+        while k * f0 < TOP and k <= 10:
+            a = (1 / k ** 1.6) * np.exp(-(k * f0) / (1400 * bright))
+            out += gain * a * np.sin(k * phase + rng.uniform(0, 6.28))
+            k += 1
+    return amp * out * envelope(n, min(3.0, dur * 0.35), min(3.5, dur * 0.4))
 
 
-def clicks(rng, n=7, amp=0.12):
-    """Claquements de dents lointains (le cliquetis des Muets)."""
-    out = np.zeros(int((n * 0.11 + 0.3) * SR))
-    for k in range(n):
-        j = int((k * 0.11 + rng.uniform(0, 0.05)) * SR)
-        L = int(0.012 * SR)
-        burst = rng.standard_normal(L) * np.exp(-np.arange(L) / (L / 4))
-        out[j : j + L] += burst * rng.uniform(0.5, 1)
-    # passe-haut grossier : différence
-    out = np.diff(out, prepend=0)
-    return amp * out / (np.abs(out).max() + 1e-9)
+def bell(freq, amp, decay=2.2):
+    """Note de cloche ou de piano feutré : attaque adoucie, extinction lente."""
+    dur = decay * 3
+    n = int(dur * SR)
+    tt = np.arange(n) / SR
+    s = np.zeros(n)
+    for p, a, d in [(1, 1.0, 1.0), (2, 0.32, 0.7), (3, 0.12, 0.5), (4.01, 0.05, 0.35)]:
+        if freq * p < TOP:
+            s += a * np.sin(2 * np.pi * freq * p * tt) * np.exp(-tt / (decay * d))
+    return amp * s * envelope(n, 0.05, 0.4)
 
 
-def creak(rng, amp=0.15):
-    dur = rng.uniform(0.8, 1.6)
-    tt = np.arange(int(dur * SR)) / SR
-    f = 70 + 40 * np.sin(np.pi * tt / dur) + 5 * rng.standard_normal(len(tt)).cumsum() / 200
-    saw = 2 * ((np.cumsum(f) / SR) % 1) - 1
-    env = np.sin(np.pi * tt / dur) ** 2
-    return amp * saw * env
+def pluck(freq, amp, dur=0.42):
+    """Corde grave assourdie (ostinato du combat) : attaque de 25 ms, pas de claquement."""
+    n = int(dur * SR)
+    tt = np.arange(n) / SR
+    s = sum((1 / k ** 1.3) * np.sin(2 * np.pi * freq * k * tt) * np.exp(-tt * (5 + 3 * k)) for k in range(1, 7) if freq * k < TOP)
+    return amp * s * envelope(n, 0.025, 0.08)
 
 
-def thump(amp=0.6):
-    tt = np.arange(int(0.25 * SR)) / SR
-    f = 55 * (1 + np.exp(-tt * 30))
-    return amp * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt * 14)
+def soft_noise(rng, lo, hi):
+    """Bruit filtré, périodique sur la boucle (vent, eau), bords de bande adoucis."""
+    spec = np.fft.rfft(rng.standard_normal(N))
+    f = np.fft.rfftfreq(N, 1 / SR)
+    g = np.exp(-0.5 * ((np.log(np.maximum(f, 1) / np.sqrt(lo * hi))) / (np.log(hi / lo) / 2.5)) ** 2)
+    x = np.fft.irfft(spec * g, n=N)
+    return x / (np.abs(x).max() + 1e-9)
 
 
-def city(rng):
-    x = 0.55 * shaped_noise(rng, 60, 900, -0.6) * lfo(3, 0.3, 0.7)
-    x += 0.18 * shaped_noise(rng, 1500, 4000) * lfo(5, 1.0, 0.9)
-    x += tone(41, 0.05) + tone(61.5, 0.03)
-    for at, f in [(3.0, 392), (17.5, 349)]:
-        place(x, bell(f, 5, 0.12), at)
-    for at in [9.0, 25.0]:
-        place(x, clicks(rng, 8, 0.08), at)
-    place(x, creak(rng, 0.06), 13.0)
+def slow_swell(cycles, phase=0.0, low=0.4):
+    """Modulation lente et périodique (nombre entier de cycles par boucle)."""
+    return low + (1 - low) * (0.5 - 0.5 * np.cos(2 * np.pi * cycles * t / DUR + phase))
+
+
+def reverb(x, rng, seconds=2.6, wet=0.35, damp=2200.0):
+    """Réverbération circulaire (la boucle reste parfaite) : réponse en bruit amorti et assourdi."""
+    n = int(seconds * SR)
+    tt = np.arange(n) / SR
+    ir = rng.standard_normal(n) * np.exp(-tt * 6.9 / seconds)
+    spec = np.fft.rfft(ir, n=n)
+    f = np.fft.rfftfreq(n, 1 / SR)
+    ir = np.fft.irfft(spec / (1 + (f / damp) ** 2), n=n)
+    ir /= np.sqrt(np.sum(ir ** 2)) + 1e-9
+    h = np.zeros(N)
+    h[:n] = ir
+    wet_sig = np.fft.irfft(np.fft.rfft(x) * np.fft.rfft(h), n=N)
+    return (1 - wet) * x + wet * wet_sig * (np.std(x) / (np.std(wet_sig) + 1e-9))
+
+
+def echo(x, delay, feedback=0.35, taps=4):
+    """Écho circulaire (répétitions décroissantes)."""
+    y = x.copy()
+    for k in range(1, taps + 1):
+        y += (feedback ** k) * np.roll(x, int(delay * k * SR))
+    return y
+
+
+def compose(rng, chords, melody_scale, register=0, bright=1.0, bells=7, bell_oct=0, pad_amp=0.16, bell_amp=0.11, bell_echo=0.42):
+    """Nappe d'accords qui se relaient + mélodie de cloches espacées dans la gamme."""
+    x = np.zeros(N)
+    step = DUR / len(chords)
+    for i, chord in enumerate(chords):
+        for note in chord:
+            # chaque accord déborde sur le suivant : les nappes se fondent
+            place(x, pad(midi(note + register), step + 4.0, pad_amp / len(chord) * 3, rng, bright), i * step - 1.5)
+    mel = np.zeros(N)
+    times = np.sort(rng.uniform(2.5, DUR - 3.5, bells))
+    last = None
+    for at in times:
+        choices = [m for m in melody_scale if last is None or abs(m - last) <= 7] or melody_scale
+        m = choices[rng.integers(len(choices))]
+        last = m
+        place(mel, bell(midi(m + 12 * bell_oct), bell_amp * rng.uniform(0.7, 1.0)), at)
+    x += echo(mel, bell_echo, 0.33, 3)
+    return x
+
+
+def breath(x, depth=0.55, width=2.6):
+    """La musique respire plus bas au point de bouclage : la reprise du lecteur ne s'entend pas."""
+    d = np.minimum(t, DUR - t)
+    g = 1 - depth * np.exp(-(d / width) ** 2)
+    return x * g
+
+
+# Gammes (notes MIDI) et accords par région ---------------------------------
+
+def ville(rng):
+    # ré mineur : Dm – Bb – F – C, mélancolique et calme
+    x = compose(rng, [[50, 57, 62, 65], [46, 53, 58, 62], [53, 57, 60, 65], [48, 55, 60, 64]], [62, 64, 65, 69, 72, 74, 77], register=12, bells=8, bell_amp=0.09)
+    x += 0.035 * soft_noise(rng, 250, 1100) * slow_swell(3, 0.4, 0.3)  # vent léger
     return x
 
 
 def carrieres(rng):
-    x = 0.35 * shaped_noise(rng, 30, 220, -1.0) * lfo(2, 0.0, 0.4)
-    x += tone(55, 0.09) + tone(55.4, 0.08) + tone(82.5, 0.03)
-    for k in range(14):
-        place(x, drip(rng, rng.uniform(0.08, 0.2)), rng.uniform(0, DUR))
-    place(x, clicks(rng, 10, 0.05), 21.0)
+    # la mineur, plus sombre et resserré : Am – F – Dm – E (sous la terre)
+    x = compose(rng, [[45, 52, 57, 60], [41, 48, 53, 57], [38, 45, 50, 53], [40, 47, 52, 56]], [69, 71, 72, 76, 79, 81], register=12, bright=0.8, bells=9, bell_amp=0.09, bell_echo=0.61)
+    return x
+
+
+def faubourgs(rng):
+    # si mineur : Bm – G – Em – F#sus (zones désolées)
+    x = compose(rng, [[47, 54, 59, 62], [43, 50, 55, 59], [40, 47, 52, 55], [42, 49, 54, 59]], [59, 61, 62, 66, 69, 71, 74], register=12, bells=6)
+    x += 0.04 * soft_noise(rng, 300, 1400) * slow_swell(2, 1.1, 0.25)
     return x
 
 
 def port(rng):
-    x = 0.5 * shaped_noise(rng, 120, 1800, -0.3) * (0.7 + 0.3 * np.sin(2 * np.pi * 16 * t / DUR) ** 2)
-    x += 0.2 * shaped_noise(rng, 40, 200) * lfo(4, 2.0, 0.6)
-    for at in [4.0, 15.0, 26.0]:
-        place(x, creak(rng, 0.12), at)
-    tt = np.arange(int(3.5 * SR)) / SR
-    horn = (np.sin(2 * np.pi * 98 * tt) + 0.5 * np.sin(2 * np.pi * 147 * tt)) * np.sin(np.pi * tt / 3.5) ** 2
-    place(x, 0.08 * horn, 10.0)
+    # mi mineur : Em – C – G – D, avec un clapotis doux
+    x = compose(rng, [[40, 47, 52, 55], [36, 43, 48, 52], [43, 50, 55, 59], [38, 45, 50, 54]], [64, 66, 67, 71, 74, 76], register=12, bells=7)
+    x += 0.04 * soft_noise(rng, 450, 1900) * slow_swell(6, 0.0, 0.5)
     return x
 
 
 def ecluse(rng):
-    x = 0.45 * shaped_noise(rng, 300, 3500, -0.2) * lfo(4, 0.5, 0.8)
-    x += 0.3 * shaped_noise(rng, 80, 700) * (0.8 + 0.2 * np.sin(2 * np.pi * 11 * t / DUR))
-    for k in range(9):
-        tt = np.arange(int(0.18 * SR)) / SR
-        f = rng.uniform(2500, 4200) * (1 + 0.25 * np.sin(2 * np.pi * 18 * tt))
-        chirp = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * tt / 0.18)
-        place(x, 0.05 * chirp, rng.uniform(0, DUR))
-    place(x, bell(523, 3, 0.05), 7.0)
-    return x
-
-
-def combat(rng):
-    x = tone(49, 0.14) + tone(51.9, 0.1) + tone(73.5, 0.05)
-    x += 0.3 * shaped_noise(rng, 50, 400) * lfo(8, 0.0, 0.5)
-    x += 0.07 * shaped_noise(rng, 2000, 6000) * lfo(16, 0.0, 1.0)
-    bpm = 75
-    beat = 60 / bpm
-    nbeats = int(DUR / beat)
-    for k in range(nbeats):
-        place(x, thump(0.5), k * (DUR / nbeats))
-        place(x, thump(0.3), k * (DUR / nbeats) + 0.22)
-    for at in [5.0, 19.0]:
-        place(x, clicks(rng, 12, 0.1), at)
-    return x
-
-
-def wire_wind(rng):
-    """Vent dans les câbles : sifflements tenus, lentement modulés."""
-    x = np.zeros(N)
-    for k, (f, cyc, ph) in enumerate([(620, 3, 0.4), (931, 5, 2.1), (1243, 2, 4.0)]):
-        x += tone(f, 1.0) * lfo(cyc, ph, 1.0) * (0.5 + 0.5 * lfo(7 + k, ph * 2, 0.6))
-    return x / (np.abs(x).max() + 1e-9)
-
-
-def metal_groan(rng, dur=2.5, amp=0.1):
-    """Long grincement de tôle : partiels inharmoniques qui glissent."""
-    tt = np.arange(int(dur * SR)) / SR
-    f0 = rng.uniform(140, 220)
-    glide = 1 + 0.08 * np.sin(np.pi * tt / dur) + 0.01 * rng.standard_normal(len(tt)).cumsum() / 300
-    s = sum(a * np.sin(2 * np.pi * np.cumsum(f0 * p * glide) / SR) for p, a in [(1, 1), (2.31, 0.5), (3.97, 0.3), (6.2, 0.15)])
-    env = np.sin(np.pi * tt / dur) ** 3
-    return amp * s * env
-
-
-def clank(rng, amp=0.15):
-    """Choc métallique lointain (rail, tampon de wagon)."""
-    dur = 1.6
-    tt = np.arange(int(dur * SR)) / SR
-    f0 = rng.uniform(300, 480)
-    s = sum(a * np.sin(2 * np.pi * f0 * p * tt) * np.exp(-tt * (3 + p * 1.5)) for p, a in [(1, 1), (1.47, 0.6), (2.83, 0.4), (4.1, 0.2)])
-    L = int(0.01 * SR)
-    s[:L] += rng.standard_normal(L) * np.exp(-np.arange(L) / (L / 5)) * 0.8
-    return amp * s / (np.abs(s).max() + 1e-9)
-
-
-def bark(rng, amp=0.08):
-    """Aboiement lointain : formant bref, étouffé."""
-    dur = 0.28
-    tt = np.arange(int(dur * SR)) / SR
-    f = rng.uniform(380, 460) * (1 + 0.3 * np.sin(np.pi * tt / dur))
-    ph = 2 * np.pi * np.cumsum(f) / SR
-    s = np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.3 * np.sin(3 * ph)
-    s *= np.sin(np.pi * tt / dur) ** 0.6 * np.exp(-tt * 6)
-    s = np.convolve(s, np.ones(6) / 6, mode='same')  # étouffé par la distance
-    return amp * s
-
-
-def croak(rng, amp=0.06):
-    """Coassement : train d'impulsions graves."""
-    n = rng.integers(3, 7)
-    rate = rng.uniform(18, 30)
-    f0 = rng.uniform(180, 320)
-    dur = n / rate + 0.1
-    tt = np.arange(int(dur * SR)) / SR
-    pulses = np.maximum(0, np.sin(2 * np.pi * rate * tt)) ** 4
-    s = np.sin(2 * np.pi * f0 * tt) * pulses * np.exp(-tt * 2)
-    return amp * s
-
-
-def bubble(rng, amp=0.08):
-    """Bulle qui crève à la surface : sinus montant, très bref."""
-    dur = rng.uniform(0.05, 0.12)
-    tt = np.arange(int(dur * SR)) / SR
-    f0 = rng.uniform(150, 500)
-    f = f0 * (1 + 2.5 * tt / dur)
-    return amp * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt / dur * 4)
-
-
-def moan(rng, dur=6.0, amp=0.06):
-    """Plainte lointaine : voyelle tenue qui retombe."""
-    tt = np.arange(int(dur * SR)) / SR
-    f = rng.uniform(150, 190) * (1.1 - 0.2 * tt / dur + 0.02 * np.sin(2 * np.pi * 5 * tt))
-    ph = 2 * np.pi * np.cumsum(f) / SR
-    s = np.sin(ph) + 0.4 * np.sin(2 * ph) + 0.2 * np.sin(3 * ph) + 0.1 * np.sin(5 * ph)
-    return amp * s * np.sin(np.pi * tt / dur) ** 2
-
-
-def faubourgs(rng):
-    x = 0.3 * shaped_noise(rng, 40, 600, -0.8) * lfo(3, 1.2, 0.6)
-    x += 0.07 * wire_wind(rng)
-    x += 0.08 * shaped_noise(rng, 1800, 5000) * lfo(4, 0.7, 0.9)
-    x += tone(36.7, 0.04)
-    for at in [2.5, 14.0, 23.5]:
-        place(x, metal_groan(rng, rng.uniform(2.0, 3.5), 0.09), at)
-    for at in [8.0, 8.9, 27.0]:
-        place(x, clank(rng, 0.12), at)
-    for at in [19.0, 19.45, 20.3]:
-        place(x, bark(rng, 0.07), at)
-    place(x, clicks(rng, 7, 0.05), 11.5)
+    # fa majeur, la dernière étape : F – C – Dm – Bb, une lueur d'espoir
+    x = compose(rng, [[53, 57, 60, 65], [48, 55, 60, 64], [50, 57, 62, 65], [46, 53, 58, 62]], [65, 67, 69, 72, 74, 77], register=12, bright=1.1, bells=9, bell_amp=0.08)
+    x += 0.035 * soft_noise(rng, 400, 2000) * slow_swell(4, 0.8, 0.4)
     return x
 
 
 def marais(rng):
-    x = 0.4 * shaped_noise(rng, 25, 160, -1.2) * lfo(2, 0.8, 0.4)
-    x += tone(43.2, 0.08) + tone(43.6, 0.07) + tone(64.8, 0.025)
-    # roseaux : bruit aigu en rafales
-    x += 0.12 * shaped_noise(rng, 2500, 7000) * lfo(5, 0.3, 1.0) * lfo(3, 2.0, 0.7)
-    # insectes : stridulation lointaine
-    tt = t
-    x += 0.012 * tone(4200, 1.0) * (np.sin(2 * np.pi * 480 * tt / DUR) > 0.3) * lfo(2, 3.0, 1.0)
-    for k in range(10):
-        place(x, croak(rng, rng.uniform(0.03, 0.07)), rng.uniform(0, DUR))
-    for k in range(5):
-        at = rng.uniform(0, DUR)
-        for j in range(rng.integers(2, 6)):
-            place(x, bubble(rng, rng.uniform(0.04, 0.1)), at + j * rng.uniform(0.08, 0.3))
-    place(x, moan(rng, 6.5, 0.05), 17.0)
+    # do mineur : Cm – Ab – Fm – G, brumeux
+    x = compose(rng, [[48, 55, 60, 63], [44, 51, 56, 60], [41, 48, 53, 56], [43, 50, 55, 59]], [60, 62, 63, 67, 70, 72], register=12, bright=0.75, bells=6, bell_amp=0.09)
+    x += 0.03 * soft_noise(rng, 200, 900) * slow_swell(2, 2.0, 0.3)
     return x
 
 
 def barrage(rng):
-    # grondement du déversoir : bruit large et grave, très dense
-    x = 0.6 * shaped_noise(rng, 30, 1200, -0.9) * (0.85 + 0.15 * np.sin(2 * np.pi * 6 * t / DUR))
-    x += 0.15 * shaped_noise(rng, 1500, 4500) * lfo(3, 0.5, 0.5)
-    # bourdon du transformateur : 50 Hz, 100 Hz, harmoniques impaires
-    hum = tone(50, 0.06) + tone(100, 0.07) + tone(150, 0.025) + tone(200, 0.02) + tone(300, 0.01)
-    x += hum * (0.85 + 0.15 * lfo(4, 1.0, 1.0))
-    # résonance métallique (conduites)
-    for at in [6.0, 21.0]:
-        place(x, metal_groan(rng, 4.0, 0.06), at)
-    place(x, clank(rng, 0.08), 13.5)
-    place(x, bell(196, 5, 0.04), 28.0)
+    # sol mineur : Gm – Eb – Bb – D, ample
+    x = compose(rng, [[43, 50, 55, 58], [39, 46, 51, 55], [46, 53, 58, 62], [38, 45, 50, 54]], [67, 69, 70, 74, 77, 79], register=12, bells=7)
+    x += 0.03 * soft_noise(rng, 220, 1000) * slow_swell(3, 0.2, 0.5)
     return x
 
 
-def write_wav(path, x):
+def combat(rng):
+    # mi mineur, tendu mais pas agressif : ostinato de cordes graves à 100 bpm
+    chords = [[40, 47, 52, 55], [36, 43, 48, 52], [45, 52, 57, 60], [47, 54, 59, 63]]
+    x = compose(rng, chords, [64, 67, 71, 72, 74], register=12, pad_amp=0.12, bells=5, bell_amp=0.07)
+    steps = int(round(DUR / (60 / 100 / 2)))
+    eighth = DUR / steps  # ≈ 100 bpm, calé exactement sur la boucle
+    per_chord = steps // len(chords)
+    for k in range(steps):
+        root = chords[min(k // per_chord, len(chords) - 1)][0] + 12
+        note = root + (7 if k % 4 == 2 else 0) + (12 if k % 8 == 6 else 0)
+        accent = 1.0 if k % 2 == 0 else 0.6
+        place(x, pluck(midi(note + 12), 0.07 * accent), k * eighth)
+    return x
+
+
+TRACKS = {
+    'ville': ville,
+    'carrieres': carrieres,
+    'port': port,
+    'ecluse': ecluse,
+    'combat': combat,
+    'faubourgs': faubourgs,
+    'marais': marais,
+    'barrage': barrage,
+}
+
+
+def master(x, rng):
+    x = reverb(x, rng)
+    x = breath(x)
     x = x - x.mean()
-    x = 0.7 * x / (np.abs(x).max() + 1e-9)
-    data = (x * 32767).astype('<i2').tobytes()
+    # niveau visé : RMS ≈ −21 dBFS ; limiteur doux pour garder les crêtes sous −6 dBFS
+    x *= 10 ** (-21 / 20) / (np.sqrt(np.mean(x ** 2)) + 1e-12)
+    ceiling = 10 ** (-6 / 20)
+    return ceiling * np.tanh(x / ceiling)
+
+
+def write_wav(path, x):
+    data = (np.clip(x, -1, 1) * 32767).astype('<i2').tobytes()
     with wave.open(path, 'wb') as w:
         w.setnchannels(1)
         w.setsampwidth(2)
@@ -301,31 +262,28 @@ def write_wav(path, x):
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
-    tracks = {
-        'ville': city,
-        'carrieres': carrieres,
-        'port': port,
-        'ecluse': ecluse,
-        'combat': combat,
-        'faubourgs': faubourgs,
-        'marais': marais,
-        'barrage': barrage,
-    }
-    # `python3 scripts/generate-ambience.py marais barrage` : seulement ces pistes.
-    only = set(sys.argv[1:])
-    unknown = only - tracks.keys()
+    args = sys.argv[1:]
+    keep = None
+    if '--wav' in args:
+        i = args.index('--wav')
+        keep = args[i + 1]
+        args = args[:i] + args[i + 2:]
+        os.makedirs(keep, exist_ok=True)
+    only = set(args)
+    unknown = only - TRACKS.keys()
     if unknown:
         sys.exit(f'pistes inconnues : {", ".join(sorted(unknown))}')
+    os.makedirs(OUT, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        for i, (name, fn) in enumerate(tracks.items()):
+        for i, (name, fn) in enumerate(TRACKS.items()):
             if only and name not in only:
                 continue
-            rng = np.random.default_rng(100 + i)
-            wav = os.path.join(tmp, f'{name}.wav')
-            write_wav(wav, fn(rng))
+            rng = np.random.default_rng(200 + i)
+            x = master(fn(rng), rng)
+            wav = os.path.join(keep or tmp, f'{name}.wav')
+            write_wav(wav, x)
             dst = os.path.join(OUT, f'{name}.m4a')
-            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-c:a', 'aac', '-b:a', '64k', dst], check=True)
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-c:a', 'aac', '-b:a', '96k', dst], check=True)
             print(dst, os.path.getsize(dst) // 1024, 'Ko')
 
 

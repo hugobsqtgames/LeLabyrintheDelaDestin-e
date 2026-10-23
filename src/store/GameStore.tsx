@@ -39,6 +39,8 @@ export interface AppModel {
   game: GameState | null;
   settings: Settings;
   systemReduceMotion: boolean;
+  /** Paramètres relus du stockage (avant : valeurs par défaut, rien ne doit en dépendre de façon audible). */
+  settingsReady: boolean;
   saveError: string | null;
   saveCount: number;
   /** Emplacement choisi pour une nouvelle partie (après confirmation). */
@@ -70,7 +72,8 @@ type Action =
   | { type: 'absorb'; content: GameContent; game: GameState; previousScene: string | null; now: number }
   | { type: 'dismissUnlocked' }
   | { type: 'pendingChapter'; chapter: ChapterId | null }
-  | { type: 'reset' };
+  | { type: 'reset' }
+  | { type: 'settingsReady' };
 
 function freshModel(): AppModel {
   return {
@@ -82,6 +85,7 @@ function freshModel(): AppModel {
     game: null,
     settings: DEFAULT_SETTINGS,
     systemReduceMotion: false,
+    settingsReady: false,
     saveError: null,
     saveCount: 0,
     pendingSlot: null,
@@ -143,9 +147,11 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, unlocked: model.unlocked.slice(1) };
     case 'pendingChapter':
       return { ...model, pendingChapter: action.chapter };
+    case 'settingsReady':
+      return model.settingsReady ? model : { ...model, settingsReady: true };
     case 'reset':
       // Comme au premier lancement (seule la préférence système d'animations, lue de l'appareil, reste).
-      return { ...freshModel(), systemReduceMotion: model.systemReduceMotion };
+      return { ...freshModel(), systemReduceMotion: model.systemReduceMotion, settingsReady: true };
     default:
       return model;
   }
@@ -213,6 +219,8 @@ export function GameProvider({
     ...freshModel(),
     // Maquettes et vidéo (état initial fourni) : pas de tutoriel par-dessus.
     settings: initial ? { ...DEFAULT_SETTINGS, tutorialDone: true } : DEFAULT_SETTINGS,
+    // Sans stockage (tests) ou maquette : rien à attendre.
+    settingsReady: !saves || !!initial,
     ...initial,
   });
   const lastActivity = useRef(0);
@@ -240,6 +248,7 @@ export function GameProvider({
       const stored = sanitizeSettings(s);
       const patch = fixed ? { ...stored, ...fixed, language: stored.language, volume: stored.volume, haptics: stored.haptics } : mockTutorial === null ? stored : { ...stored, tutorialDone: mockTutorial };
       dispatch({ type: 'settings', patch });
+      dispatch({ type: 'settingsReady' });
       settingsLoaded.current = !fixed;
     });
     return () => {
