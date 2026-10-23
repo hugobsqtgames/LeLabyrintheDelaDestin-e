@@ -163,7 +163,7 @@ if (MODE.includes('B')) {
 
 await browser.close();
 server.close();
-const out = join(ROOT, 'promo', '.cache', 'ui-matrix.json');
+const out = join(ROOT, 'promo', '.cache', `ui-matrix-${MODE}.json`);
 writeFileSync(out, JSON.stringify(results, null, 1));
 console.log(`Mise en page : ${results.layout.runs} rendus, ${results.layout.failures.length} échecs`);
 console.log(`Boutons : ${results.buttons.runs} appuis, ${results.buttons.failures.length} échecs`);
