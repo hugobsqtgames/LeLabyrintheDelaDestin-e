@@ -232,10 +232,25 @@ export function GameScreen({
   tutorialStep?: number;
 }) {
   const game = useGame();
-  const { model, content, setTab, go, openSaves, closeGame, dismissRecap, setSettings, restoreBeforeRelay, dismissUnlocked } = useStore();
+  const { model, content, saves, setTab, go, openSaves, closeGame, dismissRecap, setSettings, restoreBeforeRelay, dismissUnlocked } = useStore();
   const [confirmRestore, setConfirmRestore] = useState(false);
+  // « Revenir avant la relève » n'est proposé que si cet état existe vraiment (une copie d'emplacement ne l'emporte pas).
+  const [canRestore, setCanRestore] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const t = useT();
   const [paused, setPaused] = useState(initialPaused);
+  const fallenCount = game.fallen.length;
+  useEffect(() => {
+    let alive = true;
+    if (!saves || model.slot === null || fallenCount === 0) return;
+    saves
+      .hasRelaySnapshot(model.slot)
+      .then((ok) => alive && setCanRestore(ok))
+      .catch(() => alive && setCanRestore(false));
+    return () => {
+      alive = false;
+    };
+  }, [saves, model.slot, fallenCount, paused]);
   const [topH, setTopH] = useState(110);
   const [tutorialIndex, setTutorialIndex] = useState(tutorialStep ?? 0);
   const insets = useSafeAreaInsets();
@@ -246,7 +261,9 @@ export function GameScreen({
     if (intro !== undefined) return intro ? null : game.chapter;
     // Retour des paramètres (l'écran est remonté) : le carton déjà vu ne se rejoue pas.
     if (introduced.has(game.id)) return game.chapter;
-    return game.turn === 0 && !model.recap ? null : game.chapter;
+    // Première apparition de cette partie (nouvelle partie, chapitre rejoué) : le carton s'affiche.
+    // Une partie reprise montre plutôt le résumé « Que s'est-il passé ? ».
+    return !model.recap ? null : game.chapter;
   });
   const [transition, setTransition] = useState<string | null>(null);
   if (seenChapter !== game.chapter) {
@@ -276,7 +293,8 @@ export function GameScreen({
   let body: React.ReactNode;
   if (tab === 'story') {
     if (game.ending) body = <EndingView game={game} />;
-    else if (game.combat) body = <CombatView game={game} />;
+    // Un combat qui en enchaîne un autre repart d’un écran neuf (journal, cible, retours haptiques).
+    else if (game.combat) body = <CombatView key={`${game.combat.sceneId}:${game.turn}`} game={game} />;
     else body = <StoryView game={game} />;
   } else if (tab === 'character') body = <CharacterView game={game} />;
   else if (tab === 'inventory') body = <InventoryView game={game} />;
@@ -305,6 +323,11 @@ export function GameScreen({
           pointerEvents="none"
         />
         <TopBar game={game} onPause={() => setPaused(true)} />
+        {restoreError && (
+          <Pressable style={styles.saveError} onPress={() => setRestoreError(null)} accessibilityRole="button">
+            <Text style={[type.uiSmall, { color: colors.text }]}>{restoreError}</Text>
+          </Pressable>
+        )}
         {model.saveError && (
           <View style={styles.saveError}>
             <Text style={[type.uiSmall, { color: colors.text }]}>{t('game.saveError', { error: model.saveError })}</Text>
@@ -332,7 +355,7 @@ export function GameScreen({
               }}
             />
           )}
-          {model.slot !== null && game.fallen.length > 0 && (
+          {model.slot !== null && game.fallen.length > 0 && canRestore && (
             <Button
               label={t('pause.beforeRelay')}
               icon="back"
@@ -371,13 +394,16 @@ export function GameScreen({
         onCancel={() => setConfirmRestore(false)}
         onConfirm={() => {
           setConfirmRestore(false);
-          if (model.slot !== null) restoreBeforeRelay(model.slot).catch(() => undefined);
+          if (model.slot !== null)
+            restoreBeforeRelay(model.slot)
+              .then((res) => setRestoreError(res.ok ? null : t('saves.loadFailed')))
+              .catch(() => setRestoreError(t('saves.loadFailed')));
         }}
       />
 
       <RecapSheet game={game} visible={recapVisible} onClose={dismissRecap} />
 
-      {model.unlocked.length > 0 && !transitionChapter && !paused && !confirmRestore && !recapVisible && <AchievementToast key={model.unlocked[0].id} title={model.unlocked[0].title} onDone={dismissUnlocked} />}
+      {model.unlocked.length > 0 && !transitionChapter && !paused && !confirmRestore && !recapVisible && <AchievementToast key={model.unlocked[0].id} title={content.achievements.find((a) => a.id === model.unlocked[0].id)?.title ?? model.unlocked[0].title} onDone={dismissUnlocked} />}
 
       {!model.settings.tutorialDone && !transitionChapter && !paused && (
         <Tutorial topHeight={topH} initialStep={tutorialIndex} onStep={setTutorialIndex} onDone={() => setSettings({ tutorialDone: true })} />

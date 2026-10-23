@@ -92,6 +92,7 @@ export function ChronicleView({ game }: { game: GameState }) {
 
   return (
     <FlatList
+      automaticallyAdjustKeyboardInsets
       data={data}
       keyExtractor={(e) => String(e.id)}
       renderItem={renderItem}

@@ -292,3 +292,25 @@ describe('tout effacer', () => {
     await expect(saves.eraseAll(['c1'])).rejects.toThrow();
   });
 });
+
+describe('héros mort : sac et fiche figés (la fouille du corps en dépend)', () => {
+  it('équiper, jeter, ramasser, abandonner, dépenser un point ou choisir un talent ne changent rien', async () => {
+    const { equip, unequip, dropItem, pickUp, abandonGround } = await import('../src/engine/inventory');
+    const { spendStatPoint, choosePerk } = await import('../src/engine/character');
+    const base = start();
+    const item = Object.keys(base.inventory)[0];
+    const dead = {
+      ...base,
+      ending: { id: 'mort_test', kind: 'death' as const },
+      ground: { [item]: 1 },
+      player: { ...base.player, unspentStatPoints: 2, unspentPerks: 1 },
+    };
+    expect(equip(C, dead, item)).toBe(dead);
+    expect(unequip(C, dead, 'melee')).toBe(dead);
+    expect(dropItem(C, dead, item, 1)).toBe(dead);
+    expect(pickUp(C, dead, item)).toBe(dead);
+    expect(abandonGround(dead, item)).toBe(dead);
+    expect(spendStatPoint(C, dead, 'force')).toBe(dead);
+    expect(choosePerk(C, dead, Object.keys(C.perks)[0] as never)).toBe(dead);
+  });
+});

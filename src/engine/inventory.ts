@@ -117,6 +117,7 @@ export function removeItem(content: GameContent, state: GameState, item: ItemId,
 }
 
 export function canDrop(content: GameContent, state: GameState, item: ItemId): { ok: boolean; reason?: string } {
+  if (state.ending) return { ok: false, reason: msg(content, 'choice.gameOver') };
   const def = content.items[item];
   if (!def) return { ok: false, reason: msg(content, 'inventory.unknownItem') };
   if (itemCount(state, item) <= 0) return { ok: false, reason: msg(content, 'inventory.notOwned') };
@@ -126,6 +127,8 @@ export function canDrop(content: GameContent, state: GameState, item: ItemId): {
 
 /** Le joueur pose un objet au sol (il peut le reprendre tant qu'il reste dans la scène). */
 export function dropItem(content: GameContent, state: GameState, item: ItemId, qty = 1): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   if (!canDrop(content, state, item).ok) return state;
   const def = content.items[item];
   const removed = Math.min(itemCount(state, item), qty);
@@ -136,6 +139,8 @@ export function dropItem(content: GameContent, state: GameState, item: ItemId, q
 }
 
 export function pickUp(content: GameContent, state: GameState, item: ItemId): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   const onGround = state.ground[item] ?? 0;
   if (onGround <= 0) return state;
   const res = addItem(content, { ...state, ground: { ...state.ground, [item]: 0 } }, item, onGround, false);
@@ -151,6 +156,8 @@ export function pickUp(content: GameContent, state: GameState, item: ItemId): Ga
 }
 
 export function abandonGround(state: GameState, item?: ItemId): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   if (!item) return { ...state, ground: {} };
   const ground = { ...state.ground };
   delete ground[item];
@@ -162,6 +169,7 @@ export function abandonGround(state: GameState, item?: ItemId): GameState {
 // ---------------------------------------------------------------------------
 
 export function canEquip(content: GameContent, state: GameState, item: ItemId): { ok: boolean; reason?: string } {
+  if (state.ending) return { ok: false, reason: msg(content, 'choice.gameOver') };
   const def = content.items[item];
   if (!def) return { ok: false, reason: msg(content, 'inventory.unknownItem') };
   if (!def.slot) return { ok: false, reason: msg(content, 'equip.notEquippable') };
@@ -175,6 +183,8 @@ export function canEquip(content: GameContent, state: GameState, item: ItemId): 
 }
 
 export function equip(content: GameContent, state: GameState, item: ItemId): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   const check = canEquip(content, state, item);
   if (!check.ok) return state;
   const def = content.items[item];
@@ -200,6 +210,8 @@ export function equip(content: GameContent, state: GameState, item: ItemId): Gam
 }
 
 export function unequip(content: GameContent, state: GameState, slot: EquipSlot): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   const current = state.equipment[slot];
   if (!current) return state;
   const s: GameState = { ...state, equipment: { ...state.equipment, [slot]: null } };

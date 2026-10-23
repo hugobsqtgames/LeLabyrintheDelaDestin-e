@@ -341,12 +341,13 @@ export function CombatView({ game }: { game: GameState }) {
               key={id}
               disabled={!ok.ok}
               accessibilityRole="button"
-              accessibilityLabel={`${def.name}, ×${qty}. ${def.description}`}
+              accessibilityLabel={`${def.name}, ×${qty}. ${ok.ok ? def.description : (ok.reason ?? '')}`}
+              accessibilityState={{ disabled: !ok.ok }}
               onPress={() => {
                 setItemsOpen(false);
                 act({ type: 'item', item: id });
               }}
-              style={({ pressed }) => [styles.itemRow, pressed && { backgroundColor: 'rgba(255,248,240,0.06)' }]}
+              style={({ pressed }) => [styles.itemRow, !ok.ok && { opacity: 0.45 }, pressed && { backgroundColor: 'rgba(255,248,240,0.06)' }]}
             >
               <ItemIcon icon={def.icon} category={def.category} size={44} />
               <View style={{ flex: 1 }}>
@@ -356,6 +357,8 @@ export function CombatView({ game }: { game: GameState }) {
                 <Text style={type.uiSmall} numberOfLines={2}>
                   {def.description}
                 </Text>
+                {/* Objet inutilisable maintenant : on dit pourquoi au lieu d'un appui sans effet. */}
+                {!ok.ok && ok.reason ? <Text style={[type.uiSmall, { color: colors.amber }]}>{ok.reason}</Text> : null}
               </View>
             </Pressable>
           );

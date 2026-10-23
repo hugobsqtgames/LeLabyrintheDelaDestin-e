@@ -251,6 +251,8 @@ export function grantXp(content: GameContent, state: GameState, amount: number):
 }
 
 export function spendStatPoint(content: GameContent, state: GameState, stat: StatId): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   const p = state.player;
   if (p.unspentStatPoints <= 0 || p.stats[stat] >= STAT_MAX) return state;
   const before = maxHp(content, state);
@@ -265,6 +267,8 @@ export function spendStatPoint(content: GameContent, state: GameState, stat: Sta
 }
 
 export function choosePerk(content: GameContent, state: GameState, perk: PerkId): GameState {
+  // Partie terminée (mort, fin) : le sac et la fiche sont figés (la fouille du corps lors d'une relève en dépend).
+  if (state.ending) return state;
   const p = state.player;
   if (p.unspentPerks <= 0 || p.perks.includes(perk) || !content.perks[perk]) return state;
   let s: GameState = { ...state, player: { ...p, unspentPerks: p.unspentPerks - 1, perks: [...p.perks, perk] } };

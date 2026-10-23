@@ -158,7 +158,18 @@ export function InventoryView({ game }: { game: GameState }) {
   const chrome = useChrome();
   const [mode, setMode] = useState<'bag' | 'craft'>('bag');
   const [filter, setFilter] = useState('all');
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenIdRaw] = useState<string | null>(null);
+  // Messages produits par la dernière action du joueur dans le sac (et pas un reste du récit).
+  const [since, setSince] = useState(game.noticeCounter);
+  const fresh = game.notices.filter((n) => n.id > since);
+  const act = (fn: Parameters<typeof update>[0]) => {
+    setSince(game.noticeCounter);
+    update(fn);
+  };
+  const setOpenId = (id: string | null) => {
+    setSince(game.noticeCounter);
+    setOpenIdRaw(id);
+  };
   const weight = currentWeight(content, game);
   const cap = capacity(content, game);
   const cats = FILTERS.find((f) => f.id === filter)!.cats;
@@ -197,6 +208,8 @@ export function InventoryView({ game }: { game: GameState }) {
                 <SectionTitle>{t('bag.ground')}</SectionTitle>
                 <Panel tone="danger" style={{ gap: space.sm }}>
                   <Text style={[type.bodySmall, { color: colors.text }]}>{t('bag.groundHelp')}</Text>
+                  {/* « Prendre » refusé (sac trop lourd) : la raison s'affiche ici, plus d'appui sans effet visible. */}
+                  {!openId && fresh.length > 0 && <Text style={[type.uiSmall, { color: colors.amber }]}>{fresh[fresh.length - 1].text}</Text>}
                   {ground.map(([id, qty]) => {
                     const def = content.items[id];
                     return (
@@ -208,8 +221,8 @@ export function InventoryView({ game }: { game: GameState }) {
                           </Text>
                           <Text style={type.uiSmall}>{def.weight * qty} kg</Text>
                         </View>
-                        <Button label={t('bag.take')} compact onPress={() => update((g) => pickUp(content, g, id))} />
-                        <Button label={t('bag.leave')} compact variant="ghost" onPress={() => update((g) => abandonGround(g, id))} />
+                        <Button label={t('bag.take')} compact onPress={() => act((g) => pickUp(content, g, id))} />
+                        <Button label={t('bag.leave')} compact variant="ghost" onPress={() => act((g) => abandonGround(g, id))} />
                       </View>
                     );
                   })}
@@ -319,10 +332,10 @@ export function InventoryView({ game }: { game: GameState }) {
               <View style={{ gap: space.sm, marginTop: space.xs }}>
                 {open.slot &&
                   (game.equipment[open.slot] === openId ? (
-                    <Button label={t('bag.unequip')} variant="secondary" icon="close" onPress={() => update((g) => unequip(content, g, open.slot!))} />
+                    <Button label={t('bag.unequip')} variant="secondary" icon="close" onPress={() => act((g) => unequip(content, g, open.slot!))} />
                   ) : (
                     <>
-                      <Button label={t('bag.equip')} icon="check" onPress={() => update((g) => equip(content, g, openId))} />
+                      <Button label={t('bag.equip')} icon="check" onPress={() => act((g) => equip(content, g, openId))} />
                       {canEquip(content, game, openId).reason && <Text style={[type.uiSmall, { color: colors.amber }]}>{canEquip(content, game, openId).reason}</Text>}
                     </>
                   ))}
@@ -335,20 +348,20 @@ export function InventoryView({ game }: { game: GameState }) {
                       disabled={!canUseOutOfCombat(content, game, openId).ok}
                       onPress={() => {
                         feedback('success');
-                        update((g) => consumeItemOutOfCombat(content, g, openId));
+                        act((g) => consumeItemOutOfCombat(content, g, openId));
                       }}
                     />
                     {!canUseOutOfCombat(content, game, openId).ok && <Text style={type.uiSmall}>{canUseOutOfCombat(content, game, openId).reason}</Text>}
                   </>
                 )}
                 {canDrop(content, game, openId).ok ? (
-                  <Button label={t('bag.drop')} icon="trash" variant="ghost" onPress={() => update((g) => dropItem(content, g, openId, 1))} />
+                  <Button label={t('bag.drop')} icon="trash" variant="ghost" onPress={() => act((g) => dropItem(content, g, openId, 1))} />
                 ) : (
                   <Text style={[type.uiSmall, { color: colors.textFaint }]}>{canDrop(content, game, openId).reason}</Text>
                 )}
               </View>
             )}
-            {game.notices.length > 0 && <Text style={[type.uiSmall, { color: colors.ice }]}>{game.notices[game.notices.length - 1].text}</Text>}
+            {fresh.length > 0 && <Text style={[type.uiSmall, { color: colors.ice }]}>{fresh[fresh.length - 1].text}</Text>}
           </View>
         )}
       </Sheet>

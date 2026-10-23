@@ -40,6 +40,7 @@ export function ArchivesView({ game }: { game: GameState }) {
   return (
     <>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: chrome.top, paddingBottom: chrome.bottom }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

@@ -130,6 +130,12 @@ export class SaveManager {
     return current.ok && gameId(current.envelope!) === gameId(snap.envelope!) ? snap.envelope! : null;
   }
 
+  /** Un état « avant la relève » de la même partie existe-t-il pour cet emplacement ? */
+  async hasRelaySnapshot(slot: number): Promise<boolean> {
+    await this.flush().catch(() => undefined);
+    return (await this.relaySnapshotFor(slot).catch(() => null)) !== null;
+  }
+
   /** Recharge l'état mis de côté avant la dernière relève. */
   async loadRelaySnapshot(slot: number): Promise<LoadResult> {
     await this.flush();

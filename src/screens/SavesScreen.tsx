@@ -3,7 +3,7 @@
  * partie, copier la partie en cours, supprimer. Toute perte de données
  * demande une confirmation explicite.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPlaytime } from '../engine/summary';
 import type { SlotInfo } from '../persistence/saves';
@@ -65,14 +65,32 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
     };
   }, [saves, initialSlots, t]);
 
+  // Verrou immédiat (l'état « occupé » n'est visible qu'au rendu suivant : un double appui passerait),
+  // toujours relâché, même si l'opération échoue : jamais d'écran bloqué sur « chargement ».
+  const busyRef = useRef(false);
+  const exclusive = async (job: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      await job();
+    } catch (e) {
+      setMessage(t('saves.loadFailed') + ((e as Error)?.message ? ` (${(e as Error).message})` : ''));
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+  const failed = (res: { ok: boolean; error?: string }) => {
+    if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
+  };
+
   const chooseNew = async (slot: number) => {
-    if (busy) return;
+    if (busyRef.current) return;
     // « Rejouer un chapitre » : la partie repart du début du chapitre choisi.
     if (model.pendingChapter) {
-      setBusy(true);
-      const res = await startFromChapter(model.pendingChapter, slot);
-      setBusy(false);
-      if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
+      const chapter = model.pendingChapter;
+      await exclusive(async () => failed(await startFromChapter(chapter, slot)));
       return;
     }
     setPendingSlot(slot);
@@ -80,21 +98,22 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
   };
 
   const copyTo = async (slot: number) => {
-    if (!saves || !model.game) return;
-    setBusy(true);
-    try {
-      // L'emplacement de destination repart de zéro : ni copie de secours ni état « avant la relève » d'une autre partie.
-      await saves.remove(slot);
-      await saves.save(slot, model.game);
-      await saves.flush();
-      feedback('success');
-      setMessage(t('saves.copied', { slot }));
-      await refresh();
-    } catch (e) {
-      setMessage(t('saves.copyFailed', { error: (e as Error).message }));
-    } finally {
-      setBusy(false);
-    }
+    const game = model.game;
+    if (!saves || !game) return;
+    await exclusive(async () => {
+      try {
+        // L'emplacement de destination repart de zéro : ni copie de secours ni état « avant la relève » d'une autre partie.
+        await saves.remove(slot);
+        // La copie devient une partie à part entière (sinon mémoires et carton d'ouverture la confondaient avec l'originale).
+        await saves.save(slot, { ...game, id: `${game.id}~${slot}-${Date.now().toString(36)}` });
+        await saves.flush();
+        feedback('success');
+        setMessage(t('saves.copied', { slot }));
+        await refresh();
+      } catch (e) {
+        setMessage(t('saves.copyFailed', { error: (e as Error).message }));
+      }
+    });
   };
 
   const onSlot = async (s: SlotInfo) => {
@@ -107,10 +126,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
       if (s.status === 'empty') copyTo(s.slot);
       else setPending({ kind: 'overwrite-copy', slot: s.slot });
     } else if (s.status !== 'empty') {
-      setBusy(true);
-      const res = await loadGame(s.slot);
-      setBusy(false);
-      if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
+      await exclusive(async () => failed(await loadGame(s.slot)));
     }
   };
 
@@ -127,10 +143,7 @@ export function SavesScreen({ initialSlots }: { initialSlots?: SlotInfo[] }) {
       }
       await refresh();
     } else if (p.kind === 'restore') {
-      setBusy(true);
-      const res = await restoreBeforeRelay(p.slot);
-      setBusy(false);
-      if (!res.ok) setMessage(res.error ? translateSaveMessage(lang, res.error) : t('saves.loadFailed'));
+      await exclusive(async () => failed(await restoreBeforeRelay(p.slot)));
     } else if (p.kind === 'overwrite-new') {
       chooseNew(p.slot);
     } else {
