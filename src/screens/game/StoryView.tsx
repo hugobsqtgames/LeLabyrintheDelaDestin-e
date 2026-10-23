@@ -80,7 +80,7 @@ function CheckResult({ game }: { game: GameState }) {
           <View style={styles.dice}>
             {c.roll.map((d, i) => (
               <View key={i} style={[styles.die, { backgroundColor: withAlpha(color, 0.14) }]}>
-                <Text style={[styles.dieText, { color }]}>{d}</Text>
+                <Text style={[styles.dieText, { color }]} maxFontSizeMultiplier={1.15}>{d}</Text>
               </View>
             ))}
           </View>

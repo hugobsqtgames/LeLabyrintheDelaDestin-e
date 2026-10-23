@@ -245,7 +245,7 @@ export function CombatView({ game }: { game: GameState }) {
       </ScrollView>
 
       <View style={[styles.dockWrap, { bottom: chrome.bottom - space.sm }]} onLayout={(e) => setDockH(e.nativeEvent.layout.height)}>
-        <Glass radius={radius.xl} tone="strong" blur={50} style={styles.dock}>
+        <Glass radius={radius.xl} tone="strong" blur={50} style={styles.dock} floating>
           {ongoing ? (
             <View style={styles.grid}>
               <ActionButton

@@ -3,7 +3,7 @@
  * caractéristiques, récapitulatif. Les règles viennent du moteur.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   adjustDraftStat,
   canDecrement,
@@ -93,7 +93,9 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: space.xl, gap: space.md }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      {/* Sur iPhone, le clavier recouvrirait le bouton « Continuer » : la zone remonte au-dessus. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={{ paddingBottom: space.xl, gap: space.md }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         {step === 0 && (
           <>
             <Text style={type.bodySmall}>{t('create.nameIntro')}</Text>
@@ -106,6 +108,10 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
                 maxLength={NAME_MAX + 4}
                 autoCapitalize="words"
                 autoCorrect={false}
+                textContentType="nickname"
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
+                maxFontSizeMultiplier={MAX_SCALE_UI}
                 accessibilityLabel={t('create.nameA11y')}
                 style={styles.input}
               />
@@ -208,7 +214,7 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
                 >
                   <Icon name="minus" size={18} />
                 </Pressable>
-                <Text style={styles.statValue} accessibilityLabel={`${content.statLabels[st]} : ${draftStat(content, draft, st)}`}>
+                <Text style={styles.statValue} maxFontSizeMultiplier={MAX_SCALE_UI} accessibilityLabel={`${content.statLabels[st]} : ${draftStat(content, draft, st)}`}>
                   {draftStat(content, draft, st)}
                 </Text>
                 <Pressable
@@ -268,6 +274,7 @@ export function CreateScreen({ initialDraft, initialStep = 0 }: { initialDraft?:
           <Button label={t('create.go')} icon="check" variant="accent" disabled={!validation.valid} onPress={start} />
         )}
       </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
@@ -285,7 +292,7 @@ const styles = StyleSheet.create({
   bgOption: { padding: space.lg, gap: 6 },
   optionSel: { borderWidth: 1.5, borderColor: colors.rust },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
-  points: { fontFamily: fonts.title, fontSize: 52, lineHeight: 54, color: colors.amber },
+  points: { fontFamily: fonts.title, fontSize: 52, lineHeight: 60, color: colors.amber },
   statRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
   step: { width: TOUCH - 4, height: TOUCH - 4, borderRadius: radius.pill, backgroundColor: 'rgba(255,248,240,0.1)', alignItems: 'center', justifyContent: 'center' },
   statValue: { fontFamily: fonts.title, fontSize: 34, color: colors.text, width: 34, textAlign: 'center' },

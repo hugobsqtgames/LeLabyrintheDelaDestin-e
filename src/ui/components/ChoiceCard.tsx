@@ -69,7 +69,6 @@ export function ChoiceCard({
       <Glass
         radius={radius.lg}
         tone={selected ? 'accent' : locked ? 'clear' : 'default'}
-        interactive={!locked}
         style={[styles.card, selected && styles.selected, locked && styles.locked, highlight && !selected && styles.highlight]}
       >
         <View style={styles.row}>

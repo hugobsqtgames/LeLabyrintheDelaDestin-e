@@ -75,7 +75,7 @@ export function TitleScreen() {
         <FadeIn delay={380} style={{ alignSelf: 'stretch', gap: space.sm, marginTop: space.xl }}>
           {last && last.summary && (
             <Pressable onPress={onContinue} accessibilityRole="button" accessibilityLabel={`${t('title.continue')} : ${last.summary.name}`} style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }] }]}>
-              <Glass radius={radius.xl} style={styles.continue} interactive>
+              <Glass radius={radius.xl} style={styles.continue}>
                 <PlayerPortrait profile={last.summary.profileId ?? 'guerrier'} size={58} shape="squircle" />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[type.label, { color: colors.rustBright }]}>{t('title.lastGame', { slot: last.slot })}</Text>
@@ -116,7 +116,7 @@ export function TitleScreen() {
 const styles = StyleSheet.create({
   emblemWrap: { position: 'absolute', top: 40, right: -110, opacity: 0.55 },
   wrap: { flexGrow: 1, paddingTop: space.xxxl, paddingBottom: space.lg },
-  title: { fontFamily: fonts.title, fontSize: 64, lineHeight: 62, color: colors.text, letterSpacing: -1.5, marginTop: space.sm },
+  title: { fontFamily: fonts.title, fontSize: 64, lineHeight: 72, color: colors.text, letterSpacing: -1.5, marginTop: space.sm },
   titleItalic: { fontFamily: fonts.titleItalic, fontSize: 32, lineHeight: 38, color: colors.rustBright, marginTop: 2 },
   tag: { fontFamily: fonts.ui, fontSize: 16, lineHeight: 23, color: colors.textDim, marginTop: space.md, maxWidth: 340 },
   continue: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },

@@ -133,7 +133,7 @@ function AchievementToast({ title, onDone }: { title: string; onDone: () => void
     <View style={[styles.toastWrap, { top: insets.top + 8 }]} pointerEvents="box-none">
       <Pressable onPress={onDone} accessibilityRole="alert" accessibilityLabel={`${t('achievement.unlocked')} : ${title}`}>
         <FadeIn>
-          <Glass radius={radius.pill} tone="strong" style={styles.toast}>
+          <Glass radius={radius.pill} tone="strong" style={styles.toast} floating>
             <Icon name="star" size={16} color={colors.amber} />
             <Text style={[type.label, { color: colors.amber }]}>{t('achievement.unlocked')}</Text>
             <Text style={[type.ui, { fontFamily: fonts.uiBold, flexShrink: 1 }]} numberOfLines={1}>

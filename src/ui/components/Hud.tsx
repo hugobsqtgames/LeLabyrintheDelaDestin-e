@@ -67,7 +67,7 @@ export function TopBar({ game, onPause }: { game: GameState; onPause: () => void
   const low = hp / hpMax < 0.3;
   return (
     <View style={styles.topWrap}>
-      <Glass radius={radius.xl} style={styles.top}>
+      <Glass radius={radius.xl} style={styles.top} floating>
         <View style={styles.topRow}>
           <PlayerPortrait profile={game.player.profile} size={42} ring={low ? colors.blood : undefined} />
           <View style={{ flex: 1, gap: 5 }}>
@@ -123,7 +123,7 @@ export function TabBar({ tab, onChange, badges }: { tab: Tab; onChange: (t: Tab)
   const t = useT();
   const current = JOURNAL_TABS.includes(tab) ? 'quests' : tab;
   return (
-    <Glass radius={radius.pill} style={styles.tabs} interactive>
+    <Glass radius={radius.pill} style={styles.tabs} floating>
       <View style={styles.tabRow} accessibilityRole="tablist">
         {TABS.map((x) => {
           const active = current === x.id;

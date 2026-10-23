@@ -195,7 +195,7 @@ export function IconButton({
       hitSlop={6}
       style={({ pressed }) => [styles.iconButton, pressed && { transform: [{ scale: 0.92 }] }]}
     >
-      {glass && <Glass radius={radius.pill} style={StyleSheet.absoluteFill} interactive />}
+      {glass && <Glass radius={radius.pill} style={StyleSheet.absoluteFill} />}
       <Icon name={icon} size={size} color={color} />
       {badge && <View style={styles.dot} />}
     </Pressable>

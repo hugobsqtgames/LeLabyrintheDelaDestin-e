@@ -267,7 +267,7 @@ function HeroPreviewSheet({ game, id, onClose }: { game: GameState; id: string |
               <Text style={[type.ui, { fontFamily: fonts.uiBold }]}>
                 {prof.name} · {t('relay.level', { n: hero.level })}
               </Text>
-              <Text style={[type.uiSmall, { fontStyle: 'italic' }]}>{prof.tagline}</Text>
+              <Text style={[type.uiSmall, { fontFamily: fonts.bodyItalic }]}>{prof.tagline}</Text>
             </View>
           </View>
           <Text style={type.bodySmall}>{t(sheet.lastResort ? 'char.heroLastResort' : 'char.heroIntro', { name: sheet.name })}</Text>
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   statCell: { width: '50%', padding: 4 },
   stat: { padding: space.md, gap: 6, minHeight: 150 },
-  statValue: { fontFamily: fonts.title, fontSize: 46, lineHeight: 48, color: colors.text },
+  statValue: { fontFamily: fonts.title, fontSize: 46, lineHeight: 54, color: colors.text },
   bonus: { fontFamily: fonts.mono, fontSize: 12 },
   pips: { flexDirection: 'row', gap: 3, paddingBottom: 10, flexWrap: 'wrap', flex: 1 },
   pip: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,248,240,0.15)' },

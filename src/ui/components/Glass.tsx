@@ -1,10 +1,15 @@
 /**
  * Surfaces de verre et fond d'ambiance.
  *
- * - iOS 26 : vrai Liquid Glass (`expo-glass-effect`).
- * - iOS antérieur et web : flou d'arrière-plan (`expo-blur`) + voile.
- * - Android : voile translucide (le flou natif exige une cible de rendu
- *   dédiée, trop coûteuse pour un écran de lecture).
+ * Seules les surfaces flottantes (`floating` : barres, feuilles, dialogues,
+ * bulles) ont un vrai verre :
+ * - iOS 26 : Liquid Glass (`expo-glass-effect`) ;
+ * - iOS antérieur et web : flou d'arrière-plan (`expo-blur`) + voile ;
+ * - Android : voile translucide.
+ * Les autres (cartes, bulles de dialogue, boutons, listes) sont un voile
+ * translucide de même aspect : un flou par carte, 15 à 25 à la fois dans un
+ * récit qui défile, faisait saccader et chauffer l'iPhone, et un verre posé
+ * sur un autre verre s'affiche terne sur iOS 26.
  *
  * Le fond d'écran superpose deux halos colorés (propres au chapitre) et une
  * texture de grain béton/papier, très légère.
@@ -30,6 +35,9 @@ export function hasLiquidGlass(): boolean {
   return liquid;
 }
 
+/** Voile des surfaces non flottantes (même aspect que le verre sur le fond sombre du jeu). */
+const FLAT = 'rgba(24,21,20,0.62)';
+
 const GRAIN = require('../../../assets/textures/grain.png');
 
 export type GlassTone = 'default' | 'strong' | 'accent' | 'danger' | 'clear';
@@ -50,6 +58,7 @@ export function Glass({
   blur = 28,
   interactive,
   bordered = true,
+  floating = false,
 }: {
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -58,9 +67,11 @@ export function Glass({
   blur?: number;
   interactive?: boolean;
   bordered?: boolean;
+  /** Surface flottante au-dessus du contenu : vrai verre (flou ou Liquid Glass). */
+  floating?: boolean;
 }) {
   const shape: ViewStyle = { borderRadius: radius, ...CONTINUOUS };
-  if (hasLiquidGlass()) {
+  if (floating && hasLiquidGlass()) {
     return (
       <GlassView
         glassEffectStyle={tone === 'clear' ? 'clear' : 'regular'}
@@ -77,8 +88,8 @@ export function Glass({
   // positionné se peindrait sinon au-dessus des SVG et des champs de saisie).
   return (
     <View style={[shape, styles.clip, styles.stack, style]}>
-      {Platform.OS !== 'android' && <BlurView intensity={blur} tint="dark" style={[StyleSheet.absoluteFill, styles.under]} />}
-      {Platform.OS === 'android' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(30,27,26,0.9)' }]} />}
+      {floating && Platform.OS !== 'android' && <BlurView intensity={blur} tint="dark" style={[StyleSheet.absoluteFill, styles.under]} />}
+      {(!floating || Platform.OS === 'android') && <View style={[StyleSheet.absoluteFill, styles.under, { backgroundColor: floating ? 'rgba(30,27,26,0.9)' : FLAT }]} />}
       <View style={[StyleSheet.absoluteFill, styles.under, { backgroundColor: TINTS[tone] }]} />
       {/* Reflet supérieur : un dégradé très doux, comme une vitre éclairée d'en haut. */}
       <LinearGradient colors={['rgba(255,248,240,0.07)', 'rgba(255,248,240,0)']} locations={[0, 0.6]} style={[StyleSheet.absoluteFill, styles.under]} pointerEvents="none" />

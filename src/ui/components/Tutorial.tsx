@@ -92,7 +92,7 @@ export function Tutorial({
       <Pressable style={[StyleSheet.absoluteFill, styles.dim]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       {ring && <View pointerEvents="none" style={[styles.ring, ring]} />}
       <View style={[styles.cardWrap, cardPos]}>
-        <Glass tone="strong" radius={radius.lg} style={styles.card}>
+        <Glass tone="strong" radius={radius.lg} style={styles.card} floating>
           <View style={styles.head}>
             <View style={styles.iconWrap}>
               <Icon name={step.icon} size={18} color={colors.rustBright} />

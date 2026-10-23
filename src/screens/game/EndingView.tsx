@@ -46,7 +46,7 @@ export function EndingView({ game }: { game: GameState }) {
         <View style={{ alignItems: 'center', gap: space.sm }}>
           {death ? <Icon name="skull" size={64} color={colors.blood} strokeWidth={1.3} /> : <Emblem size={110} />}
           <Label color={accent}>{death ? (relay.length ? t('end.fallen') : t('end.death')) : t('end.ending')}</Label>
-          <Text style={[type.display, { textAlign: 'center', fontSize: 52, lineHeight: 54 }]} accessibilityRole="header" maxFontSizeMultiplier={MAX_SCALE_UI}>
+          <Text style={[type.display, { textAlign: 'center', fontSize: 52, lineHeight: 60 }]} accessibilityRole="header" maxFontSizeMultiplier={MAX_SCALE_UI}>
             {summary.ending?.title ?? t('end.fallback')}
           </Text>
           {summary.ending && <Text style={[styles.epitaph, { color: accent }]}>« {summary.ending.epitaph} »</Text>}

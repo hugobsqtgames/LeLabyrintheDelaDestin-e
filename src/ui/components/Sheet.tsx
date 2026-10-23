@@ -2,7 +2,7 @@
  * Feuille modale et boîte de confirmation personnalisées.
  */
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../store/GameStore';
 import { useT } from '../../i18n';
@@ -99,14 +99,18 @@ export function Sheet({
   footer?: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const { reduceMotion } = useStore();
   const t = useT();
+  // Hauteur du contenu bornée par l'écran : sur un petit iPhone, le titre et le bouton
+  // de fermeture restent visibles sous la barre d'état (en-tête, pied et marges ≈ 200 pt).
+  const contentMax = Math.max(160, Math.min(560, height - insets.top - insets.bottom - (footer ? 240 : 180)));
   return (
     <Layer visible={visible} animation={reduceMotion ? 'none' : 'slide'} onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
-        <View style={[styles.sheetWrap, { paddingBottom: insets.bottom + space.sm }]}>
-          <Glass radius={radius.xl} tone="strong" blur={60} style={styles.sheet}>
+        <View style={[styles.sheetWrap, { paddingBottom: insets.bottom + space.sm, marginTop: insets.top + space.sm }]}>
+          <Glass radius={radius.xl} tone="strong" blur={60} style={styles.sheet} floating>
             <View style={styles.grip} />
             <View style={styles.header}>
               <Text style={[type.h2, { flex: 1 }]} accessibilityRole="header">
@@ -114,7 +118,7 @@ export function Sheet({
               </Text>
               <IconButton icon="close" label={t('common.close')} onPress={onClose} size={18} />
             </View>
-            <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ paddingBottom: space.md }}>
+            <ScrollView style={{ maxHeight: contentMax }} contentContainerStyle={{ paddingBottom: space.md }}>
               {children}
             </ScrollView>
             {footer}
@@ -148,7 +152,7 @@ export function ConfirmDialog({
   return (
     <Layer visible={visible} animation="fade" onRequestClose={onCancel}>
       <View style={[styles.backdrop, { justifyContent: 'center', padding: space.xl }]}>
-        <Glass radius={radius.xl} tone="strong" blur={60} style={styles.dialog}>
+        <Glass radius={radius.xl} tone="strong" blur={60} style={styles.dialog} floating>
           <View accessibilityViewIsModal>
             <Text style={type.h2} accessibilityRole="header">
               {title}
