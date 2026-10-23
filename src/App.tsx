@@ -98,7 +98,7 @@ export default function App() {
     <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
       <StatusBar style="light" />
       {(fontsLoaded || fontError) && promo ? (
-        <PromoRoot id={promo.id} lang={promo.lang} />
+        <PromoRoot id={promo.id} lang={promo.lang} textScale={promo.textScale} />
       ) : fontsLoaded || fontError ? (
         <GameProvider saves={saves}>
           <Ambience />

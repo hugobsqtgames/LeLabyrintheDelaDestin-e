@@ -19,15 +19,17 @@ import { ModalModeContext } from '../ui/components/Sheet';
 /** Zones de sécurité d'un iPhone 16 Pro (393 × 852 pt). */
 const IPHONE_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
 
-export function promoParams(): { id: string; lang: Lang } | null {
+export function promoParams(): { id: string; lang: Lang; textScale?: number } | null {
   if (typeof window === 'undefined' || !window.location) return null;
   const q = new URLSearchParams(window.location.search);
   const id = q.get('promo');
   if (!id) return null;
-  return { id, lang: q.get('lang') === 'en' ? 'en' : 'fr' };
+  const scale = Number(q.get('scale'));
+  // `scale` : taille du texte du récit (tests de mise en page), sinon celle de la maquette.
+  return { id, lang: q.get('lang') === 'en' ? 'en' : 'fr', textScale: Number.isFinite(scale) && scale > 0 ? scale : undefined };
 }
 
-export function PromoRoot({ id, lang }: { id: string; lang: Lang }) {
+export function PromoRoot({ id, lang, textScale }: { id: string; lang: Lang; textScale?: number }) {
   const content = contentFor(lang);
   const [setup] = useState(() => {
     const mockups = buildMockups(content);
@@ -35,12 +37,13 @@ export function PromoRoot({ id, lang }: { id: string; lang: Lang }) {
     const storage = new MemoryStorage();
     storage.data.set(slotKey(1), serialize(content, midGame(), Date.UTC(2026, 9, 12, 21, 40)));
     storage.data.set(SETTINGS_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, language: lang, haptics: false, volume: 0 }));
-    return { mockup, saves: new SaveManager(storage, content) };
+    const model = textScale ? { ...mockup.model, settings: { ...DEFAULT_SETTINGS, tutorialDone: true, ...mockup.model.settings, textScale } } : mockup.model;
+    return { mockup, model, saves: new SaveManager(storage, content) };
   });
   return (
     <SafeAreaInsetsContext.Provider value={IPHONE_INSETS}>
       <ModalModeContext.Provider value="inline">
-        <GameProvider saves={setup.saves} initial={setup.mockup.model}>
+        <GameProvider saves={setup.saves} initial={setup.model}>
           <AppRouter screenProps={setup.mockup.screenProps} />
         </GameProvider>
       </ModalModeContext.Provider>
