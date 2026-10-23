@@ -26,9 +26,12 @@ aucun development build n’est nécessaire.
 
 | Commande | Rôle |
 | --- | --- |
-| `npm test` | 167 tests Vitest : moteur, combat, inventaire, horloge, atelier, sauvegardes et migrations, parcours complets, traduction anglaise complète, contraste des couleurs, non-régression de l’audit (file d’écriture, navigation retour) |
+| `npm test` | 991 tests Vitest : moteur, combat, inventaire, horloge, atelier, sauvegardes et migrations, parcours complets, traduction anglaise complète, contraste des couleurs, non-régression de l’audit (file d’écriture, navigation retour) |
 | `npm run monkey` | Monkey test du moteur : 6 000 parties jouées au hasard (FR et EN), actions absurdes comprises ; cohérence de l'état et aller-retour de sauvegarde vérifiés après chaque action |
 | `npm run stress` | Stress test des sauvegardes : opérations concurrentes, pannes de stockage, écritures tronquées, arrêts brutaux de l'application |
+| `npm run ui:matrix` | Balayage de l’interface : 32 états × 3 tailles d’iPhone × 2 langues × 2 tailles de texte (texte coupé, débordements, erreurs), puis un appui sur chaque bouton de chaque état |
+| `npm run explore` | Bot explorateur : 8 000 parties qui cherchent les choix jamais joués (couverture du récit) |
+| `npm run qa` | Toute la campagne hors navigateur : preflight, monkey moteur, stress des sauvegardes, explorateur |
 | `npm run monkey:ui` | Monkey test de l'interface (Playwright, export web) : 15 000 appuis au hasard sur 3 tailles d'iPhone, en français et en anglais |
 | `npm run e2e:web` | Parcours de bout en bout sur l’export web (Playwright) : navigation aller-retour, création, tutoriel, pause, paramètres, menu, reprise |
 | `npm run typecheck` | TypeScript strict |
@@ -135,9 +138,11 @@ Une CI GitHub Actions (`.github/workflows/ci.yml`) lance types, lint, tests, val
   chapitre**, résumé **« Que s’est-il passé ? »** à la reprise, **détail des jets** en touchant le pourcentage.
 - **Accessibilité** : taille de texte iOS respectée (jusqu’à ×1,8 pour le récit), réglage de taille propre au récit,
   contrastes WCAG vérifiés par un test (≥ 4,5:1), animations réductibles, libellés VoiceOver.
-- **Ambiance sonore** : huit boucles synthétisées pour le jeu (ville, carrières, faubourgs, port, marais, barrage,
-  écluse, combat), choisies par lieu puis par région ; volume réglable, respect du mode silencieux, mélange avec la
-  musique de l’utilisateur.
+- **Ambiance musicale** : huit boucles composées pour le jeu (ville, carrières, faubourgs, port, marais, barrage,
+  écluse, combat), choisies par lieu puis par région : nappes d’accords, cloches espacées avec écho, textures
+  discrètes ; énergie entre 150 Hz et 3,4 kHz (audible sur un haut-parleur de téléphone), −22 LUFS, crêtes sous
+  −9 dBFS, boucles exactes en blocs AAC (aucun trou ni clic au bouclage). Volume perceptif réglable, respect du
+  mode silencieux, mélange avec la musique de l’utilisateur.
 - **Carte** : le chemin réellement parcouru se trace sur la carte de chaque région, jusqu’à la position actuelle.
 - **Recherche** dans la chronique et dans les archives (documents et journal intime), sans tenir compte des accents.
 - **« Précédemment »** sur le carton de chaque chapitre : les faits marquants du chapitre précédent.
@@ -250,7 +255,7 @@ la partie (retour arrière Android géré explicitement : onglet → récit → 
 
 ## Résultats obtenus
 
-- `npm test` : **167/167 tests réussis** (dont des parties automatiques complètes en français et en anglais).
+- `npm test` : **991/991 tests réussis** (dont des parties automatiques complètes en français et en anglais).
 - `npm run validate` : 396 scènes, 825 choix, 10 fins, **0 erreur, 0 avertissement**.
 - `npm run typecheck`, `npx expo lint`, `npx expo-doctor` (21/21) : **aucun problème**.
 - Export web puis parcours automatisé dans Chromium au format iPhone : création, choix, combat, onglets,
