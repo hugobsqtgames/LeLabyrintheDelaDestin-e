@@ -4,7 +4,7 @@
  */
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, AppState, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { checkBreakdown } from '../../engine/character';
 import { choiceViews, choose, type ChoiceView, visibleText } from '../../engine/narrative';
 import { checkProbability } from '../../engine/rules';
@@ -23,6 +23,8 @@ import { Button, FadeIn, IconButton, Label, Panel, withAlpha } from '../../ui/co
 import { Icon } from '../../ui/icons';
 import { colors, fonts, MAX_SCALE_READING, MAX_SCALE_UI, radius, space, type } from '../../ui/theme';
 import { ContextHint } from '../../ui/components/ContextHint';
+import { consume, countdownKey, forget, remainingMs, TICK_MS } from '../../ui/countdown';
+import { useStoryBlocked } from '../../ui/interaction';
 
 function DialogueLine({ block, game, scale, paper }: { block: TextBlock; game: GameState; scale: number; paper?: boolean }) {
   const { content } = useStore();
@@ -149,29 +151,49 @@ export function RollDetail({ view, game, t }: { view: ChoiceView; game: GameStat
   );
 }
 
-/** Compte à rebours d'une scène chronométrée. */
-function useCountdown(active: boolean, seconds: number, key: string, onExpire: () => void) {
-  const [left, setLeft] = useState<{ key: string; ms: number }>({ key, ms: seconds * 1000 });
+/** Application au premier plan ? (iOS suspend les minuteries en arrière-plan.) */
+function useAppActive(): boolean {
+  const [active, setActive] = useState(AppState.currentState === 'active' || AppState.currentState == null);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => setActive(st === 'active'));
+    return () => sub.remove();
+  }, []);
+  return active;
+}
+
+/**
+ * Compte à rebours d'une scène chronométrée, avec sa barre. Il ne compte que le
+ * temps où le joueur peut réellement choisir (voir ui/countdown.ts) et ne
+ * redessine que la barre, pas tout le récit.
+ */
+function TimedChoice({ active, seconds, timerKey, label, onExpire }: { active: boolean; seconds: number; timerKey: string; label: string; onExpire: () => void }) {
+  const total = seconds * 1000;
+  const [left, setLeft] = useState(() => ({ key: timerKey, ms: remainingMs(timerKey, total) }));
   const expire = useRef(onExpire);
   useEffect(() => {
     expire.current = onExpire;
   });
   useEffect(() => {
     if (!active) return;
-    const start = Date.now();
+    let last = Date.now();
     let fired = false;
     const id = setInterval(() => {
-      const ms = Math.max(0, seconds * 1000 - (Date.now() - start));
-      setLeft({ key, ms });
+      const now = Date.now();
+      const ms = consume(timerKey, total, now - last);
+      last = now;
+      setLeft({ key: timerKey, ms });
       if (ms === 0 && !fired) {
         fired = true;
         clearInterval(id);
+        forget(timerKey);
         expire.current();
       }
-    }, 100);
+    }, TICK_MS);
     return () => clearInterval(id);
-  }, [active, seconds, key]);
-  return left.key === key ? left.ms : seconds * 1000;
+  }, [active, total, timerKey]);
+  // Sur une nouvelle scène, on repart du temps mémorisé pour celle-ci.
+  const ms = left.key === timerKey ? left.ms : remainingMs(timerKey, total);
+  return <TimerBar ms={ms} total={total} label={label} />;
 }
 
 function TimerBar({ ms, total, label }: { ms: number; total: number; label: string }) {
@@ -184,7 +206,9 @@ function TimerBar({ ms, total, label }: { ms: number; total: number; label: stri
         <Text style={[type.label, { color, flex: 1 }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
           {label}
         </Text>
-        <Text style={[type.number, { color, fontSize: 13 }]}>{Math.ceil(ms / 1000)} s</Text>
+        <Text style={[type.number, { color, fontSize: 13 }]} maxFontSizeMultiplier={MAX_SCALE_UI}>
+          {Math.ceil(ms / 1000)} s
+        </Text>
       </View>
       <View style={styles.timerTrack}>
         <View style={[styles.timerFill, { width: `${ratio * 100}%`, backgroundColor: color }]} />
@@ -234,8 +258,13 @@ export function StoryView({ game }: { game: GameState }) {
   }, [game.currentScene, game.turn]);
 
   const sceneId = game.currentScene;
+  // Verrou immédiat : deux appuis dans la même image (ou appui + fin du compte à rebours)
+  // ne peuvent pas jouer deux fois, même avant que l'état « choisi » soit affiché.
+  const lock = useRef<string | null>(null);
   const onChoose = (choiceId: string) => {
-    if (selected) return; // Double appui ignoré (le moteur refuse aussi tout choix périmé).
+    const turnKey = `${game.id}:${game.turn}:${sceneId}`;
+    if (selected || lock.current === turnKey) return;
+    lock.current = turnKey;
     setSelection({ id: choiceId, turn: game.turn, scene: sceneId });
     feedback('light');
     const apply = () => {
@@ -245,18 +274,22 @@ export function StoryView({ game }: { game: GameState }) {
       });
       // Si le choix a été refusé (état changé entre-temps), les choix redeviennent actifs.
       setSelection(null);
+      lock.current = null;
     };
     if (reduceMotion) apply();
     else setTimeout(apply, 240);
   };
 
   const timed = scene?.timed && model.settings.timedChoices && !screenReader ? scene.timed : null;
-  const msLeft = useCountdown(!!timed && !selected && !info, timed?.seconds ?? 0, `${sceneId}:${game.turn}`, () => {
+  const blocked = useStoryBlocked();
+  const appActive = useAppActive();
+  const timerKey = countdownKey(game.id, sceneId, game.turn);
+  const onTimeout = () => {
     if (timed) {
       feedback('error');
       onChoose(timed.fallback);
     }
-  });
+  };
 
   if (!scene) {
     return (
@@ -358,7 +391,7 @@ export function StoryView({ game }: { game: GameState }) {
             <View style={styles.rule} />
           </View>
           {timed && !selected && <ContextHint id="timed" style={{ marginBottom: space.sm }} />}
-          {timed && !selected && <TimerBar ms={msLeft} total={timed.seconds * 1000} label={t('story.timed')} />}
+          {timed && !selected && <TimedChoice active={!info && !blocked && appActive} seconds={timed.seconds} timerKey={timerKey} label={t('story.timed')} onExpire={onTimeout} />}
           <View style={{ gap: space.sm + 2 }}>
             {views.map((v, i) => (
               <FadeIn key={`${scene.id}-${v.choice.id}`} delay={140 + Math.min(i, 6) * 60}>

@@ -16,6 +16,7 @@ import { Backdrop, Glass } from '../ui/components/Glass';
 import { ChromeContext, ClockChip, TabBar, TopBar, useChrome } from '../ui/components/Hud';
 import { ConfirmDialog, Layer, Sheet } from '../ui/components/Sheet';
 import { Tutorial } from '../ui/components/Tutorial';
+import { StoryBlockedContext } from '../ui/interaction';
 import { Button, FadeIn, Label, Screen, Segmented } from '../ui/components/primitives';
 import { Icon } from '../ui/icons';
 import { type AuraName, colors, fonts, MAX_SCALE_UI, NATIVE_DRIVER, radius, space, type } from '../ui/theme';
@@ -283,11 +284,16 @@ export function GameScreen({
   else body = <JournalView game={game} tab={tab} setTab={setTab} />;
 
   const chrome = { top: topH + space.sm, bottom: insets.bottom + 96 };
+  const recapVisible = model.recap && !transitionChapter && !paused && model.settings.tutorialDone;
+  // Récit masqué : les choix chronométrés s'arrêtent (pas de choix fait à la place du joueur).
+  const storyBlocked = paused || !!transitionChapter || confirmRestore || recapVisible || !model.settings.tutorialDone;
 
   return (
     <Screen padded={false} edges={[]} aura={auraFor(game, content.chapters)}>
       <ChromeContext.Provider value={chrome}>
-        <View style={{ flex: 1 }}>{body}</View>
+        <StoryBlockedContext.Provider value={storyBlocked}>
+          <View style={{ flex: 1 }}>{body}</View>
+        </StoryBlockedContext.Provider>
       </ChromeContext.Provider>
 
       <View style={[styles.topLayer, { paddingTop: insets.top }]} onLayout={(e) => setTopH(e.nativeEvent.layout.height)} pointerEvents="box-none">
@@ -369,9 +375,9 @@ export function GameScreen({
         }}
       />
 
-      <RecapSheet game={game} visible={model.recap && !transitionChapter && !paused && model.settings.tutorialDone} onClose={dismissRecap} />
+      <RecapSheet game={game} visible={recapVisible} onClose={dismissRecap} />
 
-      {model.unlocked.length > 0 && !transitionChapter && <AchievementToast key={model.unlocked[0].id} title={model.unlocked[0].title} onDone={dismissUnlocked} />}
+      {model.unlocked.length > 0 && !transitionChapter && !paused && !confirmRestore && !recapVisible && <AchievementToast key={model.unlocked[0].id} title={model.unlocked[0].title} onDone={dismissUnlocked} />}
 
       {!model.settings.tutorialDone && !transitionChapter && !paused && (
         <Tutorial topHeight={topH} initialStep={tutorialIndex} onStep={setTutorialIndex} onDone={() => setSettings({ tutorialDone: true })} />
@@ -396,7 +402,7 @@ const styles = StyleSheet.create({
   bottomLayer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   saveError: { backgroundColor: 'rgba(255,84,104,0.25)', marginHorizontal: space.md, borderRadius: 12, paddingHorizontal: space.md, paddingVertical: 6 },
   transition: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: space.xl, gap: space.sm },
-  transitionTitle: { fontFamily: fonts.title, fontSize: 58, lineHeight: 60, color: colors.text, textAlign: 'center', letterSpacing: -1 },
+  transitionTitle: { fontFamily: fonts.title, fontSize: 58, lineHeight: 66, color: colors.text, textAlign: 'center', letterSpacing: -1 },
   transitionSub: { fontFamily: fonts.titleItalic, fontSize: 22, lineHeight: 28, color: colors.textDim, textAlign: 'center' },
   transitionRule: { width: 40, height: 1, backgroundColor: colors.lineStrong, marginVertical: space.md },
   recapRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
