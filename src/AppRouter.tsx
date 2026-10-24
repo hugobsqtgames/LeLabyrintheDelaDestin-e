@@ -7,6 +7,7 @@ import type { SlotInfo } from './persistence/saves';
 import { CreateScreen } from './screens/CreateScreen';
 import { GalleryScreen } from './gallery/GalleryScreen';
 import { GameScreen } from './screens/GameScreen';
+import { IntroScreen } from './screens/IntroScreen';
 import { MemoriesScreen } from './screens/MemoriesScreen';
 import { SavesScreen } from './screens/SavesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -31,6 +32,8 @@ export function AppRouter({ screenProps = {} }: { screenProps?: ScreenProps }) {
       return <SavesScreen {...screenProps.saves} />;
     case 'settings':
       return <SettingsScreen />;
+    case 'intro':
+      return <IntroScreen />;
     case 'gallery':
       return <GalleryScreen Router={AppRouter} />;
     case 'memories':

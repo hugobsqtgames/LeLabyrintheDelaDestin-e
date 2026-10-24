@@ -164,7 +164,7 @@ export default function App() {
         <PromoRoot id={promo.id} lang={promo.lang} textScale={promo.textScale} />
       ) : fontsLoaded || fontError ? (
         <RootBoundary>
-          <GameProvider saves={saves}>
+          <GameProvider saves={saves} introOnLaunch>
             <SplashGate />
             <Silent>
               <Ambience />

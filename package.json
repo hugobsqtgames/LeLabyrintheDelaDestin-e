@@ -21,6 +21,7 @@
     "expo-notifications": "~57.0.24",
     "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -61,7 +62,12 @@
     "promo:render": "node promo/render.mjs --lang fr && node promo/render.mjs --lang en",
     "promo:stills": "node promo/stills.mjs --lang fr && node promo/stills.mjs --lang en",
     "e2e:web": "expo export --platform web --output-dir dist && node promo/e2e-flow.mjs",
-    "promo": "npm run promo:capture && npm run promo:render && npm run promo:stills"
+    "promo": "npm run promo:capture && npm run promo:render && npm run promo:stills",
+    "intro:sound": "python3 cinematic/soundtrack.py --stems",
+    "intro:render": "node cinematic/render.mjs",
+    "intro:preview": "node cinematic/render.mjs --lang fr --audio cinematic/out/intro-mix.wav --out docs/intro/valombre-intro-fr.mp4 && node cinematic/render.mjs --lang en --audio cinematic/out/intro-mix.wav --out docs/intro/valombre-intro-en.mp4",
+    "e2e:intro": "expo export --platform web --output-dir dist && node promo/e2e-intro.mjs",
+    "dev:warnings": "expo export --platform web --dev --output-dir dist-dev && node promo/dev-warnings.mjs dist-dev fr && node promo/dev-warnings.mjs dist-dev en"
   },
   "private": true
 }

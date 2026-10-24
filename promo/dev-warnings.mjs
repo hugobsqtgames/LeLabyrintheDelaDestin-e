@@ -27,10 +27,19 @@ page.on('pageerror', (e) => seen.set('PAGE ' + e.message, { type: 'pageerror', t
 const adv = async (ms) => { for (let t = 0; t < ms; t += 50) await page.clock.runFor(50); };
 const btn = (name) => page.getByRole('button', { name, exact: true }).first();
 const tap = async (loc) => { await loc.scrollIntoViewIfNeeded().catch(() => {}); const b = await loc.boundingBox(); if (!b) throw new Error('introuvable'); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await adv(60); await page.mouse.up(); };
-const click = async (name) => { where.step = name; await tap(btn(name)); await adv(700); };
+const click = async (name) => {
+  where.step = name;
+  try {
+    await tap(btn(name));
+  } catch (e) {
+    const shown = (await page.evaluate(() => document.body.innerText)).replace(/\n/g, ' | ').slice(0, 300);
+    throw new Error(`bouton « ${name} » introuvable ; écran : ${shown}`);
+  }
+  await adv(700);
+};
 const L = LANG === 'en'
-  ? { newGame: 'New game', here: 'Start here', next: 'Next', cont: 'Continue', take: 'Take watch', done: 'Done', name: 'Your name' }
-  : { newGame: 'Nouvelle partie', here: 'Commencer ici', next: 'Suivant', cont: 'Continuer', take: 'Prendre la garde', done: 'Terminer', name: 'Votre nom' };
+  ? { newGame: 'New game', here: 'Start here', next: 'Next', cont: 'Continue', take: 'Take the watch', done: 'Let’s go', name: 'Your name' }
+  : { newGame: 'Nouvelle partie', here: 'Commencer ici', next: 'Suivant', cont: 'Continuer', take: 'Prendre la garde', done: 'C’est parti', name: 'Votre nom' };
 const T0 = Date.parse('2026-10-17T10:00:00Z');
 await page.clock.install({ time: T0 });
 await page.clock.pauseAt(T0 + 1000);
@@ -71,8 +80,10 @@ for (let i = 0; i < 12; i++) {
   const choices = page.locator('[role=button]').filter({ hasText: /./ });
   const all = await choices.all();
   const pick = all[all.length - 1 - (i % 3)] ?? all[0];
+  if (!pick) continue;
   where.step = 'choix ' + (await pick.innerText().catch(() => '?')).slice(0, 40);
-  await tap(pick).catch(() => {}); await adv(2500);
+  await tap(pick).catch(() => {});
+  await adv(2500);
 }
 await page.screenshot({ path: join(ROOT, 'promo', '.cache', `dev-warnings-${LANG}.png`) });
 await browser.close(); server.close();

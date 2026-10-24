@@ -22,10 +22,10 @@ import { translate } from '../i18n/translate';
 import { cancelReminders, scheduleReminder } from '../notifications/reminders';
 import type { ChapterId, CharacterDraft, CharacterId, GameContent, GameState, ItemId } from '../engine/types';
 import { META_KEY, type SaveManager } from '../persistence/saves';
-import { parentRoute } from './navigation';
+import { launchRoute, parentRoute } from './navigation';
 import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from './settings';
 
-export type Route = 'title' | 'create' | 'game' | 'saves' | 'settings' | 'gallery' | 'memories';
+export type Route = 'title' | 'intro' | 'create' | 'game' | 'saves' | 'settings' | 'gallery' | 'memories';
 export type SavesMode = 'new' | 'load' | 'copy';
 export type Tab = 'story' | 'character' | 'inventory' | 'map' | 'quests' | 'chronicle' | 'archives';
 export { DEFAULT_SETTINGS, type LanguageSetting, type Settings } from './settings';
@@ -72,7 +72,8 @@ type Action =
   | { type: 'dismissUnlocked' }
   | { type: 'pendingChapter'; chapter: ChapterId | null }
   | { type: 'reset' }
-  | { type: 'settingsReady' };
+  /** `intro` : premier lancement, la cinématique s'ouvre à la place de l'écran titre. */
+  | { type: 'settingsReady'; intro?: boolean };
 
 function freshModel(): AppModel {
   return {
@@ -122,8 +123,11 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, game: action.game, slot: action.slot, route: 'game', tab: 'story', saveError: null, pendingSlot: null, pendingChapter: null, recap: false };
     case 'close':
       return { ...model, game: null, slot: null, route: 'title', tab: 'story' };
-    case 'settings':
-      return { ...model, settings: { ...model.settings, ...action.patch } };
+    case 'settings': {
+      // Rien ne change : même modèle (aucun rendu, aucune écriture, aucune boucle possible).
+      const same = (Object.keys(action.patch) as (keyof Settings)[]).every((k) => model.settings[k] === action.patch[k]);
+      return same ? model : { ...model, settings: { ...model.settings, ...action.patch } };
+    }
     case 'systemReduceMotion':
       return { ...model, systemReduceMotion: action.value };
     case 'saved':
@@ -147,8 +151,12 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, unlocked: model.unlocked.slice(1) };
     case 'pendingChapter':
       return { ...model, pendingChapter: action.chapter };
-    case 'settingsReady':
-      return model.settingsReady ? model : { ...model, settingsReady: true };
+    case 'settingsReady': {
+      // Atomique : l'écran titre n'apparaît jamais une image avant la cinématique.
+      const route = launchRoute(model.route, !!action.intro);
+      if (model.settingsReady && route === model.route) return model;
+      return { ...model, settingsReady: true, route, prevRoute: route === model.route ? model.prevRoute : model.route };
+    }
     case 'reset':
       // Comme au premier lancement (seule la préférence système d'animations, lue de l'appareil, reste).
       return { ...freshModel(), systemReduceMotion: model.systemReduceMotion, settingsReady: true };
@@ -209,11 +217,14 @@ export function GameProvider({
   children,
   saves,
   initial,
+  introOnLaunch = false,
 }: {
   children: React.ReactNode;
   /** null : pas de persistance (galerie de maquettes). */
   saves: SaveManager | null;
   initial?: Partial<AppModel>;
+  /** Application réelle uniquement : au premier lancement, la cinématique d'introduction. */
+  introOnLaunch?: boolean;
 }) {
   const [model, dispatch] = useReducer(reducer, {
     ...freshModel(),
@@ -248,13 +259,13 @@ export function GameProvider({
       const stored = sanitizeSettings(s);
       const patch = fixed ? { ...stored, ...fixed, language: stored.language, volume: stored.volume, haptics: stored.haptics } : mockTutorial === null ? stored : { ...stored, tutorialDone: mockTutorial };
       dispatch({ type: 'settings', patch });
-      dispatch({ type: 'settingsReady' });
+      dispatch({ type: 'settingsReady', intro: introOnLaunch && !fixed && mockTutorial === null && !patch.introSeen });
       settingsLoaded.current = !fixed;
     });
     return () => {
       alive = false;
     };
-  }, [saves, mockTutorial]);
+  }, [saves, mockTutorial, introOnLaunch]);
   useEffect(() => {
     if (saves && settingsLoaded.current) saves.saveSettings(model.settings).catch(() => undefined);
   }, [saves, model.settings]);

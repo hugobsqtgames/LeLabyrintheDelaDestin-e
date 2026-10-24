@@ -93,7 +93,8 @@
         {
           "color": "#FF6A3D"
         }
-      ]
+      ],
+      "expo-video"
     ]
   }
 }

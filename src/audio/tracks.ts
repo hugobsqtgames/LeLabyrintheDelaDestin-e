@@ -17,7 +17,7 @@ const LOCATION_TRACKS: Record<string, TrackId> = {
   barrage: 'barrage',
 };
 
-/** `null` : silence (galerie, fin de partie). */
+/** `null` : silence (galerie, introduction, fin de partie). */
 export function trackFor(
   model: Pick<AppModel, 'route' | 'game'>,
   regions: string[],
@@ -25,7 +25,8 @@ export function trackFor(
   locationOf: (sceneId: string) => string | undefined = () => undefined,
 ): TrackId | null {
   const g = model.game;
-  if (model.route === 'gallery') return null;
+  // La cinématique a sa propre bande-son.
+  if (model.route === 'gallery' || model.route === 'intro') return null;
   if (!g || model.route === 'title' || model.route === 'create') return 'ville';
   if (g.ending) return null;
   if (g.combat && g.combat.outcome === 'ongoing') return 'combat';

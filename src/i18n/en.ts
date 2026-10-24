@@ -498,4 +498,18 @@ export const EN: Record<string, string> = {
   'gallery.count': 'Mockup {n}/{total}',
   'gallery.prev': 'Previous',
   'gallery.next': 'Next',
+  // Opening cinematic
+  'intro.fever': 'Fourteen months after the Great Fever',
+  'intro.waits': 'Valombre no longer sleeps.\nIt waits.',
+  'intro.mutes': 'The Mutes never scream.',
+  'intro.radioLabel': 'FM 101.7 · weak signal',
+  'intro.radio': '… this is the Destinée. We will take survivors aboard at Morvan Lock… at dawn on the seventh day…',
+  'intro.day': 'Day',
+  'intro.days': 'Seven days to cross.',
+  'intro.wait': 'The Destinée will not wait.',
+  'intro.title': 'Seven days to escape.',
+  'intro.skip': 'Skip',
+  'intro.skipHint': 'Skips the intro and opens the title screen.',
+  'intro.a11y': 'Valombre opening. Fourteen months after the Great Fever, the dead city waits. The Mutes are prowling. A radio picks up a message: the medical barge Destinée will take survivors aboard at Morvan Lock, at dawn on the seventh day. Seven days on the road, until dawn.',
+  'settings.intro': 'Replay the intro',
 };

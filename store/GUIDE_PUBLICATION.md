@@ -520,7 +520,7 @@ NO ACCOUNT, NO NETWORK, NO PURCHASES
 - App Privacy is "Data Not Collected": saves, achievements and settings are stored only on the device.
 
 HOW TO REVIEW (about 10 minutes)
-1. Launch: title screen "Valombre". Tap "New game", then "Start here" on an empty slot.
+1. First launch: a 44-second opening film plays once (a "Skip" button is visible from the first frame; it can be replayed in Settings > Replay the intro). Then the title screen "Valombre": tap "New game", then "Start here" on an empty slot.
 2. Create a character in 5 short steps (Identity, Profile, Background, Attributes, Departure) and tap "Take the watch". A chapter card appears, then an optional tutorial ("Skip the tutorial" is available).
 3. Read and tap choices. Some choices show a success chance and roll two dice; tapping the chance opens the "Roll breakdown".
 4. Combat is turn-based and starts naturally during Chapter 1 (for example at Delorme Hospital, if the stealth roll in the kitchens fails) and regularly afterwards. Actions: Strike, Defend, Dodge, Item, Flee; each enemy shows its next intent.

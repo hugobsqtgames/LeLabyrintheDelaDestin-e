@@ -15,6 +15,7 @@ export function parentRoute(model: Pick<AppModel, 'route' | 'game' | 'savesMode'
       return model.pendingChapter ? 'memories' : 'title';
     case 'settings':
       return model.game ? 'game' : 'title';
+    case 'intro':
     case 'memories':
     case 'gallery':
     case 'game':
@@ -22,4 +23,17 @@ export function parentRoute(model: Pick<AppModel, 'route' | 'game' | 'savesMode'
     default:
       return 'title';
   }
+}
+
+/**
+ * Au premier lancement (paramètres relus, introduction jamais vue), la cinématique
+ * s'ouvre à la place de l'écran titre ; jamais par-dessus un autre écran.
+ */
+export function launchRoute(route: Route, intro: boolean): Route {
+  return intro && route === 'title' ? 'intro' : route;
+}
+
+/** Après l'introduction : retour aux paramètres si elle y a été relancée, sinon l'écran titre. */
+export function afterIntroRoute(prevRoute: Route | undefined): Route {
+  return prevRoute === 'settings' ? 'settings' : 'title';
 }

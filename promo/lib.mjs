@@ -22,6 +22,8 @@ const TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.m4a': 'audio/mp4',
+  '.mp4': 'video/mp4',
+  '.wav': 'audio/wav',
 };
 
 /** Sert plusieurs dossiers : { '/': dist, '/stage/': promo/stage, ... }. */

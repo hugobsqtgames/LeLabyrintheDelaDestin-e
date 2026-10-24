@@ -188,6 +188,21 @@ rendus dans un cadre iPhone 390 × 844 avec des états produits par le moteur. E
 ![Planche 1](docs/maquettes-planche-1.jpg)
 ![Planche 2](docs/maquettes-planche-2.jpg)
 
+## Cinématique d'introduction
+
+Au tout premier lancement, un **film de 44 s** ouvre le jeu (puis **Paramètres › Revoir l’introduction**) : la
+ville morte, le Muet de l’abribus, la radio qui capte la *Destinée*, sept jours de route, l’aube à l’écluse de
+Morvan, puis l’emblème qui se fond dans l’écran titre. « Passer » est visible dès la première image.
+Images peintes procéduralement et bande-son synthétisée dans ce dépôt (aucune ressource tierce) ; textes
+superposés par l’application (FR/EN, VoiceOver) ; son dans la session audio du jeu (bouton silencieux respecté,
+musique de l’utilisateur jamais coupée, curseur de volume appliqué). Storyboard, provenance et reconstruction :
+[`cinematic/README.md`](cinematic/README.md).
+
+| | |
+| --- | --- |
+| Dans l’app | `assets/video/intro.mp4` (1080 × 2340, 30 i/s, H.264, muette) · `assets/audio/intro.m4a` (AAC stéréo) |
+| Aperçus complets | [`docs/intro/valombre-intro-fr.mp4`](docs/intro/valombre-intro-fr.mp4) · [`valombre-intro-en.mp4`](docs/intro/valombre-intro-en.mp4) |
+
 ## Vidéo de présentation et captures App Store
 
 Une **App Store Preview de 30 s** (français et anglais) et **6 captures App Store** par langue, réalisées à partir

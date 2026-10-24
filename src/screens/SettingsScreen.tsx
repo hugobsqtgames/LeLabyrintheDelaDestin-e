@@ -39,7 +39,7 @@ function Toggle({ label, detail, value, onChange, disabled }: { label: string; d
 }
 
 export function SettingsScreen() {
-  const { model, setSettings, back, resetAll, feedback, lang } = useStore();
+  const { model, setSettings, back, go, resetAll, feedback, lang } = useStore();
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const policy = PRIVACY[lang];
   const t = useT();
@@ -205,6 +205,7 @@ export function SettingsScreen() {
         <Panel style={{ gap: space.sm }}>
           <Text style={type.bodySmall}>{t('settings.tutorialHint')}</Text>
           <Button label={t('settings.tutorial')} icon="book" variant="secondary" onPress={replayTutorial} />
+          <Button label={t('settings.intro')} icon="sparkle" variant="secondary" onPress={() => go('intro')} />
           {(tutorialQueued || (!s.tutorialDone && !model.game)) && <Text style={[type.uiSmall, { color: colors.mossBright }]}>{t('settings.tutorialQueued')}</Text>}
         </Panel>
 

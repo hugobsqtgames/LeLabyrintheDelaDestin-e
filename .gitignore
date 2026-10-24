@@ -6,6 +6,7 @@ node_modules/
 # Expo
 .expo/
 dist/
+dist-dev/
 web-build/
 expo-env.d.ts
 
@@ -43,3 +44,6 @@ yarn-error.*
 # Vidéo de présentation : images filmées et rendus intermédiaires
 promo/.cache/
 promo/out/
+
+# Cinématique : rendus intermédiaires et images de contrôle (régénérables)
+cinematic/out/

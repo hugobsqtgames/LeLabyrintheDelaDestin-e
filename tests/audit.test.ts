@@ -186,7 +186,7 @@ describe('combat : les règles annoncées sont tenues', () => {
 });
 
 describe('navigation : retour', () => {
-  const routes = ['title', 'create', 'game', 'saves', 'settings', 'gallery', 'memories'] as const;
+  const routes = ['title', 'intro', 'create', 'game', 'saves', 'settings', 'gallery', 'memories'] as const;
   it('« Retour » finit toujours sur l’accueil ou la partie, sans boucle', () => {
     for (const withGame of [false, true]) {
       for (const pendingChapter of [null, 'c3']) {
