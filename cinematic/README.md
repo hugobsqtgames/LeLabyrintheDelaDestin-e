@@ -10,6 +10,7 @@ ressource externe, aucune licence tierce, aucun réseau à l'exécution.
 | `timeline.json` | Minutage de référence : plans et événements sonores (partagé par l'image et le son) |
 | `../src/intro/script.ts` | Textes superposés : instants d'apparition (partagé par l'app et les aperçus) |
 | `scene.js` + `index.html` | Rendu des images, déterministe (même seconde = même image) |
+| `characters.js` | Les personnages du jeu en pied, dans la DA des portraits de l'app (mêmes fiches : teint, coiffure, vêtement, accessoires ; tracés de tête repris de `src/ui/art/Portraits.tsx`), éclairés selon la scène |
 | `render.mjs` | Rendu image par image (Chromium headless) puis encodage H.264 (ffmpeg) |
 | `soundtrack.py` | Musique, ambiances et bruitages, mixage et mastering |
 | `../assets/video/intro.mp4` | **Livré dans l'app** : 1080×2340, 30 i/s, H.264 High, muet, sans texte |
@@ -36,11 +37,11 @@ ressource externe, aucune licence tierce, aucun réseau à l'exécution.
 | --- | --- | --- | --- | --- |
 | 0–5 s | Braises | Noir, une braise qui monte, cendres et volutes chaudes | Nappe grave, cendre qui crépite, **cloche** (0,5 s) | QUATORZE MOIS APRÈS LA GRANDE FIÈVRE |
 | 4,2–11,4 s | Valombre | La ville morte vue des toits, clocher noir, lune, brume, feux lointains sur la Lisière, corbeaux ; grue descendante | Ré mineur → si bémol, vent, 2ᵉ cloche lointaine | Valombre ne dort plus. / Elle attend. |
-| 10,8–17,4 s | La rue | Vraie perspective 3D : chaussée mouillée, flaques, voiture rouillée (flou de premier plan) ; la caméra avance et pivote vers l'abribus. Le Muet, secousses de tête, puis il se tourne : visage blême | Cliquetis de dents réguliers « comme une horloge détraquée », cordes tendues, montée ; **coup** à 16,35 s | Les Muets ne crient jamais. |
-| 17,4–20 s | Le toit | Coupe sèche. De dos, la personne de garde sur le toit de la pharmacie, la croix verte éteinte, la lueur de la radio | Silence relatif : vent, souffle, nappe aiguë | — |
+| 10,8–17,4 s | La rue | Vraie perspective 3D : chaussée mouillée, flaques, voiture rouillée (flou de premier plan) ; la caméra avance et pivote vers l'abribus. Le Muet (style des ennemis du jeu : peau blafarde, vêtements en lambeaux), de dos, secousses de tête, puis il se retourne : yeux pâles | Cliquetis de dents réguliers « comme une horloge détraquée », cordes tendues, montée ; **coup** à 16,35 s | Les Muets ne crient jamais. |
+| 17,4–20 s | Le toit | Coupe sèche. De dos, le protagoniste (veste matelassée, écharpe rouille, sac) sur le toit de la pharmacie, la croix verte éteinte, la lueur de la radio sur ses mains | Silence relatif : vent, souffle, nappe aiguë | — |
 | 20–25,8 s | La radio | Cadran rétroéclairé, l'aiguille cherche puis accroche 101.7, vumètre, grille qui vibre | Parasites, sifflements d'accord ; puis la voix sort du bruit (texture vocale volontairement inintelligible), nappe en fa majeur | « … ici la Destinée. Nous embarquerons des survivants à l'écluse de Morvan… à l'aube du septième jour… » |
-| 26–33 s | Sept jours | Une seconde par lieu : carrières à la torche, rails des faubourgs, grues du port, vergers noyés, barrage de Vaulx, rocade en feu, tourbières | Pulsation à 120, **tom sur chaque coupe**, battements de cœur, montée | JOUR 1 / 7 … 7 / 7 — Sept jours pour traverser. |
-| 32,9–38 s | L'écluse de Morvan | L'aube perce derrière la Destinée, rayons, eau du sas ; un adulte et un enfant sur le quai | Ré majeur, chœur, **corne de brume** (34 s) et ses échos, crescendo… | La Destinée n'attendra pas. |
+| 26–33 s | Sept jours | Une seconde par lieu : Inès (lampe frontale) et Kaz (torche) dans les carrières, le protagoniste et Théo sur les rails, Maëlle et Théo sur le quai du port, vergers noyés, barrage de Vaulx, le protagoniste sur la rocade en feu, le groupe qui s'enfonce dans la brume des tourbières | Pulsation à 120, **tom sur chaque coupe**, battements de cœur, montée | JOUR 1 / 7 … 7 / 7 — Sept jours pour traverser. |
+| 32,9–38 s | L'écluse de Morvan | L'aube perce derrière la Destinée ; au premier plan, de dos sur la passerelle de la porte d'écluse, le protagoniste et Théo | Ré majeur, chœur, **corne de brume** (34 s) et ses échos, crescendo… | La Destinée n'attendra pas. |
 | 38–38,6 s | — | **Coupe au noir** | **Silence total** | — |
 | 38,6–44 s | L'emblème | Le labyrinthe se trace, l'aiguille tourne et désigne la sortie ; même emblème que l'écran titre | Souffle grave, cloche (rappel de l'ouverture), tic-tac de l'aiguille, accord final qui s'éteint exactement à 44 s | Valombre — *Sept jours pour fuir.* |
 

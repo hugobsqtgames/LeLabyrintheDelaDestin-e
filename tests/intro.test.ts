@@ -425,6 +425,24 @@ describe('navigation et paramètres', () => {
   });
 });
 
+describe('personnages de la cinématique', () => {
+  // Les fiches du film doivent rester celles des portraits du jeu (même teint, coiffure, vêtement).
+  const film = readFileSync(join(ROOT, 'cinematic', 'characters.js'), 'utf8');
+  const app = readFileSync(join(ROOT, 'src', 'ui', 'art', 'Portraits.tsx'), 'utf8');
+  const field = (src: string, id: string, key: string) => {
+    const line = src.split('\n').find((l) => new RegExp(`^\\s*${id}: \\{`).test(l)) ?? '';
+    return new RegExp(`${key}: '([^']+)'`).exec(line)?.[1];
+  };
+  for (const [filmId, appId] of [['theo', 'theo'], ['maelle', 'maelle'], ['kaz', 'kaz'], ['ines', 'ines'], ['hero', 'guerrier']] as const)
+    it(`${filmId} : mêmes couleurs et coiffure que le portrait « ${appId} » du jeu`, () => {
+      for (const key of ['skin', 'hair', 'hairStyle']) {
+        expect(field(app, appId, key), `${appId}.${key}`).toMatch(/\S/);
+        expect(field(film, filmId, key), `${filmId}.${key}`).toBe(field(app, appId, key));
+      }
+      if (filmId !== 'hero') expect(field(film, filmId, 'garment')).toBe(field(app, appId, 'garment'));
+    });
+});
+
 // ---------------------------------------------------------------- fichiers livrés
 const hasFfmpeg = (() => {
   try {

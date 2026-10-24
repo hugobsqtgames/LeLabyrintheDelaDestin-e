@@ -361,45 +361,6 @@
     x.stroke();
   }
 
-  /** Silhouette humaine (debout ou en marche), pieds en (cx, cy), hauteur h. */
-  function walker(x, cx, cy, h, phase = 0, color = '#050506', { stoop = 0.04, pack = false } = {}) {
-    const s = h / 1.75;
-    const st = Math.sin(phase) * 0.22;
-    x.save();
-    x.translate(cx, cy);
-    x.scale(s, s);
-    x.fillStyle = color;
-    x.strokeStyle = color;
-    x.lineCap = 'round';
-    x.lineWidth = 0.15;
-    x.beginPath();
-    x.moveTo(-0.05, -0.92);
-    x.lineTo(-0.1 - st, 0);
-    x.moveTo(0.05, -0.92);
-    x.lineTo(0.1 + st, 0);
-    x.stroke();
-    x.rotate(stoop);
-    x.beginPath();
-    x.moveTo(-0.2, -0.9);
-    x.lineTo(-0.23, -1.42);
-    x.quadraticCurveTo(0, -1.52, 0.23, -1.42);
-    x.lineTo(0.2, -0.9);
-    x.closePath();
-    x.fill();
-    if (pack) x.fillRect(-0.3, -1.4, 0.16, 0.42);
-    x.lineWidth = 0.1;
-    x.beginPath();
-    x.moveTo(-0.22, -1.38);
-    x.lineTo(-0.27 + st * 0.6, -0.86);
-    x.moveTo(0.22, -1.38);
-    x.lineTo(0.27 - st * 0.6, -0.86);
-    x.stroke();
-    x.beginPath();
-    x.ellipse(0.01, -1.63, 0.105, 0.125, 0, 0, Math.PI * 2);
-    x.fill();
-    x.restore();
-  }
-
   /** Arbre nu (récursif), dessiné une fois dans un calque. */
   function tree(x, cx, cy, len, ang, depth, r, w) {
     if (depth === 0 || len < 3) return;
@@ -717,7 +678,7 @@
     const ev = TL.events;
     const c = easeInOut(k);
     const [sx, sy] = shakeAt(t, ev.snap, 0.5, 14, 9);
-    const cam = { x: lerp(0.3, 1.2, c) + Math.sin(t * 0.5) * 0.05, y: -1.6 + Math.sin(t * 1.1) * 0.025, z: lerp(0, 6.6, c), yaw: lerp(0.06, 0.42, c) };
+    const cam = { x: lerp(0.3, 2.2, c) + Math.sin(t * 0.5) * 0.05, y: -1.6 + Math.sin(t * 1.1) * 0.025, z: lerp(0, 10.6, c), yaw: lerp(0.06, 0.74, c) };
     x.save();
     x.translate(sx, sy);
     // Ciel : la fente entre les façades, la lune au fond.
@@ -858,66 +819,17 @@
     const fz = 14.6;
     const [fx, fy, fs] = proj(5.95, 0, fz, cam);
     const head = muteHead(t);
-    const drawMute = (col, dx, dyy, face = false) => {
-      x.save();
-      x.translate(fx + dx, fy + dyy);
-      x.scale(fs, fs);
-      x.fillStyle = col;
-      x.strokeStyle = col;
-      x.lineCap = 'round';
-      x.lineWidth = 0.15;
-      x.beginPath();
-      x.moveTo(-0.07, -0.9);
-      x.lineTo(-0.13, 0);
-      x.moveTo(0.07, -0.9);
-      x.lineTo(0.1, 0);
-      x.stroke();
-      x.rotate(0.14 - head.turn * 0.08);
-      x.beginPath();
-      x.moveTo(-0.21, -0.88);
-      x.quadraticCurveTo(-0.3, -1.2, -0.2, -1.44);
-      x.quadraticCurveTo(0.02, -1.55, 0.24, -1.4);
-      x.lineTo(0.2, -0.88);
-      x.closePath();
-      x.fill();
-      x.lineWidth = 0.1;
-      x.beginPath();
-      x.moveTo(-0.22, -1.36);
-      x.quadraticCurveTo(-0.32, -1.0, -0.3, -0.7);
-      x.moveTo(0.22, -1.36);
-      x.quadraticCurveTo(0.31, -1.05, 0.33, -0.66);
-      x.stroke();
-      x.translate(0.03, -1.5);
-      x.rotate(head.tilt);
-      x.beginPath();
-      x.ellipse(0.02 - head.turn * 0.05, -0.13, 0.105, 0.13, 0, 0, Math.PI * 2);
-      x.fill();
-      // Quand il se tourne : un visage blême, des orbites vides.
-      if (face && head.turn > 0.05) {
-        x.globalAlpha = head.turn;
-        x.fillStyle = 'rgba(150,158,170,0.55)';
-        x.beginPath();
-        x.ellipse(-0.01, -0.12, 0.07, 0.095, 0, 0, Math.PI * 2);
-        x.fill();
-        x.fillStyle = '#020203';
-        for (const ex of [-0.035, 0.02]) {
-          x.beginPath();
-          x.ellipse(ex, -0.15, 0.017, 0.012, 0, 0, Math.PI * 2);
-          x.fill();
-        }
-        x.fillRect(-0.035, -0.075, 0.05, 0.01);
-        x.globalAlpha = 1;
-      }
-      x.restore();
-    };
-    drawMute('rgba(170,190,220,0.55)', 0, 0);
-    drawMute('#040405', -fs * 0.02, fs * 0.006, true);
+    // Le Muet, dans le style des ennemis du jeu : de dos sous l'abribus, puis il se retourne d'un coup.
+    const turned = head.turn > 0.5;
+    const mutePose = { view: turned ? 'front' : 'back', hunch: 0.8, tilt: head.tilt * 1.6 };
+    const muteLight = { ambient: ['#070A14', 0.5], rim: { color: '#9CCBFF', a: 0.5, dx: -1.5, dy: 1 }, shadow: 0.45 };
+    Characters.draw(x, 'muet', { x: fx, y: fy, height: 1.78 * fs, pose: mutePose, light: muteLight });
     // Reflet dans la flaque devant l'abribus
     x.save();
-    x.globalAlpha = 0.18;
+    x.globalAlpha = 0.16;
     x.translate(0, fy * 2 + fs * 0.05);
     x.scale(1, -1);
-    drawMute('#1A2233', 0, 0);
+    Characters.draw(x, 'muet', { x: fx, y: fy, height: 1.78 * fs, pose: mutePose, light: { ambient: ['#0A1020', 0.6] } });
     x.restore();
     // Verre latéral devant le Muet
     glass([proj(5.2, 0, SZ0, cam), proj(7, 0, SZ0, cam), proj(7, -2.5, SZ0, cam), proj(5.2, -2.5, SZ0, cam)], 0.035);
@@ -938,39 +850,6 @@
       x.fillStyle = rgba('#9CCBFF', 0.07 * hit);
       x.fillRect(0, 0, W, H);
     }
-  }
-
-  /** Personnage assis de dos sur le parapet, la radio sur les genoux. */
-  function sitter(x, cx, cy, s, t) {
-    x.save();
-    x.translate(cx, cy);
-    x.scale(s, s);
-    const breathe = Math.sin(t * 1.7) * 0.006;
-    x.fillStyle = '#060607';
-    x.beginPath();
-    x.moveTo(-0.34, 0.02);
-    x.quadraticCurveTo(-0.4, -0.35 - breathe, -0.3, -0.62);
-    x.quadraticCurveTo(-0.18, -0.74, -0.12, -0.78);
-    x.quadraticCurveTo(-0.2, -1.0, -0.04, -1.1 - breathe);
-    x.lineTo(0.03, -1.13 - breathe);
-    x.quadraticCurveTo(0.2, -1.0, 0.13, -0.78);
-    x.quadraticCurveTo(0.2, -0.74, 0.31, -0.63);
-    x.quadraticCurveTo(0.41, -0.35 - breathe, 0.35, 0.02);
-    x.closePath();
-    x.fill();
-    // Sac à dos
-    x.fillStyle = '#0A0909';
-    x.beginPath();
-    x.roundRect(-0.22, -0.62, 0.44, 0.48, 0.08);
-    x.fill();
-    // Antenne de la radio
-    x.strokeStyle = '#151515';
-    x.lineWidth = 0.012;
-    x.beginPath();
-    x.moveTo(0.3, -0.1);
-    x.lineTo(0.55, -0.62);
-    x.stroke();
-    x.restore();
   }
 
   /** 4a · Le toit de la pharmacie Saint-Clair. */
@@ -1060,22 +939,29 @@
     const flick = 0.75 + 0.25 * Math.sin(t * 23) * Math.sin(t * 7.3);
     glow(x, sx + 110, sy - 70, 620, PAL.amber, 0.22 * flick);
     glow(x, sx + 120, sy + 30, 260, PAL.amber, 0.25 * flick);
-    sitter(x, sx, sy, 420, t);
-    x.save();
-    x.globalCompositeOperation = 'lighter';
-    x.strokeStyle = rgba(PAL.amber, 0.22 * flick);
+    // Le protagoniste, de dos, assis sur le parapet : la radio sur les genoux éclaire ses mains et son écharpe.
+    const hk = 2.9;
+    Characters.draw(x, 'hero', {
+      x: sx,
+      y: sy + 110 * hk,
+      height: 250 * hk,
+      pose: { view: 'back', sit: true, tilt: Math.sin(t * 0.6) * 0.03 },
+      light: { ambient: ['#0A0E1A', 0.42], key: { x: 40, y: -120, r: 120, color: '#FFC46B', a: 0.55 * flick }, rim: { color: '#9CCBFF', a: 0.45, dx: 1.5, dy: 1.5 } },
+    });
+    // Antenne de la radio, qui dépasse de l'épaule
+    x.strokeStyle = '#1A1A1C';
     x.lineWidth = 4;
     x.beginPath();
-    x.moveTo(sx + 0.31 * 420, sy - 0.63 * 420);
-    x.quadraticCurveTo(sx + 0.41 * 420, sy - 0.35 * 420, sx + 0.35 * 420, sy);
+    x.moveTo(sx + 70, sy - 120);
+    x.lineTo(sx + 175, sy - 430);
     x.stroke();
-    x.restore();
+    glow(x, sx + 175, sy - 430, 18, PAL.amber, 0.5 * flick);
     // Buée de la respiration
     for (const b of TL.events.breath) {
       const u = (t - b) / 1.6;
       if (u < 0 || u > 1) continue;
       x.globalAlpha = 0.18 * Math.sin(Math.PI * u);
-      x.drawImage(L.fogPale, 0, 0, 300, 120, sx + 40 + u * 120, sy - 470 - u * 120, 220 + u * 160, 110 + u * 60);
+      x.drawImage(L.fogPale, 0, 0, 300, 120, sx - 20 + u * 140, sy - 520 - u * 120, 220 + u * 160, 110 + u * 60);
       x.globalAlpha = 1;
     }
     particles(x, t, { n: 60, seed: 15, vy: 20, vx: -8, size: 1.5, color: '#C9C2BA', alpha: 0.22, sway: 16 });
@@ -1256,7 +1142,7 @@
     x.fillStyle = '#050302';
     x.fillRect(-50, -50, W + 100, H + 100);
     const vp = { x: W / 2, y: H * 0.5 };
-    const torchZ = 7 + k * 0.7;
+    const torchZ = 3.9 - k * 0.5;
     const fl = 0.85 + 0.15 * Math.sin(t * 37) * Math.sin(t * 13);
     for (let i = 16; i >= 0; i -= 1) {
       const z = 1.5 + i * 2.2 - k * 1.2;
@@ -1283,11 +1169,19 @@
     const ts = 1100 / tz;
     const tx = vp.x - 0.5 * ts;
     const ty = vp.y + 1.7 * ts;
-    walker(x, tx, ty, 1.75 * ts, t * 7, '#050302', { pack: true });
-    const fx = tx + 0.32 * ts;
-    const fy = ty - 1.55 * ts;
+    // Kaz, derrière, porte la torche ; Inès ouvre la marche, lampe frontale allumée.
+    const kz = tz + 2.2;
+    const ks = 1100 / kz;
+    const kx = vp.x + 0.75 * ks;
+    const ky = vp.y + 1.7 * ks;
+    const warm = { ambient: ['#160C06', 0.42], rim: { color: '#FFB066', a: 0.55, dx: -1.5, dy: 1.5 }, shadow: 0.35 };
+    Characters.draw(x, 'kaz', { x: kx, y: ky, height: 1.85 * ks, pose: { view: 'front', walk: t * 7 + 1.4 }, light: warm });
+    const fx = kx + 0.42 * ks;
+    const fy = ky - 1.55 * ks;
     glow(x, fx, fy, 900 * fl, PAL.rust, 0.3);
     glow(x, fx, fy, 160 * fl, PAL.amber, 0.9);
+    Characters.draw(x, 'ines', { x: tx, y: ty, height: 1.7 * ts, pose: { view: 'front', walk: t * 7 }, light: { ...warm, key: { x: 60, y: -180, r: 200, color: '#FFB066', a: 0.2 * fl } } });
+    glow(x, tx, ty - 1.62 * ts, 70, '#FFF1D0', 0.55);
     particles(x, t, { n: 30, seed: 51, vy: -60, size: 2, color: PAL.amber, alpha: 0.6, warm: true, sway: 14, y0: fy - 400, y1: fy });
     x.restore();
   }
@@ -1352,7 +1246,10 @@
     x.fillStyle = '#0B0C0B';
     x.fillRect(0, -3 * w0[2], 9 * w0[2], 3 * w0[2]);
     x.restore();
-    walker(x, P(-0.2, 1.5, 9)[0], P(-0.2, 1.5, 9)[1], 1.75 * P(0, 0, 9)[2], t * 7, '#050605', { pack: true });
+    // Le protagoniste et Théo, de dos, le long des voies.
+    const cold = { ambient: ['#0C110E', 0.4], rim: { color: '#C9D4C4', a: 0.35, dx: 0, dy: 2 }, shadow: 0.35 };
+    Characters.draw(x, 'theo', { x: P(0.6, 1.5, 6.4)[0], y: P(0.6, 1.5, 6.4)[1], height: 1.35 * P(0, 0, 6.4)[2], pose: { view: 'back', walk: t * 8 + 2 }, light: cold });
+    Characters.draw(x, 'hero', { x: P(-0.35, 1.5, 5.6)[0], y: P(-0.35, 1.5, 5.6)[1], height: 1.78 * P(0, 0, 5.6)[2], pose: { view: 'back', walk: t * 7 }, light: cold });
     drawFog(x, L.fog, t * 40, hy - 160, 360, 0.55);
     x.restore();
   }
@@ -1409,12 +1306,29 @@
     x.fillRect(-60, hy - 40, W * 0.45, 80);
     x.fillRect(W * 0.05, hy - 150, 300, 110);
     x.fillRect(W * 0.1, hy - 250, 220, 100);
-    walker(x, W * 0.36, hy - 40, 120, t * 6, '#030606', { pack: true });
     // Eau
     x.fillStyle = vgrad(x, hy, H, [[0, '#0D1A1B'], [1, '#030606']]);
     x.fillRect(-60, hy, W + 120, H - hy + 60);
     waterReflect(x, buf, hy, 0.5, t);
     drawFog(x, L.fog, -t * 30, hy - 120, 260, 0.45);
+    // Maëlle et Théo sur le quai, face à l'eau noire.
+    const teal = { ambient: ['#06100F', 0.45], rim: { color: '#9CCBFF', a: 0.4, dx: -1.5, dy: 1 }, shadow: 0.3 };
+    x.fillStyle = '#040808';
+    x.beginPath();
+    x.moveTo(-60, hy - 40);
+    x.lineTo(W * 0.42, hy - 40);
+    x.lineTo(W * 0.62, H + 60);
+    x.lineTo(-60, H + 60);
+    x.closePath();
+    x.fill();
+    x.strokeStyle = 'rgba(156,203,255,0.18)';
+    x.lineWidth = 3;
+    x.beginPath();
+    x.moveTo(W * 0.42, hy - 40);
+    x.lineTo(W * 0.62, H + 60);
+    x.stroke();
+    Characters.draw(x, 'maelle', { x: W * 0.3, y: H * 0.86, height: 640, pose: { view: 'front', tilt: 0.04 }, light: { ...teal, rim: { color: '#9CCBFF', a: 0.45, dx: 2, dy: 1 } } });
+    Characters.draw(x, 'theo', { x: W * 0.52, y: H * 0.8, height: 400, pose: { view: 'front', tilt: -0.08 }, light: { ...teal, rim: { color: '#9CCBFF', a: 0.45, dx: 2, dy: 1 } } });
     x.restore();
   }
 
@@ -1481,7 +1395,7 @@
     x.moveTo(-60, top + 60);
     x.quadraticCurveTo(W / 2, top - 70, W + 60, top + 60);
     x.stroke();
-    walker(x, W * 0.44, top - 3, 46, t * 6, '#040405');
+    Characters.draw(x, 'hero', { x: W * 0.44, y: top - 3, height: 52, pose: { view: 'back', walk: t * 6 }, light: { ambient: ['#0A0C14', 0.5] } });
     // Déversoir : l'eau tombe, la brume remonte.
     // Déversoir : un rideau d'eau strié, puis la brume qui remonte.
     x.save();
@@ -1568,7 +1482,8 @@
       x.lineTo(cx + 1.2 * s, cy - 2.05 * s);
       x.stroke();
     }
-    walker(x, P(1, 7.5)[0], P(1, 7.5)[1], 1.75 * P(1, 7.5)[2], t * 7, '#050303', { pack: true });
+    // Le protagoniste vient vers nous, l'incendie dans le dos.
+    Characters.draw(x, 'hero', { x: P(0.8, 5.4)[0], y: P(0.8, 5.4)[1], height: 1.78 * P(0.8, 5.4)[2], pose: { view: 'front', walk: t * 7 }, light: { ambient: ['#140806', 0.5], rim: { color: '#FF8A5B', a: 0.7, dx: 1.5, dy: 2 }, shadow: 0.4 } });
     particles(x, t, { n: 60, seed: 67, vy: -80, vx: 10, size: 2, color: PAL.rustBright, alpha: 0.6, warm: true, sway: 30 });
     x.restore();
   }
@@ -1586,7 +1501,11 @@
     x.fillRect(-60, hy, W + 120, H);
     drawFog(x, dawn > 0.5 ? L.fogDawn : L.fogPale, t * 18, hy - 220, 420, 0.6);
     drawFog(x, L.fogPale, -t * 25, hy - 60, 360, 0.5);
-    walker(x, W * 0.58, hy + 60, 150, t * 6, '#060708', { pack: true });
+    // Le groupe s'enfonce dans la brume.
+    const fog = { ambient: ['#2A2C30', 0.5], rim: { color: '#FFD08A', a: 0.3 * dawn, dx: 0, dy: 2 } };
+    Characters.draw(x, 'maelle', { x: W * 0.42, y: hy + 120, height: 230, pose: { view: 'back', walk: t * 6 + 1 }, light: fog });
+    Characters.draw(x, 'theo', { x: W * 0.68, y: hy + 150, height: 200, pose: { view: 'back', walk: t * 7 + 2 }, light: fog });
+    Characters.draw(x, 'hero', { x: W * 0.56, y: hy + 190, height: 300, pose: { view: 'back', walk: t * 6 }, light: fog });
     x.drawImage(L.reeds, -100 - t * 30, H - 700, W * 1.3, 700);
     drawFog(x, L.fogPale, t * 35, H * 0.75, 400, 0.35);
     x.restore();
@@ -1771,11 +1690,32 @@
     wall(-1);
     wall(1);
     // Ceux qui sont arrivés : un adulte et un enfant, sur le quai.
-    for (const [u, k, pack] of [[0.17, 1.75, true], [0.135, 1.15, false]]) {
-      const [fx, fy] = edge(-1, u, 0);
-      const hgt = (edge(-1, u, 1)[1] - fy) / 5;
-      walker(x, fx, fy, hgt * k, 0, '#040304', { pack, stoop: 0 });
-    }
+    // Le protagoniste et Théo, de dos, face à la Destinée ; l'aube les découpe.
+    const dawnLight = { ambient: ['#2A1410', 0.45], rim: { color: '#FFC46B', a: 0.55 + 0.3 * sun, dx: -1.5, dy: 1.5 } };
+    const deck = H * 0.83;
+    // Passerelle de la porte d'écluse
+    x.fillStyle = '#0A0708';
+    x.fillRect(-100, deck, W + 200, 90);
+    x.fillStyle = vgrad(x, deck + 90, H, [[0, '#060405'], [1, '#020102']]);
+    x.fillRect(-100, deck + 90, W + 200, H);
+    x.strokeStyle = rgba(PAL.amber, 0.35 + 0.25 * sun);
+    x.lineWidth = 3;
+    x.beginPath();
+    x.moveTo(-100, deck);
+    x.lineTo(W + 100, deck);
+    x.stroke();
+    Characters.draw(x, 'hero', { x: W * 0.36, y: deck + 8, height: 660, pose: { view: 'back' }, light: dawnLight });
+    Characters.draw(x, 'theo', { x: W * 0.6, y: deck + 8, height: 470, pose: { view: 'back', tilt: 0.05 }, light: dawnLight });
+    // Garde-corps, devant eux
+    x.fillStyle = '#050304';
+    x.fillRect(-100, deck - 150, W + 200, 10);
+    for (let px = -40; px < W + 60; px += 180) x.fillRect(px, deck - 150, 12, 150);
+    x.strokeStyle = rgba(PAL.amber, 0.3 + 0.3 * sun);
+    x.lineWidth = 2;
+    x.beginPath();
+    x.moveTo(-100, deck - 150);
+    x.lineTo(W + 100, deck - 150);
+    x.stroke();
     drawFog(x, sun > 0.3 ? L.fogDawn : L.fogWarm, t * 30, hy - 80, 300, 0.5);
     drawFog(x, L.fogDawn, -t * 22, hy + 120, 360, 0.35 + 0.15 * sun);
     x.restore();
