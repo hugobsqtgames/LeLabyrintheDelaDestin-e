@@ -1,5 +1,5 @@
 /**
- * Cinématique d'introduction, de bout en bout, sur la version web exportée (Playwright).
+ * Bande-annonce d'introduction, de bout en bout, sur la version web exportée (Playwright).
  *
  * Le Chromium de test ne lit pas le H.264 (codec breveté absent des builds libres) : la
  * requête de la vidéo est interceptée et servie en VP9 (même film, transcodé), le reste
@@ -7,16 +7,17 @@
  *
  *   npx expo export --platform web --output-dir dist && node promo/e2e-intro.mjs
  *
- * Scénarios : premier lancement (lecture, textes au bon moment, fin, écran titre), relance
+ * Scénarios : premier lancement (lecture, vidéo de la bonne langue, fin, écran titre), relance
  * (pas d'intro), « Revoir » depuis les paramètres puis « Passer » (retour aux paramètres),
  * « Passer » à plusieurs instants, arrière-plan / premier plan, vidéo impossible à lire.
+ * Les titres sont incrustés dans la vidéo : leur minutage est vérifié par tests/intro.test.ts.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, ROOT, serve } from './lib.mjs';
 
-const MP4 = join(ROOT, 'assets', 'video', 'intro.mp4');
+const MP4 = join(ROOT, 'assets', 'video', 'intro-fr.mp4');
 const WEBM = join(ROOT, 'cinematic', 'out', 'intro-test.webm');
 if (!existsSync(WEBM) || statSync(WEBM).mtimeMs < statSync(MP4).mtimeMs) {
   console.log('Transcodage VP9 de la vidéo pour le navigateur de test…');
@@ -32,9 +33,11 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`);
 };
 
-async function session({ broken = false } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 393, height: 852 }, locale: 'fr-FR' });
+async function session({ broken = false, locale = 'fr-FR' } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 393, height: 852 }, locale });
   const page = await ctx.newPage();
+  page.requested = [];
+  page.on('request', (r) => /intro.*\.mp4/.test(r.url()) && page.requested.push(r.url()));
   page.on('pageerror', (e) => errors.push(`exception : ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && errors.push(`console : ${m.text().slice(0, 200)}`));
   await page.route(/intro.*\.mp4/, (route) => (broken ? route.abort() : route.fulfill({ path: WEBM, contentType: 'video/webm' })));
@@ -69,22 +72,12 @@ const skip = (page) => page.getByRole('button', { name: 'Passer', exact: true })
   check('premier lancement : « Passer » visible dès le début', await waitFor(page, () => page.getByRole('button', { name: 'Passer' }).isVisible().catch(() => false), 8000));
   check('premier lancement : l’écran titre n’apparaît pas avant l’intro', !(await has(page, 'Nouvelle partie')));
   check('la vidéo démarre', await waitFor(page, async () => (await videoTime(page)) > 0.3, 8000), `t = ${(await videoTime(page)).toFixed(2)} s`);
-  await waitFor(page, async () => (await videoTime(page)) > 2.2, 6000);
-  check('t ≈ 2 s : « Quatorze mois après la Grande Fièvre »', await visible(page, 'QUATORZE MOIS'));
-  check('t ≈ 2 s : la phrase suivante n’est pas encore là', !(await visible(page, 'Elle attend')));
-  await waitFor(page, async () => (await videoTime(page)) > 7.5, 9000);
-  check('t ≈ 7,5 s : « Valombre ne dort plus. Elle attend. »', await visible(page, 'Elle attend'));
-  check('t ≈ 7,5 s : le premier texte a disparu', !(await visible(page, 'QUATORZE MOIS')));
-  await waitFor(page, async () => (await videoTime(page)) > 14, 9000);
-  check('t ≈ 14 s : « Les Muets ne crient jamais. »', await visible(page, 'Les Muets'));
-  await waitFor(page, async () => (await videoTime(page)) > 24.5, 12000);
-  check('t ≈ 24,5 s : le message radio est tapé', await visible(page, 'écluse de Morvan'));
-  await waitFor(page, async () => (await videoTime(page)) > 29.4, 7000);
-  check('t ≈ 29,4 s : compteur « JOUR 4 / 7 »', await visible(page, 'JOUR 4 / 7'));
-  await waitFor(page, async () => (await videoTime(page)) > 41, 13000);
-  check('t ≈ 41 s : titre final', await visible(page, 'Sept jours pour fuir'));
+  check('vidéo française demandée', page.requested.some((u) => u.includes('intro-fr')) && !page.requested.some((u) => u.includes('intro-en')));
+  await waitFor(page, async () => (await videoTime(page)) > 12, 16000);
+  check('la lecture avance au rythme normal', (await videoTime(page)) > 11.5);
+  check('pas d’écran titre pendant la bande-annonce', !(await has(page, 'Nouvelle partie')));
   check('intro marquée comme vue dès le début', (await settings(page)).introSeen === true);
-  check('fin : l’écran titre s’ouvre tout seul', await waitFor(page, () => has(page, 'Nouvelle partie'), 9000));
+  check('fin : l’écran titre s’ouvre tout seul', await waitFor(page, () => has(page, 'Nouvelle partie'), 25000));
   check('fin : plus de vidéo à l’écran', (await page.locator('video').count()) === 0);
   // 2 · Relance : pas d'introduction.
   await page.reload();
@@ -101,7 +94,7 @@ const skip = (page) => page.getByRole('button', { name: 'Passer', exact: true })
 }
 
 // 4 · « Passer » à différents instants (et double appui) : l'écran titre, une seule fois.
-for (const at of [0, 3, 17.5, 33]) {
+for (const at of [0, 3, 15, 25]) {
   const { ctx, page } = await session();
   await page.goto(url);
   await waitFor(page, () => page.getByRole('button', { name: 'Passer' }).isVisible().catch(() => false), 8000);
@@ -112,6 +105,19 @@ for (const at of [0, 3, 17.5, 33]) {
   const ok = await waitFor(page, () => has(page, 'Nouvelle partie'), 4000);
   check(`passer à ${at} s : écran titre`, ok && (await page.locator('video').count()) === 0);
   check(`passer à ${at} s : intro marquée comme vue`, (await settings(page)).introSeen === true);
+  await ctx.close();
+}
+
+// 4 bis · Anglais : la vidéo anglaise.
+{
+  const { ctx, page } = await session({ locale: 'en-GB' });
+  await page.goto(url);
+  await waitFor(page, async () => (await videoTime(page)) > 0.5, 10000);
+  check('anglais : vidéo anglaise demandée', page.requested.some((u) => u.includes('intro-en')) && !page.requested.some((u) => u.includes('intro-fr')));
+  const skipBtn = page.getByRole('button', { name: 'Skip', exact: true });
+  check('anglais : bouton « Skip »', (await skipBtn.count()) > 0);
+  await skipBtn.click();
+  check('anglais : écran titre après « Skip »', await waitFor(page, () => has(page, 'New game'), 4000));
   await ctx.close();
 }
 

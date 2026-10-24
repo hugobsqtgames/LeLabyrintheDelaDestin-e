@@ -64,10 +64,11 @@
     "e2e:web": "expo export --platform web --output-dir dist && node promo/e2e-flow.mjs",
     "promo": "npm run promo:capture && npm run promo:render && npm run promo:stills",
     "intro:sound": "python3 cinematic/soundtrack.py --stems",
-    "intro:render": "node cinematic/render.mjs",
-    "intro:preview": "node cinematic/render.mjs --lang fr --audio cinematic/out/intro-mix.wav --out docs/intro/valombre-intro-fr.mp4 && node cinematic/render.mjs --lang en --audio cinematic/out/intro-mix.wav --out docs/intro/valombre-intro-en.mp4",
+    "intro:render": "node cinematic/render.mjs --lang fr && node cinematic/render.mjs --lang en",
+    "intro:preview": "for l in fr en; do ffmpeg -y -loglevel error -i assets/video/intro-$l.mp4 -i cinematic/out/intro-mix.wav -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart docs/intro/valombre-intro-$l.mp4; done",
     "e2e:intro": "expo export --platform web --output-dir dist && node promo/e2e-intro.mjs",
-    "dev:warnings": "expo export --platform web --dev --output-dir dist-dev && node promo/dev-warnings.mjs dist-dev fr && node promo/dev-warnings.mjs dist-dev en"
+    "dev:warnings": "expo export --platform web --dev --output-dir dist-dev && node promo/dev-warnings.mjs dist-dev fr && node promo/dev-warnings.mjs dist-dev en",
+    "intro:art": "expo export --platform web --output-dir dist && node cinematic/capture-art.mjs"
   },
   "private": true
 }

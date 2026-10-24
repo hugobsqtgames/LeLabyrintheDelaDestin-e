@@ -14,6 +14,10 @@ import { SaveManager, SETTINGS_KEY, slotKey } from '../persistence/saves';
 import { serialize } from '../persistence/schema';
 import { MemoryStorage } from '../persistence/storage';
 import { DEFAULT_SETTINGS, GameProvider } from '../store/GameStore';
+import { View } from 'react-native';
+import { EnemyArt } from '../ui/art/Figures';
+import { Illustration, type IllustrationId } from '../ui/art/Illustrations';
+import { Portrait } from '../ui/art/Portraits';
 import { ModalModeContext } from '../ui/components/Sheet';
 
 /** Zones de sécurité d'un iPhone 16 Pro (393 × 852 pt). */
@@ -29,7 +33,27 @@ export function promoParams(): { id: string; lang: Lang; textScale?: number } | 
   return { id, lang: q.get('lang') === 'en' ? 'en' : 'fr', textScale: Number.isFinite(scale) && scale > 0 ? scale : undefined };
 }
 
+/**
+ * Un dessin du jeu seul, plein cadre (`?promo=art-hurleur`, `portrait-maelle`, `enemy-berger`) :
+ * capturé à haute résolution pour la cinématique d'introduction (cinematic/).
+ */
+function ArtOnly({ id }: { id: string }) {
+  const [kind, name] = [id.slice(0, id.indexOf('-')), id.slice(id.indexOf('-') + 1)];
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+      {kind === 'art' && <Illustration id={name as IllustrationId} width="100%" height="100%" />}
+      {kind === 'portrait' && <Portrait id={name} size={360} shape="tall" />}
+      {kind === 'enemy' && <EnemyArt id={name} width={360} />}
+    </View>
+  );
+}
+
 export function PromoRoot({ id, lang, textScale }: { id: string; lang: Lang; textScale?: number }) {
+  if (/^(art|portrait|enemy)-/.test(id)) return <ArtOnly id={id} />;
+  return <PromoScreen id={id} lang={lang} textScale={textScale} />;
+}
+
+function PromoScreen({ id, lang, textScale }: { id: string; lang: Lang; textScale?: number }) {
   const content = contentFor(lang);
   const [setup] = useState(() => {
     const mockups = buildMockups(content);

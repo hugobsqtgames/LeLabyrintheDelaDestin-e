@@ -1,5 +1,5 @@
 /**
- * Cinématique d'introduction : minutage, textes, pilote de lecture (vidéo et son
+ * Bande-annonce d'introduction : minutage, textes, pilote de lecture (vidéo et son
  * simulés, horloge simulée), navigation, paramètres et fichiers livrés.
  */
 import { execFileSync } from 'node:child_process';
@@ -10,106 +10,97 @@ import { trackFor } from '../src/audio/tracks';
 import { EN } from '../src/i18n/en';
 import { FR } from '../src/i18n/fr';
 import { AUDIO_WAIT_MS, type AudioLike, type FinishReason, introVolume, IntroController, RESYNC_S, SKIP_FADE_MS, START_TIMEOUT_MS, type VideoLike } from '../src/intro/controller';
-import { CUE_FADE, CUES, cueOpacity, DAY_CUTS, dayAt, INTRO_DURATION, radioProgress, visibleCues } from '../src/intro/script';
+import { INTRO_DURATION } from '../src/intro/script';
 import { afterIntroRoute, launchRoute, parentRoute } from '../src/store/navigation';
 import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from '../src/store/settings';
 
 const ROOT = join(__dirname, '..');
 const TIMELINE = JSON.parse(readFileSync(join(ROOT, 'cinematic', 'timeline.json'), 'utf8'));
 
+const TEXT = JSON.parse(readFileSync(join(ROOT, 'cinematic', 'trailer-text.json'), 'utf8'));
+type Shot = { id: string; from: number; to: number; art?: string; text?: string[] };
+
 describe('minutage', () => {
-  it('la durée et les coupes du voyage sont celles du rendu (cinematic/timeline.json)', () => {
+  it('la durée est celle du rendu (cinematic/timeline.json), entre 30 et 50 s', () => {
     expect(INTRO_DURATION).toBe(TIMELINE.duration);
-    expect(DAY_CUTS).toEqual(TIMELINE.events.dayCuts);
     expect(INTRO_DURATION).toBeGreaterThanOrEqual(30);
     expect(INTRO_DURATION).toBeLessThanOrEqual(50);
   });
 
-  it('les plans couvrent tout le film, sans trou', () => {
-    const shots = [...TIMELINE.shots].sort((a: { from: number }, b: { from: number }) => a.from - b.from);
+  it('les plans s’enchaînent sans trou ni chevauchement, du début à la fin', () => {
+    const shots: Shot[] = TIMELINE.shots;
     expect(shots[0].from).toBe(0);
-    let end = 0;
-    for (const s of shots) {
-      expect(s.to).toBeGreaterThan(s.from);
-      expect(s.from).toBeLessThanOrEqual(end + 1e-9);
-      end = Math.max(end, s.to);
+    for (let i = 0; i < shots.length; i += 1) {
+      expect(shots[i].to, shots[i].id).toBeGreaterThan(shots[i].from);
+      if (i > 0) expect(shots[i].from, `${shots[i].id} à ${shots[i].from} s`).toBeCloseTo(shots[i - 1].to, 6);
     }
-    expect(end).toBe(INTRO_DURATION);
-    // Tous les instants des événements (bruitages, cloches, coupes) tombent dans le film.
+    expect(shots.at(-1)!.to).toBe(INTRO_DURATION);
+  });
+
+  it('chaque affiche est un vrai dessin du jeu, capturé pour le rendu', () => {
+    for (const s of TIMELINE.shots as Shot[]) if (s.art) expect(existsSync(join(ROOT, 'cinematic', 'assets', `art-${s.art}.png`)), s.art).toBe(true);
+    for (const p of ['maelle', 'kaz', 'ines', 'theo']) expect(existsSync(join(ROOT, 'cinematic', 'assets', `portrait-${p}.png`)), p).toBe(true);
+  });
+
+  it('coupes calées sur le tempo (120 bpm) et sur les coups de la musique', () => {
+    const beat = 60 / TIMELINE.bpm;
+    for (const h of TIMELINE.events.hits as number[]) {
+      expect(h >= 0 && h <= INTRO_DURATION).toBe(true);
+      // Chaque coup tombe sur une coupe de plan ou sur un titre qui claque.
+      const cut = (TIMELINE.shots as Shot[]).some((s) => Math.abs(s.from - h) < 0.01);
+      const slam = (Object.values(TIMELINE.texts) as number[][]).some(([a]) => a >= h && a - h < 0.1);
+      expect(cut || slam, `coup à ${h} s`).toBe(true);
+    }
+    for (const s of (TIMELINE.shots as Shot[]).filter((x) => x.from >= 4 && x.from < 22)) expect(Math.abs(s.from / beat - Math.round(s.from / beat)), `${s.id} à ${s.from} s`).toBeLessThan(0.01);
+  });
+
+  it('un silence total avant le titre, puis le titre jusqu’à la dernière image', () => {
+    const ev = TIMELINE.events;
+    expect(ev.boom - ev.silence).toBeGreaterThanOrEqual(0.5);
+    const title = (TIMELINE.shots as Shot[]).find((s) => s.id === 'title')!;
+    expect(title.from).toBe(ev.boom);
+    expect(title.to).toBe(INTRO_DURATION);
+  });
+
+  it('tous les instants (textes, bruitages) tombent dans le film ; chaque texte reste lisible', () => {
     const { tuneKeys, ...events } = TIMELINE.events;
     const times = [...(Object.values(events).flat(2) as number[]), ...tuneKeys.map((k: number[]) => k[0])];
     for (const v of times) expect(v >= 0 && v <= INTRO_DURATION, String(v)).toBe(true);
-  });
-
-  it('chaque texte tient dans le film et laisse le temps de le lire', () => {
-    for (const c of CUES) {
-      expect(c.from).toBeGreaterThanOrEqual(0);
-      expect(c.to).toBeLessThanOrEqual(INTRO_DURATION);
-      expect(c.to - c.from, c.id).toBeGreaterThanOrEqual(3.5);
+    for (const [key, [a, b]] of Object.entries(TIMELINE.texts) as [string, number[]][]) {
+      expect(a < b, key).toBe(true);
+      expect(b - a, key).toBeGreaterThanOrEqual(0.8);
     }
-  });
-
-  it('jamais deux phrases au même endroit de l’écran en même temps', () => {
-    const bottom = CUES.filter((c) => c.style === 'line' || c.style === 'days');
-    for (let t = 0; t < INTRO_DURATION; t += 0.05) {
-      const at = bottom.filter((c) => t > c.from && t < c.to);
-      expect(at.length, `t = ${t.toFixed(2)}`).toBeLessThanOrEqual(1);
-    }
-  });
-
-  it('fondus : 0 hors du texte, 1 au milieu, montée et descente progressives', () => {
-    for (const c of CUES) {
-      expect(cueOpacity(c, c.from - 0.1)).toBe(0);
-      expect(cueOpacity(c, c.from)).toBe(0);
-      expect(cueOpacity(c, (c.from + c.to) / 2)).toBe(1);
-      expect(cueOpacity(c, c.from + CUE_FADE / 2)).toBeCloseTo(0.5, 5);
-      expect(cueOpacity(c, Number.NaN)).toBe(0);
-    }
-    // Le titre final reste à pleine opacité jusqu'à la dernière image.
-    const title = CUES.find((c) => c.style === 'title')!;
-    expect(cueOpacity(title, INTRO_DURATION - 0.01)).toBe(1);
-    expect(visibleCues(INTRO_DURATION / 2).every((v) => v.opacity > 0)).toBe(true);
-  });
-
-  it('compteur des jours : 1 à 7, au rythme des coupes', () => {
-    expect(dayAt(0)).toBe(1);
-    DAY_CUTS.forEach((cut, i) => {
-      expect(dayAt(cut + 0.01)).toBe(i + 1);
-    });
-    expect(dayAt(INTRO_DURATION)).toBe(7);
-  });
-
-  it('le message radio se tape progressivement, en entier avant de disparaître', () => {
-    const radio = CUES.find((c) => c.id === 'radio')!;
-    expect(radioProgress(radio.from)).toBe(0);
-    let prev = 0;
-    for (let t = radio.from; t <= radio.to; t += 0.1) {
-      const p = radioProgress(t);
-      expect(p).toBeGreaterThanOrEqual(prev);
-      prev = p;
-    }
-    expect(radioProgress(radio.to - 1.0)).toBe(1);
   });
 });
 
-describe('textes', () => {
-  const keys = [...CUES.map((c) => `intro.${c.id}`), 'intro.day', 'intro.radioLabel', 'intro.skip', 'intro.skipHint', 'intro.a11y', 'settings.intro'];
+describe('textes de la bande-annonce', () => {
+  const needed = new Set<string>([...(Object.keys(TIMELINE.texts) as string[]).filter((k) => k !== 'titleWord'), 'radioLabel', 'choiceA', 'choiceB', 'roll', 'rollOk', 'enemy', 'boss', 'fallen']);
+  for (const lang of ['fr', 'en'])
+    it(`${lang} : chaque texte affiché existe`, () => {
+      for (const k of needed) expect(TEXT[lang][k]?.trim().length, `${lang}.${k}`).toBeGreaterThan(0);
+    });
+  it('même jeu de textes en français et en anglais, et l’anglais est traduit', () => {
+    expect(Object.keys(TEXT.en).sort()).toEqual(Object.keys(TEXT.fr).sort());
+    for (const k of ['ago', 'silent', 'mutes', 'living', 'seconds', 'price', 'count', 'notall', 'days', 'wait', 'sub']) expect(TEXT.en[k], k).not.toBe(TEXT.fr[k]);
+  });
+  it('les titres restent courts : ils se lisent en un coup d’œil', () => {
+    for (const lang of ['fr', 'en']) for (const k of ['ago', 'silent', 'mutes', 'living', 'seconds', 'price', 'survive', 'count', 'notall', 'days', 'barge', 'wait']) expect(TEXT[lang][k].length, `${lang}.${k}`).toBeLessThanOrEqual(32);
+  });
+  it('les mots du jeu sont ceux de l’application (stat, ennemi, sous-titre)', () => {
+    expect(TEXT.fr.roll).toMatch(/^ASTUCE/);
+    expect(TEXT.en.roll).toMatch(/^WITS/);
+    expect(TEXT.fr.enemy).toBe('Le Berger');
+    expect(TEXT.en.enemy).toBe('The Shepherd');
+    expect(TEXT.fr.sub).toBe(FR['title.line2']);
+    expect(TEXT.en.sub).toBe(EN['title.line2']);
+  });
   for (const [lang, dict] of [
     ['fr', FR],
     ['en', EN],
   ] as const)
-    it(`${lang} : tous les textes de l’introduction existent`, () => {
-      for (const k of keys) expect(dict[k]?.trim().length, `${lang} ${k}`).toBeGreaterThan(0);
+    it(`${lang} : textes de l’écran (Passer, description VoiceOver, Revoir l’introduction)`, () => {
+      for (const k of ['intro.skip', 'intro.skipHint', 'intro.a11y', 'settings.intro']) expect(dict[k]?.trim().length, `${lang} ${k}`).toBeGreaterThan(0);
     });
-  it('l’anglais est traduit (pas une copie du français)', () => {
-    for (const c of CUES) expect(EN[`intro.${c.id}`]).not.toBe(FR[`intro.${c.id}`]);
-  });
-  it('les phrases restent courtes : lisibles en quelques secondes', () => {
-    for (const c of CUES.filter((x) => x.style !== 'radio')) {
-      expect(FR[`intro.${c.id}`].length, c.id).toBeLessThanOrEqual(48);
-      expect(EN[`intro.${c.id}`].length, c.id).toBeLessThanOrEqual(48);
-    }
-  });
 });
 
 // ---------------------------------------------------------------- pilote
@@ -425,24 +416,6 @@ describe('navigation et paramètres', () => {
   });
 });
 
-describe('personnages de la cinématique', () => {
-  // Les fiches du film doivent rester celles des portraits du jeu (même teint, coiffure, vêtement).
-  const film = readFileSync(join(ROOT, 'cinematic', 'characters.js'), 'utf8');
-  const app = readFileSync(join(ROOT, 'src', 'ui', 'art', 'Portraits.tsx'), 'utf8');
-  const field = (src: string, id: string, key: string) => {
-    const line = src.split('\n').find((l) => new RegExp(`^\\s*${id}: \\{`).test(l)) ?? '';
-    return new RegExp(`${key}: '([^']+)'`).exec(line)?.[1];
-  };
-  for (const [filmId, appId] of [['theo', 'theo'], ['maelle', 'maelle'], ['kaz', 'kaz'], ['ines', 'ines'], ['hero', 'guerrier']] as const)
-    it(`${filmId} : mêmes couleurs et coiffure que le portrait « ${appId} » du jeu`, () => {
-      for (const key of ['skin', 'hair', 'hairStyle']) {
-        expect(field(app, appId, key), `${appId}.${key}`).toMatch(/\S/);
-        expect(field(film, filmId, key), `${filmId}.${key}`).toBe(field(app, appId, key));
-      }
-      if (filmId !== 'hero') expect(field(film, filmId, 'garment')).toBe(field(app, appId, 'garment'));
-    });
-});
-
 // ---------------------------------------------------------------- fichiers livrés
 const hasFfmpeg = (() => {
   try {
@@ -452,28 +425,29 @@ const hasFfmpeg = (() => {
     return false;
   }
 })();
-const VIDEO = join(ROOT, 'assets', 'video', 'intro.mp4');
+const VIDEOS = ['fr', 'en'].map((l) => join(ROOT, 'assets', 'video', `intro-${l}.mp4`));
 const SOUND = join(ROOT, 'assets', 'audio', 'intro.m4a');
 
 describe.skipIf(!hasFfmpeg)('fichiers livrés', () => {
-  it('vidéo : H.264 1080×2340 à 30 i/s, 44 s, muette, démarrage rapide, poids raisonnable', () => {
-    expect(existsSync(VIDEO)).toBe(true);
-    const info = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', VIDEO]).toString());
-    const v = info.streams.find((s: { codec_type: string }) => s.codec_type === 'video');
-    expect(v.codec_name).toBe('h264');
-    expect(v.pix_fmt).toBe('yuv420p');
-    expect([v.width, v.height]).toEqual([1080, 2340]);
-    expect(v.r_frame_rate).toBe('30/1');
-    expect(info.streams.filter((s: { codec_type: string }) => s.codec_type === 'audio')).toEqual([]);
-    expect(Math.abs(Number(info.format.duration) - INTRO_DURATION)).toBeLessThan(0.05);
-    expect(statSync(VIDEO).size).toBeLessThan(12 * 1024 * 1024);
-    // « faststart » : l'index (moov) est en tête du fichier, la lecture démarre sans tout lire.
-    const head = readFileSync(VIDEO).subarray(0, 64 * 1024).toString('latin1');
-    expect(head.indexOf('moov')).toBeGreaterThan(-1);
-    expect(head.indexOf('moov')).toBeLessThan(head.indexOf('mdat') === -1 ? Infinity : head.indexOf('mdat'));
-  });
+  for (const VIDEO of VIDEOS)
+    it(`${VIDEO.slice(-12)} : H.264 1080×2340 à 30 i/s, durée exacte, muette, démarrage rapide, poids raisonnable`, () => {
+      expect(existsSync(VIDEO)).toBe(true);
+      const info = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', VIDEO]).toString());
+      const v = info.streams.find((s: { codec_type: string }) => s.codec_type === 'video');
+      expect(v.codec_name).toBe('h264');
+      expect(v.pix_fmt).toBe('yuv420p');
+      expect([v.width, v.height]).toEqual([1080, 2340]);
+      expect(v.r_frame_rate).toBe('30/1');
+      expect(info.streams.filter((s: { codec_type: string }) => s.codec_type === 'audio')).toEqual([]);
+      expect(Math.abs(Number(info.format.duration) - INTRO_DURATION)).toBeLessThan(0.05);
+      expect(statSync(VIDEO).size).toBeLessThan(8 * 1024 * 1024);
+      // « faststart » : l'index (moov) est en tête du fichier, la lecture démarre sans tout lire.
+      const head = readFileSync(VIDEO).subarray(0, 64 * 1024).toString('latin1');
+      expect(head.indexOf('moov')).toBeGreaterThan(-1);
+      expect(head.indexOf('moov')).toBeLessThan(head.indexOf('mdat') === -1 ? Infinity : head.indexOf('mdat'));
+    });
 
-  it('bande-son : 44 s stéréo, ≈ −16 LUFS, crêtes sous −1 dBTP, silence exact à la fin', () => {
+  it('bande-son : durée du film, stéréo, ≈ −15 LUFS, crêtes sous −1 dBTP, silence exact à la fin', () => {
     expect(existsSync(SOUND)).toBe(true);
     const info = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', SOUND]).toString());
     const a = info.streams[0];
@@ -493,11 +467,11 @@ describe.skipIf(!hasFfmpeg)('fichiers livrés', () => {
     expect(tail / 32768).toBeLessThan(0.002);
   });
 
-  it('bande-son : aucune montée brusque hors des impacts voulus (coupes, cloche, souffle final)', () => {
+  it('bande-son : aucune montée brusque hors des coups voulus (coupes, visages, titre)', () => {
     const raw = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', SOUND, '-ac', '1', '-ar', '48000', '-f', 's16le', '-'], { maxBuffer: 64 << 20 });
     const n = raw.length / 2;
     const ev = TIMELINE.events;
-    const allowed: number[] = [ev.bells[0], ...ev.dayCuts, ev.snap, ev.dawn, ev.boom];
+    const allowed: number[] = [...ev.hits, ...ev.faces, ev.fall, ev.impact, ev.diceLand, ev.tap, ev.boom];
     const w = 480;
     let prev = 0;
     for (let i = 0; i + w <= n; i += w) {

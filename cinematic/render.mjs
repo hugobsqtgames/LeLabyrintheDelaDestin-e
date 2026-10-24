@@ -1,11 +1,12 @@
 /**
- * Rendu de la cinématique, image par image (Chromium headless + ffmpeg).
+ * Rendu de la bande-annonce, image par image (Chromium headless + ffmpeg).
  *
- *   node cinematic/render.mjs                         # vidéo de l'app : assets/video/intro.mp4 (muette, sans texte)
- *   node cinematic/render.mjs --lang fr --audio cinematic/out/intro-mix.wav --out cinematic/out/valombre-intro-fr.mp4
- *   node cinematic/render.mjs --stills 2,8,14 --scale 0.5   # images de contrôle (cinematic/out/still-*.png)
+ *   node cinematic/render.mjs --lang fr                     # vidéo de l'app : assets/video/intro-fr.mp4 (muette)
+ *   node cinematic/render.mjs --lang en                     # assets/video/intro-en.mp4
+ *   node cinematic/render.mjs --stills 4.5,12.6 --scale 0.5 --lang fr   # images de contrôle (cinematic/out/still-*.png)
  *
- * Options : --scale (1 = 1080×2340), --from/--to (secondes), --crf (qualité x264), --lang (textes incrustés).
+ * Options : --scale (1 = 1080×2340), --from/--to (secondes), --crf (qualité x264), --audio (piste à joindre).
+ * Les textes (trailer-text.json) sont incrustés : une vidéo par langue.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -19,23 +20,16 @@ const timeline = JSON.parse(readFileSync(join(DIR, 'timeline.json'), 'utf8'));
 const scale = Number(arg('scale', '1'));
 const from = Number(arg('from', '0'));
 const to = Number(arg('to', String(timeline.duration)));
-const lang = arg('lang', null);
+const lang = arg('lang', 'fr');
 const stills = arg('stills', null);
 const audio = arg('audio', null);
-// CRF 26 : le grain argentique coûte cher à compresser ; 26 le garde sans aplats visibles (≈ 6 Mo pour 44 s).
+// CRF 26 : le grain argentique coûte cher à compresser ; 26 le garde sans aplats visibles.
 const crf = arg('crf', '26');
-const out = arg('out', join(ROOT, 'assets', 'video', 'intro.mp4'));
+const out = arg('out', join(ROOT, 'assets', 'video', `intro-${lang}.mp4`));
 
-let overlay = null;
-if (lang) {
-  // Mêmes textes et même minutage que l'application (src/intro/script.ts, src/i18n).
-  const { CUES, CUE_FADE, DAY_CUTS } = await import('../src/intro/script.ts');
-  const dict = (await import(`../src/i18n/${lang}.ts`))[lang.toUpperCase()];
-  const texts = Object.fromEntries(CUES.map((c) => [c.id, dict[`intro.${c.id}`] ?? '']));
-  texts.day = dict['intro.day'];
-  texts.radioLabel = dict['intro.radioLabel'];
-  overlay = { cues: CUES, texts, fade: CUE_FADE, days: DAY_CUTS };
-}
+// Textes de la bande-annonce, incrustés à l'image près (une vidéo par langue).
+const text = JSON.parse(readFileSync(join(DIR, 'trailer-text.json'), 'utf8'))[lang];
+if (!text) throw new Error(`langue inconnue : ${lang}`);
 
 const { server, url } = await serve({ '/fonts/': join(ROOT, 'node_modules', '@expo-google-fonts'), '/': DIR });
 const browser = await launch();
@@ -46,14 +40,14 @@ page.on('pageerror', (e) => console.error('ERREUR', e.message));
 page.on('console', (m) => m.type() === 'error' && console.error('console', m.text()));
 await page.goto(`${url}/index.html`);
 const t0 = Date.now();
-await page.evaluate((o) => window.setupScene(o), { timeline, scale, overlay });
+await page.evaluate((o) => window.setupScene(o), { timeline, scale, text });
 console.log(`préparation : ${Date.now() - t0} ms`);
 const canvas = page.locator('#frame');
 
 if (stills) {
   for (const s of stills.split(',').map(Number)) {
     await page.evaluate((t) => window.renderFrame(t), s);
-    const file = join(OUT, `still-${String(s).replace('.', '_')}${lang ? `-${lang}` : ''}.png`);
+    const file = join(OUT, `still-${String(s).replace('.', '_')}-${lang}.png`);
     await canvas.screenshot({ path: file });
     console.log(file);
   }

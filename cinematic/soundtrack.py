@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Bande-son de la cinématique d'introduction de Valombre (44 s), entièrement
-synthétisée ici : aucune musique ni aucun bruitage externe (pas de licence tierce).
+Bande-son de la bande-annonce d'introduction de Valombre (30 s, 120 bpm),
+entièrement synthétisée ici : aucune musique ni aucun bruitage externe (pas de
+licence tierce).
 
     python3 cinematic/soundtrack.py                  # cinematic/out/intro-mix.wav + assets/audio/intro.m4a
     python3 cinematic/soundtrack.py --stems           # aussi les pistes séparées (contrôle)
@@ -9,18 +10,18 @@ synthétisée ici : aucune musique ni aucun bruitage externe (pas de licence tie
 Synchronisation : tous les instants viennent de cinematic/timeline.json (le même
 fichier que le rendu de l'image).
 
-Écriture : ré mineur. Une cloche ouvre et ferme le film. Ville morte : nappe et
-vent. Le Muet : cliquetis de dents, cordes tendues, puis le coup de tête et une
-coupe sèche vers le silence du toit. La radio : parasites, sifflements d'accord,
-puis une voix lointaine (texture vocale synthétique, volontairement
-inintelligible : le texte est à l'écran). Le voyage : pulsation à 120, toms sur
-chaque coupe, montée. L'aube : ré majeur, corne de brume de la Destinée, chœur.
-Coupe au noir, silence. L'emblème : souffle grave, cloche, l'aiguille qui tourne,
-un accord qui s'éteint exactement à la fin.
+Écriture : ré mineur, montage de bande-annonce. La radio qui accroche la Destinée
+(parasites, sifflements, voix lointaine volontairement inintelligible : le texte
+est à l'écran), un cœur qui bat. Puis un coup de cuivres graves (« braam ») sur
+chaque coupe, pulsation de cordes en doubles croches, tambours. Bruitages calés à
+l'image : horloge du choix chronométré, dés qui roulent et se posent, lame,
+grondement du Berger, un coup par visage, sifflement d'oreille quand un compagnon
+tombe, corne de brume de la Destinée, montée. Coupe au noir : silence total.
+Explosion du titre, cloche, aiguille, accord final qui s'éteint à la dernière image.
 
 Pensé pour un haut-parleur d'iPhone et pour le casque : l'essentiel de l'énergie
 entre 120 Hz et 5 kHz (les graves ont des harmoniques audibles sur téléphone),
-aucune attaque de moins de 5 ms, intégrée ≈ −16 LUFS, crêtes ≤ −1,5 dBFS.
+aucune attaque de moins de 2 ms, intégrée ≈ −15 LUFS, crêtes ≤ −1,5 dBFS.
 Dépendances : numpy, ffmpeg.
 """
 import json
@@ -274,227 +275,266 @@ def click(level=0.4, ring=2300):
     return (burst + tone) * decay(n, 99, 0.0008) * level
 
 
-# ------------------------------------------------------------------ composition
-def compose():
-    mus = Mix()  # musique
-    sfx = Mix()  # bruitages et ambiances
-    bells_at = EV['bells']
+# ------------------------------------------------------------------ instruments de bande-annonce
+def braam(root, dur=1.8, level=0.5, bright=2600.0):
+    """Coup de cuivres graves de bande-annonce : fondamentale, quinte et octave saturées, harmoniques audibles sur téléphone."""
+    n = int(dur * SR)
+    y = np.zeros(n)
+    # L'octave porte le coup (audible sur téléphone) ; la fondamentale ne fait que l'épaissir.
+    for m, g in [(root, 0.4), (root + 7, 0.5), (root + 12, 1.0), (root + 19, 0.5), (root + 24, 0.3)]:
+        for det in (-0.004, 0.0, 0.004):
+            y += g * additive(midi(m), dur, harm=28, tilt=0.55, bright=bright, detune=det)
+    t = tt(n)
+    y *= 1 + 0.18 * np.sin(2 * np.pi * 31 * t) * np.exp(-t / 0.4)
+    y = saturate(y * 0.25, 2.2) * decay(n, 0.65, 0.008) * env(n, 0.008, 0.3)
+    hit = bandpass(rng.standard_normal(n), 300, 6000) * np.exp(-t / 0.05) * 0.35
+    return (y + hit) * level
 
-    # 0 · Braises : un souffle grave, la cendre qui crépite, la cloche.
-    mus.add(pad([50, 57, 64], 6.0, a=2.5, r=1.6, bright=1200, level=0.14), 0.2)
-    crack = np.zeros(int(5.2 * SR))
-    for _ in range(70):
-        i = rng.integers(0, len(crack) - 2000)
-        crack[i:i + 400] += rng.standard_normal(400) * np.exp(-np.arange(400) / 40) * rng.uniform(0.1, 0.5)
-    sfx.add(bandpass(crack, 1800, 7000) * env(len(crack), 1.0, 1.0), 0, 0.35, 0.1)
-    for i, b in enumerate(bells_at):
-        f = midi(62) if i < 2 else midi(57)
-        l, r = reverb(bell(f, 7.0, 0.32 if i != 1 else 0.18), 3.8, 3000, 0.45, seed=3 + i)
-        mus.add((l, r), b, 1.0)
 
-    # 1 · Valombre : la ville attend. Nappe ré mineur → si bémol, vent.
-    mus.add(pad([50, 57, 62, 65], 4.0, a=1.5, r=1.4, bright=1500, level=0.17), 4.4)
-    mus.add(pad([46, 53, 58, 62], 4.0, a=1.6, r=1.6, bright=1400, level=0.17), 7.6)
-    wind_n = int(8.0 * SR)
-    wind = stft_filter(rng.standard_normal(wind_n), lambda s, f: bell_gain(420 + 260 * np.sin(s * 0.9) + 120 * np.sin(s * 2.3), 0.55)(f))
-    gust = 0.55 + 0.45 * np.sin(2 * np.pi * 0.21 * tt(wind_n)) ** 2
-    sfx.add(wind * gust * env(wind_n, 1.2, 1.2), 3.8, 0.11, -0.2)
+def riser(dur, level=0.2):
+    """Montée : souffle qui s'ouvre et note qui grimpe, de plus en plus fort."""
+    n = int(dur * SR)
+    t = tt(n)
+    f = 110 * 2 ** (3 * (t / dur) ** 1.6)
+    tone = np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.5 * np.sin(4 * np.pi * np.cumsum(f) / SR)
+    swell = noise_swell(dur, 300, 9000, level=1.0, curve=2.5)
+    return (lowpass(tone, 4000) * 0.35 * (t / dur) ** 2 + swell) * level
 
-    # 2 · La rue : tension, cliquetis réguliers « comme une horloge détraquée », coup de tête.
-    s0, snap = 10.9, EV['snap']
-    mus.add(pad([50, 51, 62], snap - s0 + 0.4, a=2.0, r=0.3, bright=1100, level=0.18), s0)
-    mus.add((strings_trem([74, 75, 81], snap - 12.0 + 0.2, rate=9, level=0.05),) * 2, 12.0)
-    t_click = 11.6
-    k = 0
-    while t_click < snap - 0.05:
-        jitter = 0.03 * np.sin(k * 2.7)
-        near = 0.3 + 0.7 * (t_click - 11.6) / (snap - 11.6)
-        sfx.add(click(0.22 * near, 2100 + 300 * np.sin(k)), t_click, 1.0, 0.45)
-        t_click += 0.27 + jitter + (0.12 if k % 7 == 6 else 0)
-        k += 1
-    for c in EV['clicks']:
-        for j in range(3):
-            sfx.add(click(0.38, 2500 - j * 200), c - 0.04 + j * 0.055, 1.0, 0.45)
-    sfx.add(noise_swell(snap - 15.4, 300, 5000, level=0.12, curve=3), 15.4, 1.0, 0.2)
-    sfx.add(click(0.7, 1800), snap, 1.0, 0.4)
-    sfx.add(thump(62, 0.45, 0.9), snap, 1.0)
-    stab = additive(midi(62), 0.9, harm=20, tilt=0.8, bright=4000) + additive(midi(63), 0.9, harm=20, tilt=0.8, bright=4000) + additive(midi(68), 0.9, harm=20, tilt=0.8, bright=4000)
-    mus.add(stab * decay(len(stab), 0.35, 0.006) * 0.12, snap, 1.0)
 
-    # 3 · Le toit : silence relatif, vent, respiration, nappe très douce.
-    roof = EV['cutRoof']
-    wind2_n = int(8.6 * SR)
-    wind2 = stft_filter(rng.standard_normal(wind2_n), lambda s, f: bell_gain(520 + 200 * np.sin(s * 0.7), 0.6)(f))
-    sfx.add(wind2 * env(wind2_n, 0.05, 1.0), roof, 0.15, 0.3)
-    mus.add(pad([62, 69, 76, 77], 3.2, a=0.6, r=1.2, bright=1800, level=0.13), roof)
-    for b in EV['breath']:
-        n = int(1.2 * SR)
-        br = bandpass(rng.standard_normal(n), 500, 3500) * np.sin(np.pi * np.linspace(0, 1, n)) ** 2
-        sfx.add(br, b, 0.05, -0.1)
+def rattle(dur, level=0.3):
+    """Dés qui roulent : petits chocs de plus en plus espacés."""
+    n = int(dur * SR)
+    y = np.zeros(n)
+    pos = 0.0
+    gap = 0.025
+    while pos < dur - 0.03:
+        c = bandpass(rng.standard_normal(int(0.02 * SR)), 900, 5000) * np.exp(-tt(int(0.02 * SR)) / 0.004)
+        i = int(pos * SR)
+        y[i:i + len(c)] += c[: max(0, n - i)] * rng.uniform(0.5, 1.0)
+        pos += gap * rng.uniform(0.8, 1.3)
+        gap *= 1.09
+    return y * level
 
-    # 4 · La radio : parasites, sifflements d'accord, puis la voix sort du bruit.
-    t0, lock = EV['tuneFrom'], EV['tuneKeys'][-1][0]
-    rad_end = EV['whoosh'] + 0.05
-    rn = int((rad_end - t0 + 0.5) * SR)
-    rt = tt(rn) + t0
-    static = bandpass(rng.standard_normal(rn), 300, 3400)
-    flutter = 0.7 + 0.3 * np.sin(2 * np.pi * 7.3 * rt) * np.sin(2 * np.pi * 1.1 * rt)
-    crackles = np.zeros(rn)
-    for _ in range(160):
-        i = rng.integers(0, rn - 300)
-        crackles[i:i + 200] += rng.standard_normal(200) * np.exp(-np.arange(200) / 25) * rng.uniform(0.3, 1.5)
-    level = np.where(rt < lock, 1.0, 0.0) + np.where(rt >= lock, 0.22, 0.0)
-    level = np.convolve(level, np.ones(2400) / 2400, mode='same')
-    radio = (static * flutter * 0.55 + bandpass(crackles, 1000, 5000) * 0.5) * level
-    # Sifflements d'hétérodyne pendant la recherche de la station.
-    keys = EV['tuneKeys']
-    fr = np.interp(rt, [k[0] for k in keys], [k[1] for k in keys])
-    het = np.abs(fr - keys[-1][1])
-    hf = 380 + het * 260
-    whistle = np.sin(2 * np.pi * np.cumsum(hf) / SR) * np.clip(het / 2.0, 0, 1) * (rt < lock + 0.1) * 0.22
-    radio += lowpass(whistle, 3000)
-    radio *= env(rn, 0.04, 0.08)
-    sfx.add(radio, t0, 0.42, -0.05)
-    # La voix : texture vocale lointaine, volontairement inintelligible (le texte est à l'écran).
-    v0, v1 = EV['voiceFrom'], EV['voiceTo']
-    vn = int((v1 - v0) * SR)
+
+def clack(level=0.5):
+    """Dé qui se pose sur la table : bois, grave et sec."""
+    n = int(0.25 * SR)
+    t = tt(n)
+    body = np.sin(2 * np.pi * 190 * t) * np.exp(-t / 0.05) + 0.5 * np.sin(2 * np.pi * 420 * t) * np.exp(-t / 0.03)
+    snap = bandpass(rng.standard_normal(n), 700, 4000) * np.exp(-t / 0.01)
+    return (body * 0.7 + snap) * decay(n, 99, 0.002) * level
+
+
+def slash(level=0.5):
+    """Lame : souffle très bref qui monte, puis un tintement métallique."""
+    n = int(0.6 * SR)
+    t = tt(n)
+    whoosh = noise_swell(0.18, 1200, 9000, level=1.0, curve=1.5)
+    ring = sum(np.sin(2 * np.pi * f * t + rng.random() * 6) * np.exp(-t / tau) for f, tau in [(4200, 0.25), (5630, 0.18), (7100, 0.12)])
+    y = np.zeros(n)
+    y[: len(whoosh)] += whoosh
+    y += ring * 0.12 * decay(n, 99, 0.003)
+    return y * level
+
+
+def roar(dur=1.3, level=0.35):
+    """Grondement du Berger : voix grave et rauque (formants « o »), souffle modulé."""
+    n = int(dur * SR)
+    t = tt(n)
+    v = additive(82, dur, harm=40, tilt=0.5, bright=3500, vib=2.0, vib_rate=7, formant=formant_fn('o', 0.9))
+    grit = bandpass(rng.standard_normal(n), 200, 2500) * (0.6 + 0.4 * np.sin(2 * np.pi * 37 * t))
+    return saturate((v * 0.6 + grit * 0.5) * env(n, 0.06, 0.5), 2.5) * level
+
+
+def ring_tone(dur=1.6, level=0.06):
+    """Sifflement d'oreille après le choc (la chute d'un compagnon)."""
+    n = int(dur * SR)
+    return np.sin(2 * np.pi * 3520 * tt(n)) * env(n, 0.05, dur * 0.8) * level
+
+
+def horn_blast(dur=2.2):
+    """La Destinée : corne de brume grave et cuivrée, deux tons à la quinte."""
+    n = int(dur * SR)
+    sag = 1 - 0.03 * np.exp(-tt(n) / 0.12)
+    y = np.zeros(n)
+    for fh, amp in [(130.8, 1.0), (196.0, 0.7)]:
+        for kk in range(1, 22):
+            if fh * kk > 4000:
+                break
+            y += amp * (1 / kk ** 0.8) * np.exp(-fh * kk / 1300) * np.sin(2 * np.pi * fh * kk * np.cumsum(sag) / SR)
+    return saturate(y * env(n, 0.15, 0.6) * 0.5, 1.8)
+
+
+def radio_voice(dur):
+    """Voix radio lointaine, volontairement inintelligible (le texte est à l'écran)."""
+    vn = int(dur * SR)
     voice = np.zeros(vn)
     pos = 0.0
-    sylls = ['i', 'i', 'a', 'é', 'i', 'é', 'u', 'a', 'o', 'é', 'u', 'i', 'a', 'é', 'e', 'o', 'a', 'u', 'o', 'é', 'e', 'i', 'o', 'u']
-    pauses = {4, 10, 15, 20}
+    sylls = ['i', 'i', 'a', 'é', 'i', 'é', 'u', 'a', 'o', 'é', 'u', 'i', 'a', 'é', 'e', 'o', 'a', 'u']
     for i, vw in enumerate(sylls):
-        d = 0.13 + 0.06 * rng.random()
-        if pos + d > (v1 - v0):
+        d = 0.12 + 0.05 * rng.random()
+        if pos + d > dur:
             break
         f0 = 205 + 25 * np.sin(i * 0.9) - 18 * (i % 5 == 4)
-        sy = additive(f0, d, harm=30, tilt=0.6, bright=6000, vib=0.6, vib_rate=6, formant=formant_fn(vw, 1.08))
-        sy *= env(len(sy), 0.025, 0.04)
+        sy = additive(f0, d, harm=30, tilt=0.6, bright=6000, vib=0.6, vib_rate=6, formant=formant_fn(vw, 1.08)) * env(int(d * SR), 0.025, 0.04)
         cons = bandpass(rng.standard_normal(int(0.035 * SR)), 2500, 7000) * env(int(0.035 * SR), 0.005, 0.02) * 0.25
         a = int(pos * SR)
-        voice[a:a + len(cons)] += cons[:max(0, min(len(cons), vn - a))]
+        voice[a:a + len(cons)] += cons[: max(0, min(len(cons), vn - a))]
         b = a + len(cons) // 2
         m = min(len(sy), vn - b)
         if m > 0:
             voice[b:b + m] += sy[:m]
-        pos += d + 0.02 + (0.28 if i in pauses else 0.0)
+        pos += d + 0.02 + (0.25 if i in (4, 9, 13) else 0.0)
     voice = saturate(bandpass(voice, 380, 2900, 3) * 3.0, 2.0)
-    voice *= 0.75 + 0.25 * np.sin(2 * np.pi * 0.9 * tt(vn)) ** 2
-    sfx.add(voice * env(vn, 0.08, 0.3), v0, 0.2, -0.05)
-    mus.add(pad([53, 60, 64, 69], 4.4, a=1.4, r=1.0, bright=1600, level=0.11), lock + 0.4)
-    sfx.add(noise_swell(0.5, 400, 6000, level=0.25, curve=2.5), EV['whoosh'] - 0.4, 1.0)
+    return voice * (0.75 + 0.25 * np.sin(2 * np.pi * 0.9 * tt(vn)) ** 2) * env(vn, 0.08, 0.3)
 
-    # 5 · Le voyage : 120 bpm, pulsation de cordes, toms sur chaque coupe, montée.
-    cuts = EV['dayCuts']
-    j0, dawn = cuts[0], EV['dawn']
-    beat = 0.5
-    prog = [(26.0, [50, 57, 62, 65]), (28.0, [46, 53, 58, 62]), (30.0, [53, 60, 65, 69]), (31.0, [48, 55, 60, 64]), (32.0, [45, 52, 57, 61])]
-    for i, (at, notes) in enumerate(prog):
-        end = prog[i + 1][0] if i + 1 < len(prog) else dawn
-        mus.add(pad(notes, end - at + 0.35, a=0.12, r=0.35, bright=1700 + i * 400, level=0.16 + i * 0.02), at)
-    tq = j0
+
+# ------------------------------------------------------------------ composition
+def compose():
+    mus = Mix()  # musique
+    sfx = Mix()  # bruitages
+    E = EV
+    beat = 60 / TL['bpm']
+
+    # 0–4 s · Ouverture : la radio accroche la Destinée ; cœur qui bat, nappe sourde.
+    mus.add(pad([50, 57, 62], 4.0, a=1.0, r=0.4, bright=900, level=0.12), 0.0)
+    for hb in E['heartbeat']:
+        sfx.add(thump(66, 0.3, 0.4), hb, 1.0)
+        sfx.add(thump(62, 0.2, 0.4), hb + 0.18, 1.0)
+    keys = E['tuneKeys']
+    lock = keys[-1][0]
+    rn = int(4.0 * SR)
+    rt = tt(rn)
+    static = bandpass(rng.standard_normal(rn), 300, 3400)
+    crackles = np.zeros(rn)
+    for _ in range(90):
+        i = rng.integers(0, rn - 300)
+        crackles[i:i + 200] += rng.standard_normal(200) * np.exp(-np.arange(200) / 25) * rng.uniform(0.3, 1.5)
+    level = np.convolve(np.where(rt < lock, 1.0, 0.25), np.ones(2400) / 2400, mode='same')
+    fr = np.interp(rt, [k[0] for k in keys], [k[1] for k in keys])
+    het = np.abs(fr - keys[-1][1])
+    whistle = np.sin(2 * np.pi * np.cumsum(380 + het * 260) / SR) * np.clip(het / 2.0, 0, 1) * (rt < lock + 0.1) * 0.22
+    radio = (static * 0.5 + bandpass(crackles, 1000, 5000) * 0.5) * level + lowpass(whistle, 3000)
+    sfx.add(radio * env(rn, 0.3, 0.1), 0.0, 0.4)
+    sfx.add(radio_voice(E['voiceTo'] - E['voiceFrom']), E['voiceFrom'], 0.22)
+    r0, r1 = E['riser']
+    sfx.add(riser(r1 - r0, 0.22), r0, 1.0)
+
+    # 4–23 s · Le corps de la bande-annonce : pulsation à 120, coups sur chaque coupe.
+    hits = E['hits']
+    roots = {4.0: 38, 6.0: 38, 7.0: 41, 8.0: 36, 9.0: 34, 10.0: 38, 12.0: 41, 13.0: 36, 14.0: 38, 18.0: 34, 19.0: 36, 20.0: 38, 22.0: 41, 22.34: 43, 22.67: 45}
+    for h in hits:
+        mus.add(braam(roots.get(h, 38), 1.6 if h < 22 else 0.5, 0.42 if h not in (18.0, 19.0) else 0.5), h, 1.0)
+        sfx.add(thump(72, 0.26, 0.8), h, 1.0)
+        sfx.add(noise_swell(0.3, 500, 5000, level=0.08, curve=3), h - 0.3, 1.0)
+    # Nappes : ré mineur → si bémol → fa → do → la, sous les coups.
+    for at, end, notes, lvl in [(4.0, 10.0, [50, 57, 62, 65], 0.14), (10.0, 14.0, [46, 53, 58, 62], 0.15), (14.0, 18.0, [50, 57, 62, 65], 0.15), (18.0, 20.0, [46, 53, 58, 65], 0.17), (20.0, 23.0, [45, 52, 57, 61, 64], 0.2)]:
+        mus.add(pad(notes, end - at + 0.2, a=0.3, r=0.2, bright=1800, level=lvl), at)
+    # Pulsation de cordes en doubles croches, de plus en plus brillante.
+    t = 4.0
     i = 0
-    while tq < dawn - 0.05:
-        bass = 38 if (i // 8) % 2 == 0 else 34
-        for at, notes in prog:
-            if tq >= at:
-                bass = notes[0] - 12
-        y = additive(midi(bass + 12), 0.22, harm=16, tilt=0.7, bright=1400 + (tq - j0) * 200) + 0.4 * additive(midi(bass + 24), 0.22, harm=10, tilt=1.0, bright=2000)
-        y *= decay(len(y), 0.09, 0.004) * env(len(y), 0.004, 0.04)
-        mus.add(saturate(y * 1.4, 1.5) * (0.16 + 0.05 * (i % 2 == 0)), tq, 1.0)
-        tq += beat / 2
+    while t < E['silence'] - 0.05:
+        note = 50 if t < 18 else (46 if t < 20 else 45)
+        y = additive(midi(note), 0.13, harm=16, tilt=0.7, bright=1200 + (t - 4) * 160) + 0.4 * additive(midi(note + 12), 0.13, harm=10, tilt=1.0, bright=2200)
+        y *= decay(len(y), 0.07, 0.004) * env(len(y), 0.004, 0.03)
+        quiet = 0.35 if 17.0 <= t < 17.9 else 1.0
+        mus.add(saturate(y * 1.4, 1.5) * (0.1 + 0.05 * (i % 4 == 0)) * quiet, t, 1.0, 0.15 * (-1) ** i)
+        t += beat / 4
         i += 1
-    for i, c in enumerate(cuts):
-        sfx.add(noise_swell(0.32, 500, 4000, level=0.12, curve=3), c - 0.32, 1.0, 0.0)
-        mus.add(tom(midi(45 + (0, 3, 5, 3, 7, 5, 10)[i]), 0.4 + i * 0.03), c, 1.0, (-0.25, 0.25)[i % 2])
-        if i >= 4:
-            mus.add(tom(midi(52), 0.24), c + 0.5, 1.0, 0.2)
-    for hb in np.arange(j0 + 0.25, dawn - 0.4, 0.82):
-        sfx.add(thump(66, 0.2, 0.4), hb, 1.0)
-        sfx.add(thump(62, 0.14, 0.4), hb + 0.17, 1.0)
-    sfx.add(noise_swell(dawn - 31.0, 250, 7000, level=0.16, curve=2.4), 31.0, 1.0)
-    mus.add((strings_trem([69, 74, 77], dawn - 31.0, rate=14, level=0.06, bright=4500),) * 2, 31.0)
+    # Tambours sur les temps, à partir du jeu ; doublés pour la fin.
+    t = 10.0
+    while t < E['silence'] - 0.05:
+        if not (17.0 <= t < 17.9):
+            mus.add(tom(midi(55), 0.3), t, 1.0, -0.2)
+            if t >= 18.0:
+                mus.add(tom(midi(62), 0.22), t + beat / 2, 1.0, 0.2)
+        t += beat
 
-    # 6 · L'aube à l'écluse : ré majeur, corne de brume, chœur, lumière ; puis la coupe.
-    silence = EV['silence']
-    span = silence - dawn + 0.3
-    sfx.add(thump(58, 0.36, 1.6), dawn, 1.0)
-    sfx.add(noise_swell(2.4, 6000, 2500, level=0.08, curve=0.6, rev=True), dawn, 1.0)
-    mus.add(pad([50, 54, 57, 62, 66], span, a=1.0, r=0.2, bright=2200, level=0.22), dawn)
-    mus.add((choir([69, 74], span - 0.6, 'a', level=0.12, a=2.2, r=0.2),) * 2, dawn + 0.6)
-    mus.add((choir([78, 81], silence - EV['sun'] + 0.5, 'o', level=0.07, a=1.0, r=0.2),) * 2, EV['sun'] - 0.4)
-    # La Destinée sonne : corne grave et cuivrée (deux tons à la quinte), échos sur l'eau.
-    hn = int(2.4 * SR)
-    ht = tt(hn)
-    sag = 1 - 0.03 * np.exp(-ht / 0.12)
-    horn = np.zeros(hn)
-    for fh, amp in [(110.0, 1.0), (164.8, 0.7)]:
-        for kk in range(1, 22):
-            if fh * kk > 4000:
-                break
-            horn += amp * (1 / kk ** 0.8) * np.exp(-fh * kk / 1300) * np.sin(2 * np.pi * fh * kk * np.cumsum(sag) / SR)
-    horn = saturate(horn * env(hn, 0.18, 0.7) * 0.5, 1.8)
-    hl, hr = reverb(horn, 3.5, 2200, 0.5, pre=0.06, seed=9)
-    sfx.add((hl, hr), EV['horn'], 0.45)
-    for k, (dly, g) in enumerate([(0.42, 0.25), (0.95, 0.12)]):
-        sfx.add(lowpass(horn, 1400), EV['horn'] + dly, g, (-0.6, 0.6)[k])
-    shimmer = np.zeros(int((silence - EV['sun'] + 0.3) * SR))
-    for f in [1760, 2217, 2637, 3520]:
-        shimmer += np.sin(2 * np.pi * f * tt(len(shimmer)) + rng.random() * 6) * (0.5 + 0.5 * np.sin(2 * np.pi * (3 + f / 1000) * tt(len(shimmer))))
-    mus.add(shimmer * env(len(shimmer), 1.2, 0.05) * 0.018, EV['sun'], 1.0)
-    # Montée finale vers la coupe au noir : cordes en crescendo, souffle inversé.
-    cres = silence - EV['sun']
-    st = strings_trem([62, 66, 69, 74], cres, rate=13, level=0.11, bright=5000)
+    # Les Muets, les vivants, le Berger.
+    sfx.add(roar(1.3, 0.3), E['roar'] + 0.05, 1.0)
+
+    # 10–12 s · Choix chronométré : l'horloge accélère, le doigt tranche.
+    t0, t1 = E['ticks']
+    t = t0
+    gap = 0.25
+    while t < t1:
+        sfx.add(click(0.22, 3400), t, 1.0, 0.1)
+        t += gap
+        gap = max(0.09, gap * 0.9)
+    sfx.add(click(0.55, 1800), E['tap'], 1.0)
+    sfx.add(noise_swell(0.25, 6000, 900, level=0.12, curve=0.5, rev=True), E['tap'], 1.0)
+
+    # 12–13 s · Les dés.
+    sfx.add(rattle(E['diceLand'] - E['diceFrom'], 0.35), E['diceFrom'], 1.0, -0.1)
+    sfx.add(clack(0.5), E['diceLand'], 1.0, -0.2)
+    sfx.add(clack(0.45), E['diceLand'] + 0.04, 1.0, 0.2)
+    ding = bell(midi(86), 1.2, 0.18) + bell(midi(81), 1.2, 0.12)
+    mus.add(ding, E['success'], 1.0)
+
+    # 13–14 s · Combat : la lame, le coup.
+    sfx.add(slash(0.5), E['slash'], 1.0, 0.3)
+    sfx.add(thump(70, 0.45, 0.6), E['impact'], 1.0)
+    sfx.add(bandpass(rng.standard_normal(int(0.15 * SR)), 400, 5000) * np.exp(-tt(int(0.15 * SR)) / 0.03) * 0.4, E['impact'], 1.0)
+
+    # 14–18 s · Les visages ; puis l'un d'eux tombe.
+    for i, f in enumerate(E['faces']):
+        sfx.add(thump(80, 0.34, 0.5), f, 1.0, (-0.3, 0.3, -0.3, 0.3)[i])
+        sfx.add(click(0.35, 1300), f, 1.0, (-0.3, 0.3, -0.3, 0.3)[i])
+    sfx.add(thump(52, 0.5, 1.4), E['fall'], 1.0)
+    sfx.add(ring_tone(1.4, 0.05), E['fall'] + 0.05, 1.0)
+    for hb in (15.9, 16.6, 17.35):
+        sfx.add(thump(66, 0.22, 0.4), hb, 1.0)
+
+    # 20–23 s · La Destinée sonne ; la montée jusqu'à la coupe.
+    hl, hr = reverb(horn_blast(2.2), 3.0, 2200, 0.45, pre=0.06, seed=9)
+    sfx.add((hl, hr), E['horn'], 0.45)
+    mus.add((choir([69, 74, 78], 2.9, 'a', level=0.12, a=1.2, r=0.1),) * 2, 20.1)
+    r0, r1 = E['riser2']
+    sfx.add(riser(r1 - r0, 0.3), r0, 1.0)
+    st = strings_trem([62, 69, 74, 77], r1 - r0, rate=14, level=0.1, bright=5000)
     st *= np.linspace(0.2, 1.0, len(st)) ** 1.5
-    mus.add((st, st), EV['sun'], 1.0)
-    sfx.add(noise_swell(cres, 700, 9000, level=0.2, curve=3.2), EV['sun'], 1.0)
-    water_n = int(span * SR)
-    water = stft_filter(rng.standard_normal(water_n), lambda s, f: bell_gain(900 + 400 * np.sin(s * 3.1), 0.9)(f))
-    sfx.add(water * env(water_n, 0.6, 0.05) * (0.6 + 0.4 * np.sin(2 * np.pi * 0.6 * tt(water_n)) ** 2), dawn, 0.05, 0.1)
+    mus.add((st, st), r0, 1.0)
 
-    # Coupe au noir : tout s'arrête net (rampe de 12 ms, sans clic), puis le silence.
+    # 23–23,8 s · Coupe au noir : silence total (rampe de 12 ms, sans clic).
     for m in (mus, sfx):
         for ch in (m.L, m.R):
-            a = int(silence * SR)
-            b = int(EV['boom'] * SR) - int(0.01 * SR)
+            a = int(E['silence'] * SR)
+            b = int(E['boom'] * SR) - int(0.005 * SR)
             ramp = int(0.012 * SR)
             ch[a:a + ramp] *= np.linspace(1, 0, ramp)
             ch[a + ramp:b] = 0
 
-    # 7 · L'emblème : souffle grave, cloche, l'aiguille, l'accord final.
-    sfx.add(thump(55, 0.32, 2.0), EV['boom'], 1.0)
-    sfx.add(noise_swell(1.6, 3000, 600, level=0.06, curve=0.5, rev=True), EV['boom'], 1.0)
-    n0, n1 = EV['needle']
-    ticks = []
-    u = 0.0
-    while True:
-        tk = n0 + u
-        if tk >= n1:
-            break
-        ticks.append(tk)
+    # 23,8–30 s · Le titre : explosion, cloche, aiguille, accord final.
+    boom = E['boom']
+    bl, br = reverb(braam(38, 3.5, 0.75, bright=2400) + braam(50, 3.5, 0.35), 3.5, 2600, 0.4, seed=4)
+    mus.add((bl, br), boom, 1.0)
+    sfx.add(thump(62, 0.5, 2.0), boom, 1.0)
+    sfx.add(bandpass(rng.standard_normal(int(1.5 * SR)), 200, 8000) * np.exp(-tt(int(1.5 * SR)) / 0.35) * 0.3, boom, 1.0)
+    l, r = reverb(bell(midi(62), 5.0, 0.3), 3.8, 3000, 0.45, seed=3)
+    mus.add((l, r), E['bell'], 1.0)
+    n0, n1 = E['needle']
+    tk = n0
+    while tk < n1:
+        sfx.add(click(0.1, 3200), tk, 1.0, 0.05)
         speed = 1 - ((tk - n0) / (n1 - n0)) ** 0.6
-        u += 0.05 + 0.25 * (1 - speed)
-    for tk in ticks:
-        sfx.add(click(0.12, 3200), tk, 1.0, 0.05)
-    latch = click(0.5, 1500)
-    sfx.add(latch, n1, 1.0)
+        tk += 0.05 + 0.22 * (1 - speed)
+    sfx.add(click(0.5, 1500), n1, 1.0)
     sfx.add(thump(70, 0.28, 0.5), n1, 1.0)
-    end = EV['end']
+    end = E['end']
     chord = np.zeros(int((end - n1 + 0.05) * SR))
-    for i, m in enumerate([50, 57, 64, 65, 69]):
-        f = midi(m)
-        a = int(i * 0.11 * SR)
+    for i, m in enumerate([50, 57, 62, 65, 69, 74]):
+        a = int(i * 0.08 * SR)
         nn = len(chord) - a
-        tone = additive(f, nn / SR, harm=12, tilt=1.3, bright=2400) * np.exp(-tt(nn) / 2.4) * decay(nn, 99, 0.01)
-        chord[a:] += tone * 0.08
+        chord[a:] += additive(midi(m), (nn + 0.5) / SR, harm=12, tilt=1.2, bright=2600)[:nn] * np.exp(-tt(nn) / 2.6) * decay(nn, 99, 0.01) * 0.08
     cl, cr = reverb(chord, 3.0, 3500, 0.4, seed=12)
-    mus.add((cl[:len(chord)], cr[:len(chord)]), n1, 1.0)
-    mus.add(pad([50, 57, 64], end - 39.0, a=1.6, r=0.1, bright=1200, level=0.12), 39.0)
+    mus.add((cl[: len(chord)], cr[: len(chord)]), n1, 1.0)
+    mus.add(pad([50, 57, 62, 65], end - boom, a=0.6, r=0.1, bright=1400, level=0.13), boom)
 
-    # Fin : extinction douce jusqu'à zéro exactement à 44 s.
-    fade_n = int(1.4 * SR)
+    # Fin : extinction jusqu'à zéro exactement à la dernière image.
+    fade_n = int(1.6 * SR)
     for m in (mus, sfx):
         for ch in (m.L, m.R):
-            ch[N - fade_n:] *= (0.5 + 0.5 * np.cos(np.linspace(0, np.pi, fade_n)))
+            ch[N - fade_n:] *= 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, fade_n))
             ch[-int(0.02 * SR):] = 0
     return mus, sfx
 
@@ -542,8 +582,8 @@ def main():
     L, R = L / peak * 0.5, R / peak * 0.5
     write_wav(tmp, L, R)
     lufs, _ = loudness(tmp)
-    # Gain vers −16 LUFS, puis limiteur doux : rien au-dessus de −1,5 dBFS.
-    g = 10 ** ((-16.0 - lufs) / 20)
+    # Gain vers −15 LUFS, puis limiteur doux : rien au-dessus de −1,5 dBFS.
+    g = 10 ** ((-15.0 - lufs) / 20)
     ceil = 10 ** (-1.5 / 20)
     L = ceil * np.tanh(L * g / ceil)
     R = ceil * np.tanh(R * g / ceil)

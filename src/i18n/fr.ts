@@ -498,18 +498,9 @@ export const FR: Record<string, string> = {
   'gallery.count': 'Maquette {n}/{total}',
   'gallery.prev': 'Précédente',
   'gallery.next': 'Suivante',
-  // Cinématique d'introduction
-  'intro.fever': 'Quatorze mois après la Grande Fièvre',
-  'intro.waits': 'Valombre ne dort plus.\nElle attend.',
-  'intro.mutes': 'Les Muets ne crient jamais.',
-  'intro.radioLabel': 'FM 101.7 · signal faible',
-  'intro.radio': '… ici la Destinée. Nous embarquerons des survivants à l’écluse de Morvan… à l’aube du septième jour…',
-  'intro.day': 'Jour',
-  'intro.days': 'Sept jours pour traverser.',
-  'intro.wait': 'La Destinée n’attendra pas.',
-  'intro.title': 'Sept jours pour fuir.',
+  // Bande-annonce d'introduction
   'intro.skip': 'Passer',
   'intro.skipHint': 'Passe l’introduction et ouvre l’écran d’accueil.',
-  'intro.a11y': 'Introduction de Valombre. Quatorze mois après la Grande Fièvre, la ville morte attend. Les Muets rôdent. Une radio capte un message : la barge médicale Destinée embarquera des survivants à l’écluse de Morvan, à l’aube du septième jour. Sept jours de route, jusqu’à l’aube.',
+  'intro.a11y': 'Bande-annonce de Valombre. Quatorze mois après la Grande Fièvre, une radio capte la barge médicale Destinée : elle embarquera des survivants à l’écluse de Morvan, à l’aube du septième jour. La ville est morte, les Muets rôdent, les pillards aussi. Des choix chronométrés, des jets de dés, des combats, des compagnons qui comptent sur vous, et tous ne verront pas l’aube. Sept jours, une barge.',
   'settings.intro': 'Revoir l’introduction',
 };
