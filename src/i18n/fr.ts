@@ -411,7 +411,7 @@ export const FR: Record<string, string> = {
   'settings.reminders': 'Rappel de reprise',
   'settings.remindersHint': 'Si vous quittez une partie en cours, une notification locale vous le rappelle après {h} heures sans jouer. Rien n’est envoyé : le rappel est programmé sur l’appareil et annulé dès que vous revenez.',
   'settings.remindersDenied': 'Les notifications sont refusées pour le jeu. Autorisez-les dans les réglages du téléphone pour activer le rappel.',
-  'settings.remindersWeb': 'Indisponible dans la version web.',
+  'settings.remindersWeb': 'Indisponible ici (version web ou Expo Go) : disponible dans l’application installée.',
   'notif.title': 'Valombre vous attend',
   'notif.body': '{name} est resté·e sur la route. La barge part dans {left} h.',
   'settings.help': 'Aide',

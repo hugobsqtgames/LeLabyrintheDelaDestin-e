@@ -3,19 +3,30 @@
  * locale, programmée sur l'appareil quand on quitte une partie en cours,
  * annulée dès qu'on revient. Aucun serveur, aucune notification distante.
  */
-import * as Notifications from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
 import { Platform } from 'react-native';
+
+type NotificationsModule = typeof import('expo-notifications');
 
 const CHANNEL = 'rappels';
 /** Délai avant le rappel : deux jours sans jouer. */
 export const REMINDER_DELAY_HOURS = 48;
 
-export const remindersSupported = Platform.OS !== 'web';
+/**
+ * Ni sur le web, ni dans Expo Go (le module y affiche un avertissement dès son chargement) :
+ * les rappels fonctionnent dans les vraies versions de l'application (TestFlight, App Store).
+ */
+export const remindersSupported = Platform.OS !== 'web' && !isRunningInExpoGo();
+
+/** Chargé seulement au premier usage : rien n'est initialisé au lancement de l'application. */
+let loaded: Promise<NotificationsModule> | null = null;
+const notifications = () => (loaded ??= import('expo-notifications'));
 
 /** Demande l'autorisation (et crée le canal Android). Renvoie `true` si accordée. */
 export async function enableReminders(channelName: string): Promise<boolean> {
   if (!remindersSupported) return false;
   try {
+    const Notifications = await notifications();
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(CHANNEL, { name: channelName, importance: Notifications.AndroidImportance.DEFAULT });
     }
@@ -31,6 +42,7 @@ export async function enableReminders(channelName: string): Promise<boolean> {
 export async function scheduleReminder(title: string, body: string): Promise<void> {
   if (!remindersSupported) return;
   try {
+    const Notifications = await notifications();
     await Notifications.cancelAllScheduledNotificationsAsync();
     await Notifications.scheduleNotificationAsync({
       content: { title, body },
@@ -44,6 +56,7 @@ export async function scheduleReminder(title: string, body: string): Promise<voi
 export async function cancelReminders(): Promise<void> {
   if (!remindersSupported) return;
   try {
+    const Notifications = await notifications();
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch {
     // Rien à annuler.

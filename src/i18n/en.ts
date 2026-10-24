@@ -411,7 +411,7 @@ export const EN: Record<string, string> = {
   'settings.reminders': 'Resume reminder',
   'settings.remindersHint': 'If you leave a game in progress, a local notification reminds you after {h} hours without playing. Nothing is sent: the reminder is scheduled on the device and cancelled as soon as you come back.',
   'settings.remindersDenied': 'Notifications are turned off for the game. Allow them in the phone’s settings to enable the reminder.',
-  'settings.remindersWeb': 'Not available in the web version.',
+  'settings.remindersWeb': 'Not available here (web version or Expo Go): available in the installed app.',
   'notif.title': 'Valombre is waiting',
   'notif.body': '{name} is still out on the road. The barge leaves in {left} h.',
   'settings.help': 'Help',

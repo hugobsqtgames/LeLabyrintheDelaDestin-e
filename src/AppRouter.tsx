@@ -32,7 +32,7 @@ export function AppRouter({ screenProps = {} }: { screenProps?: ScreenProps }) {
     case 'settings':
       return <SettingsScreen />;
     case 'gallery':
-      return <GalleryScreen />;
+      return <GalleryScreen Router={AppRouter} />;
     case 'memories':
       return <MemoriesScreen />;
     case 'title':

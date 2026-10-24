@@ -111,7 +111,8 @@ function reducer(model: AppModel, action: Action): AppModel {
       return { ...model, prevRoute: model.route, route, pendingChapter: model.route === 'saves' ? null : model.pendingChapter };
     }
     case 'tab':
-      return { ...model, tab: action.tab };
+      // Même onglet : même modèle (sinon un effet qui règle l'onglet relance un rendu sans fin).
+      return model.tab === action.tab ? model : { ...model, tab: action.tab };
     case 'update': {
       if (!model.game) return model;
       const game = action.fn(model.game);
@@ -464,17 +465,29 @@ export function GameProvider({
   );
 
 
+  // Actions simples : identité stable pour toute la vie de l'application. Un effet qui en
+  // dépend (onglet du tutoriel, bouton retour) ne doit pas se relancer à chaque changement d'état.
+  const actions = useMemo(
+    () => ({
+      go: (route: Route) => dispatch({ type: 'route', route }),
+      openSaves: (mode: SavesMode, chapter: ChapterId | null = null) => dispatch({ type: 'route', route: 'saves', savesMode: mode, pendingChapter: chapter }),
+      setTab: (tab: Tab) => dispatch({ type: 'tab', tab }),
+      setSettings: (patch: Partial<Settings>) => dispatch({ type: 'settings', patch }),
+      setPendingSlot: (slot: number | null) => dispatch({ type: 'pendingSlot', slot }),
+      setPendingChapter: (chapter: ChapterId | null) => dispatch({ type: 'pendingChapter', chapter }),
+    }),
+    [],
+  );
+
   const store = useMemo<Store>(
     () => ({
+      ...actions,
       model,
       content,
       lang,
       saves,
       reduceMotion,
-      go: (route) => dispatch({ type: 'route', route }),
       back: () => dispatch({ type: 'back' }),
-      openSaves: (mode, chapter = null) => dispatch({ type: 'route', route: 'saves', savesMode: mode, pendingChapter: chapter }),
-      setTab: (tab) => dispatch({ type: 'tab', tab }),
       update,
       startNewGame,
       loadGame: (slot: number) => loadGame(slot),
@@ -482,15 +495,12 @@ export function GameProvider({
       relayTakeOver,
       closeGame,
       resetAll,
-      setSettings: (patch) => dispatch({ type: 'settings', patch }),
-      setPendingSlot: (slot) => dispatch({ type: 'pendingSlot', slot }),
       dismissRecap: () => dispatch({ type: 'recap', value: false }),
       dismissUnlocked: () => dispatch({ type: 'dismissUnlocked' }),
-      setPendingChapter: (chapter) => dispatch({ type: 'pendingChapter', chapter }),
       startFromChapter,
       feedback,
     }),
-    [model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, restoreBeforeRelay, relayTakeOver, startFromChapter, closeGame, resetAll, feedback],
+    [actions, model, content, lang, saves, reduceMotion, update, startNewGame, loadGame, restoreBeforeRelay, relayTakeOver, startFromChapter, closeGame, resetAll, feedback],
   );
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;

@@ -218,7 +218,8 @@ const hasFfmpeg = (() => {
 })();
 
 describe.skipIf(!hasFfmpeg)('fichiers audio livrés', () => {
-  const files = existsSync(AUDIO) ? readdirSync(AUDIO).filter((f) => f.endsWith('.m4a')) : [];
+  // Les boucles d'ambiance (la bande-son de l'introduction, qui n'est pas une boucle, a ses propres tests : intro.test.ts).
+  const files = existsSync(AUDIO) ? readdirSync(AUDIO).filter((f) => f.endsWith('.m4a') && f !== 'intro.m4a') : [];
   it('les 8 pistes sont là', () => {
     expect(files.sort()).toEqual(['barrage.m4a', 'carrieres.m4a', 'combat.m4a', 'ecluse.m4a', 'faubourgs.m4a', 'marais.m4a', 'port.m4a', 'ville.m4a']);
   });

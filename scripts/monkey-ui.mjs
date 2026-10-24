@@ -27,7 +27,16 @@ const VIEWPORTS = [
 /** Départs en pleine partie (vrais écrans, état de maquette, stockage en mémoire) : le hasard seul passe rarement la création. */
 const STARTS = [null, 'story', 'combat', 'boss', 'inventory', 'character', 'map', 'workshop', 'relay', 'death', 'archives', 'story-check', 'pause', 'chapter-end', 'ending'];
 
-const { server, url } = await serve({ '/': join(ROOT, 'dist') });
+// MONKEY_DIST : autre export (ex. export de développement) ; MONKEY_DEV=1 : relève aussi les avertissements
+// du mode développement (ceux qu'Expo Go affiche) et le texte placé hors d'un composant <Text>.
+const DIST = process.env.MONKEY_DIST ?? join(ROOT, 'dist');
+const DEV = process.env.MONKEY_DEV === '1';
+/** Bruit propre au navigateur ou au serveur statique, sans équivalent sur iPhone. */
+const WEB_ONLY = [/WebSocket connection to/, /push token changes is not yet fully supported on web/, /React does not recognize the `%s` prop.*accessibilityElementsHidden/, /Unknown event handler property `%s`.*onResponder|Unknown event handler property `%s`.*onStartShouldSetResponder/, /cannot be a descendant of|cannot contain a nested/,
+  // Propriétés natives valides (iOS/Android) que react-native-web ne transmet pas au DOM.
+  /React does not recognize the `%s` prop.*importantForAccessibility/, /non-boolean attribute `%s`.*collapsable/];
+const devWarnings = new Map();
+const { server, url } = await serve({ '/': DIST });
 const browser = await launch();
 const problems = [];
 const screens = new Map();
@@ -49,8 +58,16 @@ for (let session = 0; session < SESSIONS; session += 1) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(`exception : ${e.message}`));
   page.on('console', (m) => {
-    // Avertissement connu et sans effet : expo-notifications ne gère pas les jetons push sur le web.
-    if (m.type() === 'error') errors.push(`console : ${m.text().slice(0, 200)}`);
+    const text = m.text().replace(/\s+/g, ' ');
+    if (DEV) {
+      if (m.type() !== 'error' && m.type() !== 'warning') return;
+      if (WEB_ONLY.some((re) => re.test(text))) return;
+      // Le message et ses arguments (nom de la propriété en cause), pas la pile.
+      const k = text.replace(/ at .*$/, '').replace(/If you .*?instead\. ?/g, '').slice(0, 260);
+      devWarnings.set(k, (devWarnings.get(k) ?? 0) + 1);
+      return;
+    }
+    if (m.type() === 'error') errors.push(`console : ${text.slice(0, 200)}`);
   });
   const T0 = Date.parse('2026-10-20T10:00:00Z');
   await page.clock.install({ time: T0 });
@@ -126,6 +143,19 @@ for (let session = 0; session < SESSIONS; session += 1) {
         lastLog,
       );
       if (state.text.length < 15) problems.push({ session, e, kind: 'écran vide', detail: lastLog });
+      if (DEV) {
+        // Sur iPhone, un texte hors de <Text> fait planter l'écran (« Text strings must be rendered within a <Text> component ») ; le web, lui, l'affiche.
+        const raw = await page.evaluate(() => {
+          const out = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            const p = n.parentElement;
+            if (n.textContent.trim() && p && /\bcss-view-/.test(p.className || '')) out.push(n.textContent.trim().slice(0, 40));
+          }
+          return out;
+        });
+        for (const r of raw) problems.push({ session, e, kind: 'texte hors <Text>', detail: `« ${r} » (après ${lastLog})` });
+      }
       screens.set(state.title, (screens.get(state.title) ?? 0) + 1);
     } catch (err) {
       problems.push({ session, e, kind: 'page figée ou fermée', detail: `${lastLog} — ${err.message}` });
@@ -145,6 +175,11 @@ console.log(`${total} événements, ${screens.size} écrans différents visités
 console.log(`Boutons : ${pressedButtons.size} libellés différents touchés sur ${seenButtons.size} vus`);
 if (process.env.MONKEY_LIST) console.log('Jamais touchés :', [...seenButtons].filter((b) => !pressedButtons.has(b)).join(' | '));
 console.log('Écrans les plus vus :', [...screens].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, v]) => `${k} (${v})`).join(' · '));
+if (DEV) {
+  console.log(`Avertissements du mode développement (hors bruit propre au web) : ${devWarnings.size}`);
+  for (const [k, n] of devWarnings) console.log(`  ⚠ ×${n} ${k}`);
+  if (devWarnings.size) process.exitCode = 1;
+}
 if (!problems.length) console.log('Aucun problème détecté.');
 else {
   const byKind = new Map();

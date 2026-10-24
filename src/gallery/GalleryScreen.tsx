@@ -6,7 +6,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { AppRouter } from '../AppRouter';
+import type { ScreenProps } from '../AppRouter';
 import { CONTENT } from '../content';
 import { SaveManager, slotKey } from '../persistence/saves';
 import { serialize } from '../persistence/schema';
@@ -45,7 +45,10 @@ function PhoneFrame({ children, width }: { children: React.ReactNode; width: num
 }
 
 /** Chaque maquette dispose de ses propres sauvegardes, en mémoire et jetables. */
-function MockupPreview({ mockup }: { mockup: Mockup }) {
+/** Le routeur est fourni par l'appelant : l'importer ici créerait un cycle AppRouter ↔ galerie. */
+export type RouterComponent = React.ComponentType<{ screenProps?: ScreenProps }>;
+
+function MockupPreview({ mockup, Router }: { mockup: Mockup; Router: RouterComponent }) {
   const [saves] = useState(() => {
     const storage = new MemoryStorage();
     // Une partie en cours, pour que l'écran titre montre « Continuer ».
@@ -54,12 +57,12 @@ function MockupPreview({ mockup }: { mockup: Mockup }) {
   });
   return (
     <GameProvider saves={saves} initial={mockup.model}>
-      <AppRouter screenProps={mockup.screenProps} />
+      <Router screenProps={mockup.screenProps} />
     </GameProvider>
   );
 }
 
-export function GalleryScreen() {
+export function GalleryScreen({ Router }: { Router: RouterComponent }) {
   const { back } = useStore();
   const t = useT();
   const mockups = useMemo(() => buildMockups(), []);
@@ -87,7 +90,7 @@ export function GalleryScreen() {
         <PhoneFrame width={Math.max(220, frameWidth)}>
           <SafeAreaInsetsContext.Provider value={FAKE_INSETS}>
             <ModalModeContext.Provider value="inline">
-              <MockupPreview key={m.id} mockup={m} />
+              <MockupPreview key={m.id} mockup={m} Router={Router} />
             </ModalModeContext.Provider>
           </SafeAreaInsetsContext.Provider>
         </PhoneFrame>
