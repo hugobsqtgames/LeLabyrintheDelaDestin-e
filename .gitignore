@@ -47,3 +47,4 @@ promo/out/
 
 # Cinématique : rendus intermédiaires et images de contrôle (régénérables)
 cinematic/out/
+__pycache__/
